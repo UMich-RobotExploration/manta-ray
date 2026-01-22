@@ -20,6 +20,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <array>
 
 // This define must be set before including the header if you're using the DLL
 // version on Windows, and it must NOT be set if you're using the static library
@@ -55,8 +56,8 @@ void FlatBoundary3D(
 {
     Boundary.dirty     = true;
     Boundary.rangeInKm = true;
-    Boundary.NPts[0]   = (int)GridX.size();
-    Boundary.NPts[1]   = (int)GridY.size();
+    Boundary.NPts[0]   = static_cast<int>(GridX.size());
+    Boundary.NPts[1]   = static_cast<int>(GridY.size());
 
     for(auto iy = 0; iy < GridY.size(); ++iy) {
         for(auto ix = 0; ix < GridX.size(); ++ix) {
@@ -96,11 +97,12 @@ int main()
     init.outputCallback = OutputCallback;
     init.prtCallback    = PrtCallback;
 
+    init.numThreads = -3;
     bhc::setup(init, params, outputs);
 
     strcpy(params.Title, "library province test");
 
-    strcpy(params.Beam->RunType, "IG   3");
+    strcpy(params.Beam->RunType, "R");
 
     // awkward -- freq0 and freqVec are both used and not coordinated.
     params.freqinfo->freq0      = 100.0;
@@ -166,14 +168,18 @@ int main()
     bhc::extsetup_sz(params, 1);
     params.Pos->Sx[0] = 0.0f;
     params.Pos->Sy[0] = 0.0f;
-    params.Pos->Sz[0] = 50.0f;
+    params.Pos->Sz[0] = 10.0f;
 
     // disk of receivers
     params.Pos->RrInKm = true;
     bhc::extsetup_rcvrbearings(params, 181);
     SetupVector(params.Pos->theta, 0.0, 360.0, 181);
-    bhc::extsetup_rcvrranges(params, 1001);
-    SetupVector(params.Pos->Rr, 0.0, 15.0, 1001);
+    // bhc::extsetup_rcvrranges(params, 1001);
+    // SetupVector(params.Pos->Rr, 0.0, 15.0, 1001);
+    // WARN: So setup requires us to prespecify a number and the iterate thorugh the array
+    // and apply the numbers. It is not take a vector as an argument
+    bhc::extsetup_rcvrranges(params,1);
+    params.Pos->Rr[0] = 5.0;
     bhc::extsetup_rcvrdepths(params, 1);
     params.Pos->Rz[0] = 100.0;
 
@@ -183,7 +189,7 @@ int main()
     bhc::extsetup_raybearings(params, 144);
     SetupVector(params.Angles->beta.angles, 0.0, 360.0, 144);
     bhc::extsetup_rayelevations(params, 200);
-    SetupVector(params.Angles->alpha.angles, -14.66, 20.0, 200);
+    SetupVector(params.Angles->alpha.angles, -10.0, 10.0, 200);
 
     params.Beam->rangeInKm = true;
     params.Beam->deltas    = 0.0;

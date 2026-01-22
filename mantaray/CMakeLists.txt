@@ -4,14 +4,14 @@ project(mantaray LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(TARGET_NAME "mantaray_core")
+set(TARGET_NAME mantaray_core)
 
 add_subdirectory(src)
 
 find_library(BELLHPCXXLIB NAMES libbellhopcxxlib.so PATHS ${CMAKE_SOURCE_DIR}/deps/lib)
 if (BELLHPCXXLIB)
     message(STATUS "Found Bell HPCXX library: ${BELLHPCXXLIB}")
-    target_link_libraries(TARGET_NAME PRIVATE ${BELLHPCXXLIB})
+    target_link_libraries(${TARGET_NAME} PRIVATE ${BELLHPCXXLIB})
 else()
     message(FATAL_ERROR "Could not find Bell HPCXX library!")
 endif()
