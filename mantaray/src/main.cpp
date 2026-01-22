@@ -37,6 +37,8 @@ int main()
     init.outputCallback = OutputCallback;
     init.prtCallback    = PrtCallback;
 
+    auto angles = bhc::AnglesStructure();
+    angles.alpha =
     bhc::setup(init, params, outputs);
     bhc::echo(params);
     bhc::run(params, outputs);
@@ -48,18 +50,17 @@ int main()
         }
         std::cout << "\n";
     }
-    /*
-    std::cout << "\n" << outputs.rayinfo->NRays << " rays:\n";
+
+    std::cout << "\n" << "Number of rays:" << outputs.rayinfo->NRays << "\n";
     for(int r=0; r<outputs.rayinfo->NRays; ++r){
         std::cout << "\nRay " << r
             << ", " << outputs.rayinfo->results[r].Nsteps
             << "steps, SrcDeclAngle = " << outputs.rayinfo->results[r].SrcDeclAngle
             << ":\n";
-        for(int s=0; s<outputs.rayinfo->results[r].Nsteps; ++s){
-            std::cout << outputs.rayinfo->results[r].ray[s] << "\n";
-        }
+        // for(int s=0; s<outputs.rayinfo->results[r].Nsteps; ++s){
+        //     std::cout << outputs.rayinfo->results[r].ray[s].x << "\n";
+        // }
     }
-    */
 
     bhc::finalize(params, outputs);
     return 0;
