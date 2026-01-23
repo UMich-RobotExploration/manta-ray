@@ -27,6 +27,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 // version on Windows. If you're not on Windows, it doesn't matter either way.
 #define BHC_DLL_IMPORT 1
 #include <bhc/bhc.hpp>
+#include <Eigen/Dense>
+#include <manif/manif.h>
 
 // Test for the province code.
 // Should match the provinces test in the source matlab.
@@ -95,6 +97,26 @@ int main() {
 
   init.numThreads = -3;
   bhc::setup(init, params, outputs);
+
+  // EIGEN TEST & MANIF TEST
+  auto state = manif::SE3d::Identity();
+  std::cout << "State before " << state.translation() << '\n';
+  std::cout << "State before " << state.rotation().eulerAngles(2,1,0)<< '\n';
+  Eigen::Vector3d v;
+  Eigen::Vector3d omega;
+  v.setZero();
+  omega.setZero();
+  v[0] = 1;
+  omega[0] = 1;
+  omega[1] = 1;
+  manif::SE3Tangentd xi;
+  double dt = .1;
+  xi << v * dt, omega * dt;
+  state = state + xi;
+  std::cout << "State before " << state.translation() << '\n';
+  std::cout << "State before " << state.rotation().eulerAngles(2,1,0)<< '\n';
+
+
 
   strcpy(params.Title, "library province test");
 

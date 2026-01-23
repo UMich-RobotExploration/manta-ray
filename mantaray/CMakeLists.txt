@@ -16,3 +16,8 @@ else()
     message(FATAL_ERROR "Could not find Bell HPCXX library!")
 endif()
 
+find_package(Eigen3 REQUIRED)
+target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
+
+find_package(manif REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})
