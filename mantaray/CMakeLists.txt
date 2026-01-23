@@ -8,7 +8,7 @@ set(TARGET_NAME mantaray_core)
 
 add_subdirectory(src)
 
-find_library(BELLHPCXXLIB NAMES libbellhopcxxlib.so PATHS ${CMAKE_SOURCE_DIR}/deps/lib)
+find_library(BELLHPCXXLIB NAMES libbellhopcudalib.so PATHS ${CMAKE_SOURCE_DIR}/deps/lib)
 if (BELLHPCXXLIB)
     message(STATUS "Found Bell HPCXX library: ${BELLHPCXXLIB}")
     target_link_libraries(${TARGET_NAME} PRIVATE ${BELLHPCXXLIB})

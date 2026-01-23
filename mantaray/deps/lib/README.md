@@ -1,0 +1,1 @@
+Location for `libbellhopcudalib.so` and `libbellhopcxxlib.so` with current CMAKE's

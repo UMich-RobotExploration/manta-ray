@@ -1,6 +1,6 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
-        main.cpp)
+        province.cpp)
 
 # Add the bellhopcuda include directory to the project
 target_include_directories(${TARGET_NAME} PRIVATE

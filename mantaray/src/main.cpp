@@ -85,19 +85,19 @@ int main()
     // bhc::writeout(params, outputs, "background_ray");
 
     // IMPORTANT: Access to ray info through iteration
-    std::cout << "\n" << outputs.rayinfo->NRays << " rays:\n";
-    for(int r=0; r<outputs.rayinfo->NRays; ++r){
-        std::cout << "\nRay " << r
-            << ", " << outputs.rayinfo->results[r].Nsteps
-            << "steps, SrcDeclAngle = " << outputs.rayinfo->results[r].SrcDeclAngle
-            << ":\n";
-        for(int s=0; s<outputs.rayinfo->results[r].Nsteps; ++s){
-            auto curr_ray = &outputs.rayinfo->results[r].ray[s];
-            std::cout << curr_ray->tau << "\n";
-            // can access individual ray coordinates if we want here
-            std::cout << "(" << curr_ray->x.r << "," << curr_ray->x.y << ")" << "\n";
-        }
-    }
+    // std::cout << "\n" << outputs.rayinfo->NRays << " rays:\n";
+    // for(int r=0; r<outputs.rayinfo->NRays; ++r){
+    //     std::cout << "\nRay " << r
+    //         << ", " << outputs.rayinfo->results[r].Nsteps
+    //         << "steps, SrcDeclAngle = " << outputs.rayinfo->results[r].SrcDeclAngle
+    //         << ":\n";
+    //     for(int s=0; s<outputs.rayinfo->results[r].Nsteps; ++s){
+    //         auto curr_ray = &outputs.rayinfo->results[r].ray[s];
+    //         std::cout << curr_ray->tau << "\n";
+    //         // can access individual ray coordinates if we want here
+    //         std::cout << "(" << curr_ray->x.r << "," << curr_ray->x.y << ")" << "\n";
+    //     }
+    // }
 
     bhc::finalize(params, outputs);
     return 0;

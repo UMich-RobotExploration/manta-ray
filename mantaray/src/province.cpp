@@ -186,16 +186,17 @@ int main()
     // source beams
     params.Angles->alpha.inDegrees = true;
     params.Angles->beta.inDegrees  = true;
-    bhc::extsetup_raybearings(params, 144);
-    SetupVector(params.Angles->beta.angles, 0.0, 360.0, 144);
-    bhc::extsetup_rayelevations(params, 200);
-    SetupVector(params.Angles->alpha.angles, -10.0, 10.0, 200);
+
+    bhc::extsetup_raybearings(params, 700);
+    SetupVector(params.Angles->beta.angles, 0.0, 360.0, 700);
+    bhc::extsetup_rayelevations(params, 50);
+    SetupVector(params.Angles->alpha.angles, -10.0, 10.0, 50);
 
     params.Beam->rangeInKm = true;
-    params.Beam->deltas    = 0.0;
+    params.Beam->deltas    = 0;
     params.Beam->Box.x     = 9.99;
     params.Beam->Box.y     = 9.99;
-    params.Beam->Box.z     = 20500.0;
+    params.Beam->Box.z     = 2050.0;
 
     bhc::echo(params);
     bhc::run(params, outputs);
@@ -204,7 +205,7 @@ int main()
     bhc::writeenv(params, "test_province");
 
     // save the shd file for external use
-    bhc::writeout(params, outputs, "test_province");
+    // bhc::writeout(params, outputs, "test_province");
 
     bhc::finalize(params, outputs);
     return 0;
