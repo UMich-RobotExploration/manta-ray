@@ -2,9 +2,16 @@
 add_executable(${TARGET_NAME}
         province.cpp)
 
+set(INCLUDE_BHC ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/include/)
+set(INCLUDE_GLM ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/glm/)
 # Add the bellhopcuda include directory to the project
 target_include_directories(${TARGET_NAME} PRIVATE
-        ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/include/)
+        ${INCLUDE_BHC})
 target_include_directories(${TARGET_NAME} PRIVATE
-        ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/glm/)
+        ${INCLUDE_GLM})
+
+add_subdirectory(acoustics/)
+
+# Link the acoustics library to the main target
+target_link_libraries(${TARGET_NAME} PRIVATE ACOUSTICS)
 

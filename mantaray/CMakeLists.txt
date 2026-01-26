@@ -12,6 +12,7 @@ find_library(BELLHPCXXLIB NAMES libbellhopcudalib.so PATHS ${CMAKE_SOURCE_DIR}/d
 if (BELLHPCXXLIB)
     message(STATUS "Found Bell HPCXX library: ${BELLHPCXXLIB}")
     target_link_libraries(${TARGET_NAME} PRIVATE ${BELLHPCXXLIB})
+#    target_link_libraries(ACOUSTICS PRIVATE ${BELLHPCXXLIB})
 else()
     message(FATAL_ERROR "Could not find Bell HPCXX library!")
 endif()

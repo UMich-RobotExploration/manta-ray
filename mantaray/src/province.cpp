@@ -29,7 +29,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <bhc/bhc.hpp>
 #include <Eigen/Dense>
 #include <manif/manif.h>
-
+#include "acoustics/Arrival.h"
 // Test for the province code.
 // Should match the provinces test in the source matlab.
 // Also an example for how to run transmission loss in
@@ -224,6 +224,7 @@ int main() {
 
   // save the shd file for external use
   // bhc::writeout(params, outputs, "test_province");
+  acoustics::Arrival(params,(outputs.arrinfo));
 
   bhc::finalize(params, outputs);
   return 0;
