@@ -264,3 +264,6 @@ mantaray/deps/lib/libbellhopcudalib.so
 mantaray/deps/lib/libbellhopcudalib.so
 mantaray/deps/lib/libbellhopcudastatic.a
 mantaray/deps/lib/libbellhopcxxlib.so
+
+*/.idea
+mantaray/.idea
