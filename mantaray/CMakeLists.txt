@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(TARGET_NAME mantaray_core)
+# TODO: DISABLE THIS FOR RELEASE BUILDS
+# Enable debugging symbols and disable optimizations for debugging
+set(CMAKE_BUILD_TYPE Debug)
+
+# Add any extra flags you want (optional)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
 add_subdirectory(src)
 
@@ -22,3 +28,6 @@ target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
 
 find_package(manif REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})
+# Optionally, you can also specify CXX flags specifically for debugging
+# If you want extra debug options, you could also do something like:
+ target_compile_options(${TARGET_NAME} PRIVATE "-g" "-O0")

@@ -96,7 +96,7 @@ int main() {
   init.outputCallback = OutputCallback;
   init.prtCallback = PrtCallback;
 
-  init.numThreads = -3;
+  // init.numThreads = 3;
   bhc::setup(init, params, outputs);
 
 
@@ -176,8 +176,8 @@ int main() {
   params.Pos->RrInKm = true;
   bhc::extsetup_rcvrbearings(params, 2);
   SetupVector(params.Pos->theta, 0.0, 10.0, 2);
-  bhc::extsetup_rcvrranges(params, 10);
-  SetupVector(params.Pos->Rr, 1.0, 10.0, 10);
+  bhc::extsetup_rcvrranges(params, 2);
+  SetupVector(params.Pos->Rr, 9.0, 10.0, 2);
   // WARN: So setup requires us to prespecify a number and the iterate thorugh
   // the array and apply the numbers. It is not take a vector as an argument
   bhc::extsetup_rcvrdepths(params, 1);
@@ -205,11 +205,17 @@ int main() {
   bhc::writeenv(params, "test_province");
   // strcpy(params.Beam->RunType, "A");
   // bhc::run(params, outputs);
+  bhc::postprocess(params, outputs);
 
   // save the shd file for external use
   // bhc::writeout(params, outputs, "test_province");
   acoustics::Arrival arrival = acoustics::Arrival(&params,(outputs.arrinfo));
-  arrival.extractEarliestArrivals();
+  try{
+    arrival.extractEarliestArrivals();
+  } catch (const std::runtime_error& e) {
+    std::cerr << "Error during arrival extraction: " << e.what() << std::endl;
+  }
+
 
 
 
