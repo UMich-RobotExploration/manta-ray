@@ -1,0 +1,10 @@
+[project]
+name = "pymantaray"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "arlpy>=1.9.1",
+    "matplotlib>=3.10.8",
+]
