@@ -107,7 +107,7 @@ int main() {
   strcpy(params.Beam->RunType, "A");
 
   // awkward -- freq0 and freqVec are both used and not coordinated.
-  params.freqinfo->freq0 = 100.0;
+  params.freqinfo->freq0 = 1000.0;
   params.freqinfo->freqVec[0] = params.freqinfo->freq0;
 
   // flat sound speed
@@ -173,11 +173,11 @@ int main() {
   params.Pos->Sz[0] = 10.0f;
 
   // disk of receivers
-  params.Pos->RrInKm = false;
+  params.Pos->RrInKm = true;
   bhc::extsetup_rcvrbearings(params, 2);
   SetupVector(params.Pos->theta, 0.0, 10.0, 2);
   bhc::extsetup_rcvrranges(params, 10);
-  SetupVector(params.Pos->Rr, 10.0, 100.0, 10);
+  SetupVector(params.Pos->Rr, 1.0, 10.0, 10);
   // WARN: So setup requires us to prespecify a number and the iterate thorugh
   // the array and apply the numbers. It is not take a vector as an argument
   bhc::extsetup_rcvrdepths(params, 1);
@@ -188,7 +188,7 @@ int main() {
   params.Angles->beta.inDegrees = true;
 
   bhc::extsetup_raybearings(params, 700);
-  SetupVector(params.Angles->beta.angles, 0.0, 360.0, 700);
+  SetupVector(params.Angles->beta.angles, -5.0, 15.0, 700);
   bhc::extsetup_rayelevations(params, 50);
   SetupVector(params.Angles->alpha.angles, -10.0, 10.0, 50);
 
@@ -207,7 +207,7 @@ int main() {
   // bhc::run(params, outputs);
 
   // save the shd file for external use
-  bhc::writeout(params, outputs, "test_province");
+  // bhc::writeout(params, outputs, "test_province");
   acoustics::Arrival arrival = acoustics::Arrival(&params,(outputs.arrinfo));
   arrival.extractEarliestArrivals();
 

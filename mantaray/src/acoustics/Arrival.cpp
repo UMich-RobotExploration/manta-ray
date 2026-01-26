@@ -80,6 +80,10 @@ void Arrival::extractEarliestArrivals() {
                 int32_t arrayIdx = base * arrivalInfo->MaxNArr + iArr;
                 bhc::Arrival *arr = &arrivalInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
+                if (delay < 0) {
+                  throw std::runtime_error(
+                      "Negative arrival delay encountered, invalid data");
+                }
                 if (delay <= minDelay) {
                   minDelay = delay;
                 }
