@@ -11,10 +11,12 @@
 namespace acoustics {
   class Arrival {
   public:
-    Arrival(bhc::bhcParams<true>& in_params, bhc::ArrInfo* arrival_info);
+    Arrival(bhc::bhcParams<true>* in_params, bhc::ArrInfo* arrival_info);
+    void extractEarliestArrivals();
   private:
-    const bhc::bhcParams<true>& bhcParams;
+    const bhc::bhcParams<true>* bhcParams;
     bhc::ArrInfo* arrivalInfo;
+
   };
 } // namespace acoustics
 
