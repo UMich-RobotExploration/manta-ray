@@ -75,9 +75,6 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               int32_t narr = arrivalInfo->NArr[base];
               // Iterating over Individual Ray arrival times
               float minDelay = std::numeric_limits<float>::max();
-              if (narr == 0) {
-                minDelay = -1.0f;
-              }
               for (size_t iArr = 0; iArr < narr; ++iArr) {
                 const size_t arrayIdx = base * arrivalInfo->MaxNArr + iArr;
 
