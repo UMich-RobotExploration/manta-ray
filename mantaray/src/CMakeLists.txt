@@ -1,6 +1,6 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
-        default_province.cpp)
+        main.cpp)
 
 set(INCLUDE_BHC ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/include/)
 set(INCLUDE_GLM ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/glm/)

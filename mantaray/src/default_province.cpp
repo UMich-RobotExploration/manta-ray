@@ -169,8 +169,8 @@ int main() {
 
   // disk of receivers
   bhContext.params().Pos->RrInKm = true;
-  bhc::extsetup_rcvrbearings(bhContext.params(), 2);
-  SetupVector(bhContext.params().Pos->theta, 2.0, 10.0, 2);
+  bhc::extsetup_rcvrbearings(bhContext.params(), 5);
+  SetupVector(bhContext.params().Pos->theta, 2.0, 10.0, 5);
   bhc::extsetup_rcvrranges(bhContext.params(), 2);
   SetupVector(bhContext.params().Pos->Rr, 10.0, 15.0, 2);
   bhc::extsetup_rcvrdepths(bhContext.params(), 1);
@@ -180,7 +180,7 @@ int main() {
   bhContext.params().Angles->alpha.inDegrees = true;
   bhContext.params().Angles->beta.inDegrees = true;
   bhc::extsetup_raybearings(bhContext.params(), 144);
-  SetupVector(bhContext.params().Angles->beta.angles, 0.0, 10.0, 144);
+  SetupVector(bhContext.params().Angles->beta.angles, 0.0, 12.0, 144);
   bhc::extsetup_rayelevations(bhContext.params(), 200);
   SetupVector(bhContext.params().Angles->alpha.angles, -14.66, 20.0, 200);
 
@@ -199,8 +199,7 @@ int main() {
   // save the shd file for external use
   bhc::writeout(bhContext.params(), bhContext.outputs(), "test_province");
 
-  auto arrivals =
-      acoustics::Arrival(bhContext.params(), bhContext.outputs().arrinfo);
+  auto arrivals = acoustics::Arrival(bhContext.params(), bhContext.outputs());
   arrivals.extractEarliestArrivals();
 
   return 0;

@@ -4,6 +4,8 @@
 #pragma once
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
+#include <iomanip>
+#include <iostream>
 #include <vector>
 
 #ifndef MANTARAY_ARRIVAL_H
@@ -12,14 +14,16 @@
 namespace acoustics {
 class Arrival {
 public:
-  Arrival(bhc::bhcParams<true> &in_params, bhc::ArrInfo *arrival_info);
+  Arrival(bhc::bhcParams<true> &in_params,
+          bhc::bhcOutputs<true, true> &outputs);
   std::vector<float> extractEarliestArrivals();
 
 private:
-  const bhc::bhcParams<true> &bhcParams;
-  bhc::ArrInfo *arrivalInfo;
-  void printReceiverInfo(const bhc::Position *Pos, int32_t ir, int32_t iz,
-                         int32_t itheta);
+  const bhc::bhcParams<true> &inputs;
+  bhc::bhcOutputs<true, true> &outputs;
+  bhc::ArrInfo *arrInfo;
+  static void printReceiverInfo(const bhc::Position *Pos, int32_t ir,
+                                int32_t iz, int32_t itheta);
 };
 } // namespace acoustics
 

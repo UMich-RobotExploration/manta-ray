@@ -4,9 +4,6 @@
 
 #include "Arrival.h"
 
-#include "../../deps/bellhopcuda/src/common.hpp"
-#include <iostream>
-
 namespace acoustics {
 template <typename T> void printVector(const std::vector<T> &vec) {
   std::cout << "[ ";
@@ -16,24 +13,47 @@ template <typename T> void printVector(const std::vector<T> &vec) {
   std::cout << "]" << std::endl;
 }
 
-Arrival::Arrival(bhc::bhcParams<true> &in_params, bhc::ArrInfo *arrival_info)
-    : bhcParams(in_params), arrivalInfo(arrival_info) {
-  if (!arrivalInfo) {
+// Calculate the flattened index for the 6D ArrInfo arrays
+// Code taken directly from Bellhopcuda source common.hpp as they don't expose
+// this WARN: DO NOT CHANGE
+inline size_t GetFieldAddr(int32_t isx, int32_t isy, int32_t isz,
+                           int32_t itheta, int32_t id, int32_t ir,
+                           const bhc::Position *Pos) {
+  // clang-format off
+  return (((((size_t)isz
+      * (size_t)Pos->NSx + (size_t)isx)
+      * (size_t)Pos->NSy + (size_t)isy)
+      * (size_t)Pos->Ntheta + (size_t)itheta)
+      * (size_t)Pos->NRz_per_range + (size_t)id)
+      * (size_t)Pos->NRr + (size_t)ir;
+  // clang-format on
+}
+
+Arrival::Arrival(bhc::bhcParams<true> &in_params,
+                 bhc::bhcOutputs<true, true> &outputs)
+    : inputs(in_params), outputs(outputs) {
+  if (!outputs.arrinfo) {
     throw std::invalid_argument("Arrival received null pointer to ArrInfo");
   }
-  if (!bhcParams.Pos) {
+  this->arrInfo = outputs.arrinfo;
+  if (!inputs.Pos) {
     throw std::invalid_argument(
         "Arrival.extractEarliestArrivals received null pointer to Position");
   }
 
   // Check critical arrivalInfo members
-  if (!arrivalInfo->NArr) {
+  if (!arrInfo->NArr) {
     throw std::invalid_argument(
         "Arrival.extractEarliestArrivals received null pointer to NArr");
   }
-  if (!arrivalInfo->Arr) {
+  if (!arrInfo->Arr) {
     throw std::invalid_argument(
         "Arrival.extractEarliestArrivals received null pointer to Arr");
+  }
+  // guarding for more than one source, don't support this
+  if (inputs.Pos->NSx > 1 || inputs.Pos->NSy > 1 || inputs.Pos->NSz > 1) {
+    throw std::invalid_argument(
+        "Arrival.extractEarliestArrivals only supports single source");
   }
 }
 
@@ -49,34 +69,28 @@ void Arrival::printReceiverInfo(const bhc::Position *Pos, int32_t ir,
 }
 
 std::vector<float> Arrival::extractEarliestArrivals() {
-  const bhc::Position *Pos = bhcParams.Pos;
+  const bhc::Position *Pos = inputs.Pos;
 
-  // Iterating through sources
-  int32_t arrPrint[6] = {Pos->NSz,    Pos->NSx,           Pos->NSy,
-                         Pos->Ntheta, Pos->NRz_per_range, Pos->NRr};
-  for (int i = 0; i < 6; ++i) {
-    std::cout << arrPrint[i] << ",";
-  }
-  std::cout << "\n";
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
     for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
       for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
+        std::vector<float> arrivalDelays;
+        arrivalDelays.reserve(Pos->NRr);
+
         // Now iterating through receiver points
         for (int32_t itheta = 0; itheta < Pos->Ntheta; ++itheta) {
           for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
-            std::vector<float> arrivalDelays;
-            arrivalDelays.reserve(Pos->NRr);
             for (int32_t ir = 0; ir < Pos->NRr; ++ir) {
-              size_t base =
-                  bhc::GetFieldAddr(isx, isy, isz, itheta, iz, ir, Pos);
-              // gives us number of arrays we can iterate over
-              int32_t narr = arrivalInfo->NArr[base];
+              size_t base = GetFieldAddr(isx, isy, isz, itheta, iz, ir, Pos);
+              // gives us number of rays we can iterate over
+              int32_t narr = arrInfo->NArr[base];
               // Iterating over Individual Ray arrival times
               float minDelay = std::numeric_limits<float>::max();
-              for (size_t iArr = 0; iArr < narr; ++iArr) {
-                const size_t arrayIdx = base * arrivalInfo->MaxNArr + iArr;
 
-                bhc::Arrival *arr = &arrivalInfo->Arr[arrayIdx];
+              for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
+                const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
+
+                bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
                 std::cout << "Arrival Delay: " << std::setprecision(10) << delay
                           << "\n";
@@ -88,13 +102,13 @@ std::vector<float> Arrival::extractEarliestArrivals() {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
                 }
-                if (delay <= minDelay) {
-                  minDelay = delay;
-                }
+                minDelay = std::min(delay, minDelay);
               }
-              arrivalDelays.push_back(minDelay);
-              printVector(arrivalDelays);
-              std::cout << "Min Delay for Receiver: " << minDelay << "\n";
+              if (narr != 0) {
+                arrivalDelays.emplace_back(minDelay);
+                printVector(arrivalDelays);
+                std::cout << "Min Delay for Receiver: " << minDelay << "\n";
+              }
             }
           }
         }
