@@ -1,0 +1,4 @@
+clang-analyzer-*,
+bugprone-*,
+modernize-*,
+performance-*

@@ -13,5 +13,5 @@ target_include_directories(${TARGET_NAME} PRIVATE
 add_subdirectory(acoustics/)
 
 # Link the acoustics library to the main target
-target_link_libraries(${TARGET_NAME} PRIVATE ACOUSTICS)
+target_link_libraries(${TARGET_NAME} PRIVATE ${ACOUSTIC_LIB_NAME})
 
