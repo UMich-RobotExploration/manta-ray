@@ -54,10 +54,10 @@ std::vector<float> Arrival::extractEarliestArrivals() {
   const bhc::Position *Pos = bhcParams.Pos;
 
   // Iterating through sources
-  int32_t arr[6] = {Pos->NSz,    Pos->NSx,           Pos->NSy,
+  int32_t arrPrint[6] = {Pos->NSz,    Pos->NSx,           Pos->NSy,
                    Pos->Ntheta, Pos->NRz_per_range, Pos->NRr};
   for (int i =0; i<6; ++i) {
-    std::cout << arr[i] << ",";
+    std::cout << arrPrint[i] << ",";
   }
   std::cout << "\n";
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
