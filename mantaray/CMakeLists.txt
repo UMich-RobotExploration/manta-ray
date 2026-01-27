@@ -20,10 +20,10 @@ find_library(BELLHPCXXLIB NAMES libbellhopcxxlib.so PATHS ${CMAKE_SOURCE_DIR}/de
 if (BELLHPCXXLIB)
     message(STATUS "Found Bell HPCXX library: ${BELLHPCXXLIB}")
     target_link_libraries(${ACOUSTIC_LIB_NAME} PUBLIC ${BELLHPCXXLIB})
-#    target_link_libraries(ACOUSTICS PRIVATE ${BELLHPCXXLIB})
-else()
+    #    target_link_libraries(ACOUSTICS PRIVATE ${BELLHPCXXLIB})
+else ()
     message(FATAL_ERROR "Could not find Bell HPCXX library!")
-endif()
+endif ()
 
 find_package(Eigen3 REQUIRED)
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)

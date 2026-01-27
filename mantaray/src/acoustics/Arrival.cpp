@@ -8,15 +8,13 @@
 #include <iostream>
 
 namespace acoustics {
-template <typename T>
-void printVector(const std::vector<T>& vec) {
+template <typename T> void printVector(const std::vector<T> &vec) {
   std::cout << "[ ";
-  for (const auto& element : vec) {
+  for (const auto &element : vec) {
     std::cout << element << " ";
   }
   std::cout << "]" << std::endl;
 }
-
 
 Arrival::Arrival(bhc::bhcParams<true> &in_params, bhc::ArrInfo *arrival_info)
     : bhcParams(in_params), arrivalInfo(arrival_info) {
@@ -55,8 +53,8 @@ std::vector<float> Arrival::extractEarliestArrivals() {
 
   // Iterating through sources
   int32_t arrPrint[6] = {Pos->NSz,    Pos->NSx,           Pos->NSy,
-                   Pos->Ntheta, Pos->NRz_per_range, Pos->NRr};
-  for (int i =0; i<6; ++i) {
+                         Pos->Ntheta, Pos->NRz_per_range, Pos->NRr};
+  for (int i = 0; i < 6; ++i) {
     std::cout << arrPrint[i] << ",";
   }
   std::cout << "\n";
@@ -80,7 +78,8 @@ std::vector<float> Arrival::extractEarliestArrivals() {
 
                 bhc::Arrival *arr = &arrivalInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                std::cout << "Arrival Delay: " << std::setprecision(10) << delay << "\n";
+                std::cout << "Arrival Delay: " << std::setprecision(10) << delay
+                          << "\n";
                 std::cout << isz << "," << isx << "," << isy << "," << itheta
                           << "," << iz << "," << ir << "," << iArr << "\n";
                 if (delay < 0) {
