@@ -27,6 +27,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #define BHC_DLL_IMPORT 1
 #include <bhc/bhc.hpp>
 #include "acoustics/Arrival.h"
+#include "acoustics/BhHandler.h"
 
 // Test for the province code.
 // Should match the provinces test in the source matlab.
@@ -90,120 +91,118 @@ int GetProvince(int ix, int iy)
 
 int main()
 {
-    bhc::bhcParams<true> params;
-    bhc::bhcOutputs<true, true> outputs;
+    // bhc::bhcParams<true> params;
+    // bhc::bhcOutputs<true, true> outputs;
     bhc::bhcInit init;
     init.FileRoot       = nullptr;
     init.outputCallback = OutputCallback;
     init.prtCallback    = PrtCallback;
 
-    bhc::setup(init, params, outputs);
+    auto bhContext = acoustics::BhContext<true, true>(init);
+    strcpy(bhContext.params().Title, "library province test");
 
-    strcpy(params.Title, "library province test");
-
-    strcpy(params.Beam->RunType, "A");
+    strcpy(bhContext.params().Beam->RunType, "A");
 
     // awkward -- freq0 and freqVec are both used and not coordinated.
-    params.freqinfo->freq0      = 100.0;
-    params.freqinfo->freqVec[0] = params.freqinfo->freq0;
+    bhContext.params().freqinfo->freq0      = 100.0;
+    bhContext.params().freqinfo->freqVec[0] = bhContext.params().freqinfo->freq0;
 
     // flat sound speed
-    params.ssp->NPts = 3;
-    params.ssp->Nz   = 3;
-    params.ssp->z[0] = 0.0;
-    params.ssp->z[1] = 100.0;
-    params.ssp->z[2] = 20000.0;
+    bhContext.params().ssp->NPts = 3;
+    bhContext.params().ssp->Nz   = 3;
+    bhContext.params().ssp->z[0] = 0.0;
+    bhContext.params().ssp->z[1] = 100.0;
+    bhContext.params().ssp->z[2] = 20000.0;
     for(int32_t i = 0; i < 3; ++i) {
-        params.ssp->alphaR[i] = 1500.0;
-        params.ssp->alphaI[i] = 0.0;
-        params.ssp->rho[i]    = 1.0;
-        params.ssp->betaR[i]  = 0.0;
-        params.ssp->betaI[i]  = 0.0;
+        bhContext.params().ssp->alphaR[i] = 1500.0;
+        bhContext.params().ssp->alphaI[i] = 0.0;
+        bhContext.params().ssp->rho[i]    = 1.0;
+        bhContext.params().ssp->betaR[i]  = 0.0;
+        bhContext.params().ssp->betaI[i]  = 0.0;
     }
-    params.ssp->dirty = true;
+    bhContext.params().ssp->dirty = true;
 
-    // bottom params, mostly overridden, but makes the output file.
-    memcpy(params.Bdry->Bot.hs.Opt, "A~    ", 6);
-    params.Bdry->Bot.hs.bc     = 'A';
-    params.Bdry->Bot.hsx.Sigma = 0.0;
-    params.Bdry->Bot.hsx.zTemp = 20000.0;
-    params.Bdry->Bot.hs.alphaR = 1600.0;
-    params.Bdry->Bot.hs.betaR  = 0.0;
-    params.Bdry->Bot.hs.rho    = 1.8;
-    params.Bdry->Bot.hs.alphaI = 0.8;
-    params.Bdry->Bot.hs.betaI  = 0.0;
-    params.Bdry->Bot.hs.Depth  = 20000.0;
+    // bottom bhContext.params(), mostly overridden, but makes the output file.
+    memcpy(bhContext.params().Bdry->Bot.hs.Opt, "A~    ", 6);
+    bhContext.params().Bdry->Bot.hs.bc     = 'A';
+    bhContext.params().Bdry->Bot.hsx.Sigma = 0.0;
+    bhContext.params().Bdry->Bot.hsx.zTemp = 20000.0;
+    bhContext.params().Bdry->Bot.hs.alphaR = 1600.0;
+    bhContext.params().Bdry->Bot.hs.betaR  = 0.0;
+    bhContext.params().Bdry->Bot.hs.rho    = 1.8;
+    bhContext.params().Bdry->Bot.hs.alphaI = 0.8;
+    bhContext.params().Bdry->Bot.hs.betaI  = 0.0;
+    bhContext.params().Bdry->Bot.hs.Depth  = 20000.0;
 
     // flat top and bottom, variable bottom sound speed
-    bhc::extsetup_altimetry(params, {2, 2});
-    FlatBoundary3D(params.bdinfo->top, 0.0, {-10.0, 10.0}, {-10.0, 10.0});
-    bhc::extsetup_bathymetry(params, {11, 21}, 5);
+    bhc::extsetup_altimetry(bhContext.params(), {2, 2});
+    FlatBoundary3D(bhContext.params().bdinfo->top, 0.0, {-10.0, 10.0}, {-10.0, 10.0});
+    bhc::extsetup_bathymetry(bhContext.params(), {11, 21}, 5);
     FlatBoundary3D(
-        params.bdinfo->bot, 100.0,
+        bhContext.params().bdinfo->bot, 100.0,
         {-10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0},
         {-10.0, -9.0, -8.0, -7.0, -6.0, -5.0, -4.0, -3.0, -2.0, -1.0, 0.0,
          1.0,   2.0,  3.0,  4.0,  5.0,  6.0,  7.0,  8.0,  9.0,  10.0});
     for(int ix = 0; ix < 11; ++ix) {
         for(int iy = 0; iy < 21; ++iy) {
-            params.bdinfo->bot.bd[ix * 21 + iy].Province = GetProvince(ix, iy);
+            bhContext.params().bdinfo->bot.bd[ix * 21 + iy].Province = GetProvince(ix, iy);
         }
     }
     int cnt = 0;
     for(auto spd : {1500.0, 1550.0, 1600.0, 1650.0, 1650.0}) {
-        params.bdinfo->bot.BotProv[cnt].alphaR = spd;
-        params.bdinfo->bot.BotProv[cnt].betaR  = 0.0;
-        params.bdinfo->bot.BotProv[cnt].rho    = 1.8;
-        params.bdinfo->bot.BotProv[cnt].alphaI = 0.8;
-        params.bdinfo->bot.BotProv[cnt].betaI  = 0.0;
+        bhContext.params().bdinfo->bot.BotProv[cnt].alphaR = spd;
+        bhContext.params().bdinfo->bot.BotProv[cnt].betaR  = 0.0;
+        bhContext.params().bdinfo->bot.BotProv[cnt].rho    = 1.8;
+        bhContext.params().bdinfo->bot.BotProv[cnt].alphaI = 0.8;
+        bhContext.params().bdinfo->bot.BotProv[cnt].betaI  = 0.0;
         ++cnt;
     }
-    memcpy(params.bdinfo->bot.type, "RL", 2);
+    memcpy(bhContext.params().bdinfo->bot.type, "RL", 2);
 
-    params.bdinfo->top.dirty = true;
-    params.bdinfo->bot.dirty = true;
+    bhContext.params().bdinfo->top.dirty = true;
+    bhContext.params().bdinfo->bot.dirty = true;
 
     // one source
-    bhc::extsetup_sxsy(params, 1, 1);
-    bhc::extsetup_sz(params, 1);
-    params.Pos->Sx[0] = 0.0f;
-    params.Pos->Sy[0] = 0.0f;
-    params.Pos->Sz[0] = 50.0f;
+    bhc::extsetup_sxsy(bhContext.params(), 1, 1);
+    bhc::extsetup_sz(bhContext.params(), 1);
+    bhContext.params().Pos->Sx[0] = 0.0f;
+    bhContext.params().Pos->Sy[0] = 0.0f;
+    bhContext.params().Pos->Sz[0] = 50.0f;
 
     // disk of receivers
-    params.Pos->RrInKm = true;
-    bhc::extsetup_rcvrbearings(params, 2);
-    SetupVector(params.Pos->theta, 2.0, 10.0, 2);
-    bhc::extsetup_rcvrranges(params, 2);
-    SetupVector(params.Pos->Rr, 10.0, 15.0, 2);
-    bhc::extsetup_rcvrdepths(params, 1);
-    params.Pos->Rz[0] = 100.0;
+    bhContext.params().Pos->RrInKm = true;
+    bhc::extsetup_rcvrbearings(bhContext.params(), 2);
+    SetupVector(bhContext.params().Pos->theta, 2.0, 10.0, 2);
+    bhc::extsetup_rcvrranges(bhContext.params(), 2);
+    SetupVector(bhContext.params().Pos->Rr, 10.0, 15.0, 2);
+    bhc::extsetup_rcvrdepths(bhContext.params(), 1);
+    bhContext.params().Pos->Rz[0] = 100.0;
 
     // source beams
-    params.Angles->alpha.inDegrees = true;
-    params.Angles->beta.inDegrees  = true;
-    bhc::extsetup_raybearings(params, 144);
-    SetupVector(params.Angles->beta.angles, 0.0, 10.0, 144);
-    bhc::extsetup_rayelevations(params, 200);
-    SetupVector(params.Angles->alpha.angles, -14.66, 20.0, 200);
+    bhContext.params().Angles->alpha.inDegrees = true;
+    bhContext.params().Angles->beta.inDegrees  = true;
+    bhc::extsetup_raybearings(bhContext.params(), 144);
+    SetupVector(bhContext.params().Angles->beta.angles, 0.0, 10.0, 144);
+    bhc::extsetup_rayelevations(bhContext.params(), 200);
+    SetupVector(bhContext.params().Angles->alpha.angles, -14.66, 20.0, 200);
 
-    params.Beam->rangeInKm = true;
-    params.Beam->deltas    = 0.0;
-    params.Beam->Box.x     = 9.99;
-    params.Beam->Box.y     = 9.99;
-    params.Beam->Box.z     = 20500.0;
+    bhContext.params().Beam->rangeInKm = true;
+    bhContext.params().Beam->deltas    = 0.0;
+    bhContext.params().Beam->Box.x     = 9.99;
+    bhContext.params().Beam->Box.y     = 9.99;
+    bhContext.params().Beam->Box.z     = 20500.0;
 
-    bhc::echo(params);
-    bhc::run(params, outputs);
+    bhc::echo(bhContext.params());
+    bhc::run(bhContext.params(), bhContext.outputs());
 
     // generate the .env and associated files
-    bhc::writeenv(params, "test_province");
+    bhc::writeenv(bhContext.params(), "test_province");
 
     // save the shd file for external use
-    bhc::writeout(params, outputs, "test_province");
+    bhc::writeout(bhContext.params(), bhContext.outputs(), "test_province");
 
-    auto arrivals = acoustics::Arrival(params, outputs.arrinfo);
+    auto arrivals = acoustics::Arrival(bhContext.params(), bhContext.outputs().arrinfo);
     arrivals.extractEarliestArrivals();
 
-    bhc::finalize(params, outputs);
     return 0;
 }

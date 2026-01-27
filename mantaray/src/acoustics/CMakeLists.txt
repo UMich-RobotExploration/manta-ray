@@ -1,4 +1,5 @@
-add_library(${ACOUSTIC_LIB_NAME} Arrival.cpp Arrival.h)
+add_library(${ACOUSTIC_LIB_NAME} Arrival.cpp Arrival.h
+        BhHandler.h)
 
 # Link the bellhop library to acoustics
 target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${INCLUDE_BHC})
