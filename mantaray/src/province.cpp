@@ -26,10 +26,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 // version on Windows, and it must NOT be set if you're using the static library
 // version on Windows. If you're not on Windows, it doesn't matter either way.
 #define BHC_DLL_IMPORT 1
-#include <bhc/bhc.hpp>
-#include <Eigen/Dense>
-#include <manif/manif.h>
 
+#include "acoustics/Arrival.h"
+#include <Eigen/Dense>
+#include <bhc/bhc.hpp>
+#include <manif/manif.h>
 // Test for the province code.
 // Should match the provinces test in the source matlab.
 // Also an example for how to run transmission loss in
@@ -95,35 +96,18 @@ int main() {
   init.outputCallback = OutputCallback;
   init.prtCallback = PrtCallback;
 
-  init.numThreads = -3;
+  // init.numThreads = 3;
   bhc::setup(init, params, outputs);
 
-  // EIGEN TEST & MANIF TEST
-  auto state = manif::SE3d::Identity();
-  std::cout << "State before " << state.translation() << '\n';
-  std::cout << "State before " << state.rotation().eulerAngles(2,1,0)<< '\n';
-  Eigen::Vector3d v;
-  Eigen::Vector3d omega;
-  v.setZero();
-  omega.setZero();
-  v[0] = 1;
-  omega[0] = 1;
-  omega[1] = 1;
-  manif::SE3Tangentd xi;
-  double dt = .1;
-  xi << v * dt, omega * dt;
-  state = state + xi;
-  std::cout << "State before " << state.translation() << '\n';
-  std::cout << "State before " << state.rotation().eulerAngles(2,1,0)<< '\n';
 
 
 
   strcpy(params.Title, "library province test");
 
-  strcpy(params.Beam->RunType, "R");
+  strcpy(params.Beam->RunType, "A");
 
   // awkward -- freq0 and freqVec are both used and not coordinated.
-  params.freqinfo->freq0 = 100.0;
+  params.freqinfo->freq0 = 1000.0;
   params.freqinfo->freqVec[0] = params.freqinfo->freq0;
 
   // flat sound speed
@@ -190,23 +174,21 @@ int main() {
 
   // disk of receivers
   params.Pos->RrInKm = true;
-  bhc::extsetup_rcvrbearings(params, 181);
-  SetupVector(params.Pos->theta, 0.0, 360.0, 181);
-  // bhc::extsetup_rcvrranges(params, 1001);
-  // SetupVector(params.Pos->Rr, 0.0, 15.0, 1001);
+  bhc::extsetup_rcvrbearings(params, 2);
+  SetupVector(params.Pos->theta, 0.0, 10.0, 2);
+  bhc::extsetup_rcvrranges(params, 2);
+  SetupVector(params.Pos->Rr, 9.0, 10.0, 2);
   // WARN: So setup requires us to prespecify a number and the iterate thorugh
   // the array and apply the numbers. It is not take a vector as an argument
-  bhc::extsetup_rcvrranges(params, 1);
-  params.Pos->Rr[0] = 5.0;
   bhc::extsetup_rcvrdepths(params, 1);
-  params.Pos->Rz[0] = 100.0;
+  params.Pos->Rz[0] = 10.0;
 
   // source beams
   params.Angles->alpha.inDegrees = true;
   params.Angles->beta.inDegrees = true;
 
   bhc::extsetup_raybearings(params, 700);
-  SetupVector(params.Angles->beta.angles, 0.0, 360.0, 700);
+  SetupVector(params.Angles->beta.angles, -5.0, 15.0, 700);
   bhc::extsetup_rayelevations(params, 50);
   SetupVector(params.Angles->alpha.angles, -10.0, 10.0, 50);
 
@@ -221,10 +203,22 @@ int main() {
 
   // generate the .env and associated files
   bhc::writeenv(params, "test_province");
+  // strcpy(params.Beam->RunType, "A");
+  // bhc::run(params, outputs);
+  bhc::postprocess(params, outputs);
 
   // save the shd file for external use
   // bhc::writeout(params, outputs, "test_province");
+  acoustics::Arrival arrival = acoustics::Arrival(&params,(outputs.arrinfo));
+  try{
+    arrival.extractEarliestArrivals();
+  } catch (const std::runtime_error& e) {
+    std::cerr << "Error during arrival extraction: " << e.what() << std::endl;
+  }
+
+
+
+
 
   bhc::finalize(params, outputs);
-  return 0;
 }

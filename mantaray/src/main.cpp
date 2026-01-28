@@ -4,99 +4,75 @@
 #include <iostream>
 
 #define BHC_DLL_IMPORT 1
+#include "acoustics/Arrival.h"
+#include "acoustics/BhHandler.h"
 #include <bhc/bhc.hpp>
+#include <filesystem>
 
-void OutputCallback(const char *message) {
-  std::cout << "Out: " << message << std::endl << std::flush;
+// Helper to setup vectors from ranges. No checking.
+template <class T> void SetupVector(T *arr, T low, T high, int size) {
+  for (int i = 0; i < size; ++i) {
+    arr[i] = low + double(i) / double(size - 1) * (high - low);
+  }
 }
 
 void PrtCallback(const char *message) { std::cout << message << std::flush; }
 
-// Detect when the threads all complete control.
-std::atomic<bool> going;
-void CompletedCallback() {
-  std::cout << "CompletedCallback called.\n" << std::flush;
-  going = false;
-}
-/*
-std::ostream& operator<<(std::ostream& out, const bhc::rayPt<false>& x) {
-    out << x.NumTopBnc << " "
-        << x.NumBotBnc << " "
-        << x.x.x << " " << x.x.y << " "
-        << x.t.x << " " << x.t.y << " "
-        << x.p.x << " " << x.p.y << " "
-        << x.q.x << " " << x.q.y << " "
-        << x.c << " "
-        << x.Amp << " " << x.Phase << " "
-        << x.tau;
-    return out;
-}
-*/
-std::ostream &operator<<(std::ostream &out, const bhc::cpxf &x) {
-  out << "(" << x.real() << ", " << x.imag() << ")";
-  return out;
-}
-
 int main() {
-  bhc::bhcParams<false> params;
-  bhc::bhcOutputs<false, false> outputs;
-  bhc::bhcInit init;
+  auto init = bhc::bhcInit();
+
+  std::cout << "Current path is " << std::filesystem::current_path()
+            << std::endl;
+  // init.FileRoot = "manual";
   init.FileRoot = nullptr;
-  init.outputCallback = OutputCallback;
-  init.prtCallback = PrtCallback;
-  init.completedCallback = CompletedCallback;
-
-  bhc::setup(init, params, outputs);
-
-  // setup the beam and bounds
-  // strcpy(params.Beam->RunType, "RG   3");
-  strcpy(params.Beam->RunType, "R");
-  params.Beam->rangeInKm = true;
-  params.Beam->deltas = 1.01;
-  params.Beam->Box.x = 20.0;
-
-  // receivers for TL, mostly ignored in ray mode
-  int num_receivers = 5;
-  bhc::extsetup_rcvrranges(params, num_receivers);
-  bhc::extsetup_rcvrdepths(params, 1);
-  params.Pos->RrInKm = true;
-  for (int i = 0; i < num_receivers; ++i) {
-    params.Pos->Rr[i] = float(i + 1) / 10.0f;
+  auto context = acoustics::BhContext<true, true>(init);
+  strcpy(context.params().Beam->RunType, "A");
+  bhc::extsetup_ssp_hexahedral(context.params(), 10, 10, 10);
+  context.params().ssp->Nx = 10;
+  context.params().ssp->Ny = 10;
+  context.params().ssp->Nz = 10;
+  context.params().ssp->NPts = 10;
+  context.params().ssp->rangeInKm = true;
+  // coords in params.ssp->Seg.x, .y, .z, and the speeds
+  // * in params.ssp->cMat[(x*Ny+y)*Nz+z].
+  for (auto i = 0; i < 10; ++i) {
+    context.params().ssp->Seg.x[i] =
+        -10.0 + static_cast<float>(i) / 10.0 * 20.0;
+    context.params().ssp->Seg.y[i] =
+        -10.0 + static_cast<float>(i) / 10.0 * 20.0;
+    context.params().ssp->Seg.z[i] = 0.0 + static_cast<float>(i) / 10.0 * 20.0;
+    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 10.0 * 20.0;
   }
-
-  int num_rays = 10;
-  bhc::extsetup_rayelevations(params, num_rays);
-  params.Angles->alpha.inDegrees = true;
-  for (int i = 0; i < num_rays; ++i) {
-    params.Angles->alpha.angles[i] = -60 + 120 * double(i) / double(num_rays);
+  for (auto i = 0; i < 10; ++i) {
+    for (auto j = 0; j < 10; ++j) {
+      for (auto k = 0; k < 10; ++k) {
+        context.params().ssp->cMat[(i * 10 + j) * 10 + k] = 1500.0;
+      }
+    }
   }
-  bhc::echo(params);
+  //  After writing your SSP, make sure params.Bdry->Top.hs.Depth (nominal
+  //  surface depth, normally zero) is equal to ssp->Seg.z[0], and
+  //  params.Bdry->Bot.hs.Depth (nominal ocean bottom depth) is equal to
+  //  ssp->Seg.z[Nz-1].
+  context.params().Bdry->Top.hs.Depth = context.params().ssp->Seg.z[0];
+  context.params().Bdry->Bot.hs.Depth = context.params().ssp->Seg.z[10 - 1];
 
-  bhc::run(params, outputs);
+  context.params().ssp->dirty = true;
 
-  std::cout << "Post processing: " << bhc::postprocess(params, outputs) << "\n";
+  std::cout << "Run type: " << context.params().Beam->RunType << "\n";
+  std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
+  std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
+  try {
+    bhc::echo(context.params());
+  } catch (const std::exception &e) {
+    std::cerr << "Error during echo: " << e.what() << std::endl;
+    return 1;
+  }
+  bhc::run(context.params(), context.outputs());
+  // auto arrival = acoustics::Arrival(context.params(), context.outputs());
+  // arrival.extractEarliestArrivals();
 
-  bhc::writeenv(params, "background_ray");
-  // bhc::writeout(params, outputs, "background_ray");
+  bhc::writeout(context.params(), context.outputs(), "manual_mod");
 
-  // TODO: Uncomment for printing rays
-  // IMPORTANT: Access to ray info through iteration
-  // std::cout << "\n" << outputs.rayinfo->NRays << " rays:\n";
-  // for(int r=0; r<outputs.rayinfo->NRays; ++r){
-  //     std::cout << "\nRay " << r
-  //         << ", " << outputs.rayinfo->results[r].Nsteps
-  //         << "steps, SrcDeclAngle = " <<
-  //         outputs.rayinfo->results[r].SrcDeclAngle
-  //         << ":\n";
-  //     for(int s=0; s<outputs.rayinfo->results[r].Nsteps; ++s){
-  //         auto curr_ray = &outputs.rayinfo->results[r].ray[s];
-  //         std::cout << curr_ray->tau << "\n";
-  //         // can access individual ray coordinates if we want here
-  //         std::cout << "(" << curr_ray->x.r << "," << curr_ray->x.y << ")" <<
-  //         "\n";
-  //     }
-  // }
-
-  bhc::finalize(params, outputs);
   return 0;
 }
