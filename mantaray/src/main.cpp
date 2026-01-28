@@ -7,6 +7,9 @@
 #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
+#include "acoustics/helpers.h"
+#include "acoustics/simControls.h"
+
 #include <bhc/bhc.hpp>
 #include <filesystem>
 
@@ -18,6 +21,9 @@ template <class T> void SetupVector(T *arr, T low, T high, int size) {
 }
 
 void PrtCallback(const char *message) { std::cout << message << std::flush; }
+void OutputCallback(const char *message) {
+  std::cout << "Out: " << message << std::endl << std::flush;
+}
 
 void FlatBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
                     const std::vector<double> &GridX,
@@ -48,7 +54,7 @@ void QuadBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
       Boundary.bd[ix * GridY.size() + iy].x.x = GridX[ix];
       Boundary.bd[ix * GridY.size() + iy].x.y = GridY[iy];
       Boundary.bd[ix * GridY.size() + iy].x.z =
-          Depth - std::pow(GridX[ix] / 10, 2.0) - std::pow(GridY[iy] / 10, 2.0);
+          Depth - std::pow(GridX[ix], 2.0) - std::pow(GridY[iy], 2.0);
       // PROVINCE IS 1 INDEXED
       Boundary.bd[ix * GridY.size() + iy].Province = 1;
     }
@@ -62,9 +68,58 @@ int main() {
             << std::endl;
   // init.FileRoot = "manual";
   init.FileRoot = nullptr;
+  init.prtCallback = PrtCallback;
+  init.outputCallback = OutputCallback;
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "A");
+  strcpy(context.params().Beam->RunType, "R");
   strcpy(context.params().Title, "testing_bath");
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Bathymetry Setup
+  //////////////////////////////////////////////////////////////////////////////
+
+  const bhc::IORI2<true> grid = {100, 100};
+  const int32_t nBottomProvince = 1;
+  bhc::extsetup_bathymetry(context.params(), grid, nBottomProvince);
+  const double depth = 500;
+  std::vector<double> gridX = acoustics::linspace<double>(-10, 10, grid[0]);
+  std::vector<double> gridY = acoustics::linspace<double>(-10, 10, grid[1]);
+  QuadBoundary3D(context.params().bdinfo->bot, depth, gridX, gridY);
+  memcpy(context.params().bdinfo->bot.type,
+         acoustics::kBathymetryInterpLinearShort,
+         acoustics::kBathymetryBuffSize);
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Top altimetry setup
+  //////////////////////////////////////////////////////////////////////////////
+  bhc::extsetup_altimetry(context.params(), {2, 2});
+  FlatBoundary3D(context.params().bdinfo->top, 0.0, {-10.0, 10.0},
+                 {-10.0, 10.0});
+  memcpy(context.params().bdinfo->top.type,
+         acoustics::kBathymetryInterpLinearShort,
+         acoustics::kBathymetryBuffSize);
+  context.params().bdinfo->top.dirty = true;
+  context.params().bdinfo->bot.dirty = true;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Source / Receivers Setup
+  //////////////////////////////////////////////////////////////////////////////
+  bhc::extsetup_sxsy(context.params(), 1, 1);
+  bhc::extsetup_sz(context.params(), 1);
+  context.params().Pos->SxSyInKm = false;
+  context.params().Pos->Sx[0] = 10.0f;
+  context.params().Pos->Sy[0] = 30.0f;
+  context.params().Pos->Sz[0] = 100.0f;
+
+  // disk of receivers
+  context.params().Pos->RrInKm = false;
+  context.params().Pos->SxSyInKm = false;
+  bhc::extsetup_rcvrbearings(context.params(), 5);
+  SetupVector(context.params().Pos->theta, 2.0, 20.0, 5);
+  bhc::extsetup_rcvrranges(context.params(), 2);
+  SetupVector(context.params().Pos->Rr, 10.0, 300.0, 2);
+  bhc::extsetup_rcvrdepths(context.params(), 1);
+  context.params().Pos->Rz[0] = 50.0;
 
   //////////////////////////////////////////////////////////////////////////////
   // SSP Setup
@@ -83,62 +138,28 @@ int main() {
     context.params().ssp->Seg.y[i] =
         -10.0 + static_cast<float>(i) / 10.0 * 20.0;
     context.params().ssp->Seg.z[i] = 0.0 + static_cast<float>(i) / 10.0 * 20.0;
-    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 10.0 * 10.0;
+    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 10.0 * 1000.0;
   }
   for (auto i = 0; i < 10; ++i) {
     for (auto j = 0; j < 10; ++j) {
       for (auto k = 0; k < 10; ++k) {
-        context.params().ssp->cMat[(i * 10 + j) * 10 + k] = 1500.0;
+        double sspd_scale = (k < 5) ? k : -k * 0.8;
+        context.params().ssp->cMat[(i * 10 + j) * 10 + k] = 1500.0 + sspd_scale;
       }
     }
   }
+  std::cout << "SSP TYPE: " << context.params().ssp->Type << std::endl;
   //  After writing your SSP, make sure params.Bdry->Top.hs.Depth (nominal
   //  surface depth, normally zero) is equal to ssp->Seg.z[0], and
   //  params.Bdry->Bot.hs.Depth (nominal ocean bottom depth) is equal to
   //  ssp->Seg.z[Nz-1].
   context.params().Bdry->Top.hs.Depth = context.params().ssp->Seg.z[0];
-  context.params().Bdry->Bot.hs.Depth = context.params().ssp->Seg.z[10 - 1];
+  context.params().Bdry->Bot.hs.Depth =
+      context.params().ssp->z[context.params().ssp->NPts - 1];
   std::cout << "Maximum depth of SSP Profile "
-            << context.params().ssp->Seg.z[10 - 1] << "\n";
+            << context.params().ssp->z[context.params().ssp->NPts - 1] << "\n";
 
   context.params().ssp->dirty = true;
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Bathymetry Setup
-  //////////////////////////////////////////////////////////////////////////////
-
-  const bhc::IORI2<true> grid = {5, 5};
-  const int32_t nBottomProvince = 1;
-  bhc::extsetup_bathymetry(context.params(), grid, nBottomProvince);
-  const double depth = context.params().ssp->Seg.z[10 - 1];
-  std::vector<double> gridX = {-5, -3, 0, 3, 5};
-  std::vector<double> gridY = {-5, -3, 0, 3, 5};
-  QuadBoundary3D(context.params().bdinfo->bot, depth, gridX, gridY);
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Top altimetry setup
-  //////////////////////////////////////////////////////////////////////////////
-  bhc::extsetup_altimetry(context.params(), {2, 2});
-  FlatBoundary3D(context.params().bdinfo->top, 0.0, {-10.0, 10.0},
-                 {-10.0, 10.0});
-  //////////////////////////////////////////////////////////////////////////////
-  // Source / Receivers Setup
-  //////////////////////////////////////////////////////////////////////////////
-  bhc::extsetup_sxsy(context.params(), 1, 1);
-  bhc::extsetup_sz(context.params(), 1);
-  context.params().Pos->SxSyInKm = false;
-  context.params().Pos->Sx[0] = 0.1f;
-  context.params().Pos->Sy[0] = 0.1f;
-  context.params().Pos->Sz[0] = 10.0f;
-
-  // disk of receivers
-  context.params().Pos->RrInKm = false;
-  bhc::extsetup_rcvrbearings(context.params(), 5);
-  SetupVector(context.params().Pos->theta, 2.0, 20.0, 5);
-  bhc::extsetup_rcvrranges(context.params(), 2);
-  SetupVector(context.params().Pos->Rr, 10.0, 300.0, 2);
-  bhc::extsetup_rcvrdepths(context.params(), 1);
-  context.params().Pos->Rz[0] = 50.0;
 
   //////////////////////////////////////////////////////////////////////////////
   // Beam Setup
@@ -147,16 +168,16 @@ int main() {
   context.params().Angles->beta.inDegrees = true;
   bhc::extsetup_raybearings(context.params(), 144);
   SetupVector(context.params().Angles->beta.angles, 0.0, 12.0, 144);
-  bhc::extsetup_rayelevations(context.params(), 200);
-  SetupVector(context.params().Angles->alpha.angles, -14.66, 20.0, 200);
+  bhc::extsetup_rayelevations(context.params(), 20);
+  SetupVector(context.params().Angles->alpha.angles, -14.66, 20.0, 20);
 
-  context.params().Beam->rangeInKm = false;
+  context.params().Beam->rangeInKm = true;
   // Here we need to define the limit of the beam tracing to prevent exceeding
   // the bathymetry grid and the SSP grid
-  context.params().Beam->deltas = 0.0;
-  context.params().Beam->Box.x = 5.0;
-  context.params().Beam->Box.y = 5.0;
-  context.params().Beam->Box.z = 5.0;
+  context.params().Beam->deltas = 1.0;
+  context.params().Beam->Box.x = 7.0;
+  context.params().Beam->Box.y = 7.0;
+  context.params().Beam->Box.z = 1000.0;
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
@@ -172,7 +193,7 @@ int main() {
   // auto arrival = acoustics::Arrival(context.params(), context.outputs());
   // arrival.extractEarliestArrivals();
 
-  bhc::writeout(context.params(), context.outputs(), "manual_mod");
+  bhc::writeout(context.params(), context.outputs(), "testing_bath");
 
   return 0;
 }
