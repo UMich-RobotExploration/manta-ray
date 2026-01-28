@@ -12,11 +12,13 @@
 #define MANTARAY_ARRIVAL_H
 
 namespace acoustics {
+constexpr float kNoArrival = -1.0f;
 class Arrival {
 public:
   Arrival(bhc::bhcParams<true> &in_params,
           bhc::bhcOutputs<true, true> &outputs);
   std::vector<float> extractEarliestArrivals();
+  size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
 
 private:
   const bhc::bhcParams<true> &inputs;

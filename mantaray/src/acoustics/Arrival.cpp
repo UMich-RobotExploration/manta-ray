@@ -68,15 +68,36 @@ void Arrival::printReceiverInfo(const bhc::Position *Pos, int32_t ir,
             << " degrees\n";
 }
 
+/**
+ * @brief Maps 3D receiver indices to flattened vector index.
+ * @param ir NRr index
+ * @param iz NRz_per_range index
+ * @param itheta Ntheta index
+ * @return index in flattened vector
+ */
+size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
+  return (ir * inputs.Pos->NRz_per_range + iz) * inputs.Pos->Ntheta + itheta;
+}
+
+/**
+ * @brief Find the fastest arrival time for each reciever position.
+ * @details Iterates through all source and receiver positions, checking the
+ * arrival. Utilize getIdx to map 3D receiver indices to flattened vector index.
+ * # TODO: Need to evaluate amplitude here still?
+ *
+ * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
+ * arrivals
+ */
 std::vector<float> Arrival::extractEarliestArrivals() {
   const bhc::Position *Pos = inputs.Pos;
 
+  std::vector<float> arrivalDelays;
+  arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
+  std::cout << "Number of receivers: "
+            << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
     for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
       for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
-        std::vector<float> arrivalDelays;
-        arrivalDelays.reserve(Pos->NRr);
-
         // Now iterating through receiver points
         for (int32_t itheta = 0; itheta < Pos->Ntheta; ++itheta) {
           for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
@@ -87,25 +108,24 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               // Iterating over Individual Ray arrival times
               float minDelay = std::numeric_limits<float>::max();
 
+              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              printReceiverInfo(Pos, ir, iz, itheta);
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
                 bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                std::cout << "Arrival Delay: " << std::setprecision(10) << delay
-                          << "\n";
-                std::cout << isz << "," << isx << "," << isy << "," << itheta
-                          << "," << iz << "," << ir << "," << iArr << "\n";
+                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
+                // delay
+                //           << "\n";
                 if (delay < 0) {
-                  printReceiverInfo(Pos, ir, iz, itheta);
-                  std::cout << "Number of arrivals: " << narr << "\n";
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
                 }
                 minDelay = std::min(delay, minDelay);
               }
               if (narr != 0) {
-                arrivalDelays.emplace_back(minDelay);
+                arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
                 printVector(arrivalDelays);
                 std::cout << "Min Delay for Receiver: " << minDelay << "\n";
               }
@@ -115,8 +135,8 @@ std::vector<float> Arrival::extractEarliestArrivals() {
       }
     }
   }
-  return std::vector<float>{};
 
+  return arrivalDelays;
   /*
    * ArrInfo data structure layout:
    *
