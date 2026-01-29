@@ -1,0 +1,65 @@
+//
+// Created by tko on 1/29/26.
+//
+
+#include "SspBuilder.h"
+
+namespace acoustics {
+
+SspBuilder::SspBuilder(bhc::bhcParams<true> &params) : params_(params) {}
+
+void SspBuilder::setupHexahedral(int nx, int ny, int nz) {
+  bhc::extsetup_ssp_hexahedral(params_, nx, ny, nz);
+  params_.ssp->Nx = nx;
+  params_.ssp->Ny = ny;
+  params_.ssp->Nz = nz;
+  params_.ssp->NPts = nz;
+}
+
+void SspBuilder::setCoordinateGrid(const std::vector<float> &xCoords,
+                                   const std::vector<float> &yCoords,
+                                   const std::vector<float> &zCoords) {
+  // TODO: Add bounds checking
+  for (size_t i = 0; i < xCoords.size(); ++i) {
+    params_.ssp->Seg.x[i] = xCoords[i];
+  }
+  for (size_t i = 0; i < yCoords.size(); ++i) {
+    params_.ssp->Seg.y[i] = yCoords[i];
+  }
+  for (size_t i = 0; i < zCoords.size(); ++i) {
+    params_.ssp->Seg.z[i] = zCoords[i];
+    params_.ssp->z[i] = zCoords[i];
+  }
+}
+
+void SspBuilder::setSoundSpeedMatrix(const std::vector<float> &cMat) {
+  // TODO: Add bounds checking
+  for (size_t i = 0; i < cMat.size(); ++i) {
+    params_.ssp->cMat[i] = cMat[i];
+  }
+}
+
+void SspBuilder::setRangeUnits(bool inKm) { params_.ssp->rangeInKm = inKm; }
+
+void SspBuilder::syncBoundaryDepths() {
+  // Critical synchronization: boundary depths must match SSP depth range
+  params_.Bdry->Top.hs.Depth = params_.ssp->Seg.z[0];
+  params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[params_.ssp->NPts - 1];
+}
+
+void SspBuilder::markDirty() { params_.ssp->dirty = true; }
+
+ValidationResult SspBuilder::validate() const {
+  ValidationResult result;
+
+  // TODO: Implement validation logic
+  // - Check consistent grid dimensions (Nx, Ny, Nz, NPts)
+  // - Check monotonic depth ordering (z coordinates)
+  // - Check sound speeds in realistic range (1400-1600 m/s typically)
+  // - Warn if SSP grid coverage doesn't match boundary extents
+  // - Check that cMat has correct size (Nx*Ny*Nz)
+
+  return result;
+}
+
+} // namespace acoustics
