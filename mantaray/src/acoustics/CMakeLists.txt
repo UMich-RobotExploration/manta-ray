@@ -1,6 +1,6 @@
 add_library(${ACOUSTIC_LIB_NAME} Arrival.cpp Arrival.h
         BhHandler.h
-        simControls.h
+        acousticsConstants.h
         helpers.h)
 
 # Link the bellhop library to acoustics

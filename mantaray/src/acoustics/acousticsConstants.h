@@ -11,6 +11,7 @@ namespace acoustics {
 // Provides types for bathymetry interpolation types
 constexpr char kBathymetryInterpLinearShort[] = "LS";
 constexpr char kBathymetryCurveInterpLinearShort[] = "CS";
-constexpr int kBathymetryBuffSize = 2;
+constexpr size_t kBathymetryBuffSize = 2;
+constexpr size_t kMaxTitle = 80;
 } // namespace acoustics
 #endif // MANTARAY_SIMCONTROLS_H

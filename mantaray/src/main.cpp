@@ -7,8 +7,8 @@
 #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
+#include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
-#include "acoustics/simControls.h"
 
 #include <bhc/bhc.hpp>
 #include <filesystem>
@@ -33,8 +33,8 @@ void FlatBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
   Boundary.NPts[0] = static_cast<int>(GridX.size());
   Boundary.NPts[1] = static_cast<int>(GridY.size());
 
-  for (auto iy = 0; iy < GridY.size(); ++iy) {
-    for (auto ix = 0; ix < GridX.size(); ++ix) {
+  for (size_t iy = 0; iy < GridY.size(); ++iy) {
+    for (size_t ix = 0; ix < GridX.size(); ++ix) {
       Boundary.bd[ix * GridY.size() + iy].x.x = GridX[ix];
       Boundary.bd[ix * GridY.size() + iy].x.y = GridY[iy];
       Boundary.bd[ix * GridY.size() + iy].x.z = Depth;
@@ -49,8 +49,8 @@ void QuadBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
   Boundary.rangeInKm = true;
   Boundary.NPts[0] = static_cast<int>(GridX.size());
   Boundary.NPts[1] = static_cast<int>(GridY.size());
-  for (auto iy = 0; iy < GridY.size(); ++iy) {
-    for (auto ix = 0; ix < GridX.size(); ++ix) {
+  for (size_t iy = 0; iy < GridY.size(); ++iy) {
+    for (size_t ix = 0; ix < GridX.size(); ++ix) {
       Boundary.bd[ix * GridY.size() + iy].x.x = GridX[ix];
       Boundary.bd[ix * GridY.size() + iy].x.y = GridY[iy];
       Boundary.bd[ix * GridY.size() + iy].x.z =
