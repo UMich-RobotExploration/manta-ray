@@ -133,12 +133,10 @@ int main() {
   // coords in params.ssp->Seg.x, .y, .z, and the speeds
   // * in params.ssp->cMat[(x*Ny+y)*Nz+z].
   for (auto i = 0; i < 10; ++i) {
-    context.params().ssp->Seg.x[i] =
-        -10.0 + static_cast<float>(i) / 10.0 * 20.0;
-    context.params().ssp->Seg.y[i] =
-        -10.0 + static_cast<float>(i) / 10.0 * 20.0;
-    context.params().ssp->Seg.z[i] = 0.0 + static_cast<float>(i) / 10.0 * 20.0;
-    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 10.0 * 1000.0;
+    context.params().ssp->Seg.x[i] = -10.0 + static_cast<float>(i) / 9.0 * 20.0;
+    context.params().ssp->Seg.y[i] = -10.0 + static_cast<float>(i) / 9.0 * 20.0;
+    context.params().ssp->Seg.z[i] = 0.0 + static_cast<float>(i) / 9.0 * 1000.0;
+    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 9.0 * 1000.0;
   }
   for (auto i = 0; i < 10; ++i) {
     for (auto j = 0; j < 10; ++j) {
@@ -155,9 +153,7 @@ int main() {
   //  ssp->Seg.z[Nz-1].
   context.params().Bdry->Top.hs.Depth = context.params().ssp->Seg.z[0];
   context.params().Bdry->Bot.hs.Depth =
-      context.params().ssp->z[context.params().ssp->NPts - 1];
-  std::cout << "Maximum depth of SSP Profile "
-            << context.params().ssp->z[context.params().ssp->NPts - 1] << "\n";
+      context.params().ssp->Seg.z[context.params().ssp->NPts - 1];
 
   context.params().ssp->dirty = true;
 
