@@ -119,7 +119,7 @@ struct ValidationResult {
    * }
    * @endcode
    */
-  void addError(const std::string &msg) { errors.push_back(msg); }
+  void addError(const std::string &msg) { errors.emplace_back(msg); }
 
   /**
    * @brief Add a warning message
@@ -133,7 +133,7 @@ struct ValidationResult {
    * }
    * @endcode
    */
-  void addWarning(const std::string &msg) { warnings.push_back(msg); }
+  void addWarning(const std::string &msg) { warnings.emplace_back(msg); }
 
   /**
    * @brief Merge another ValidationResult into this one

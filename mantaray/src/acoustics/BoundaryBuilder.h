@@ -6,8 +6,10 @@
 
 #include "ValidationResult.h"
 #include "helpers.h"
+#include <algorithm>
 #include <bhc/bhc.hpp>
 #include <vector>
+#include <stdexcept>
 
 namespace acoustics {
 
@@ -16,8 +18,8 @@ constexpr char kBathymetryInterpLinearShort[] = "LS";
 constexpr char kBathymetryCurveInterpShort[] = "CS";
 
 enum class BathyInterpolationType {
-  LINEAR,
-  CURVEINTERP,
+  kLinear,
+  kCurveInterp,
 };
 /**
  * @brief Builder class for configuring bathymetry and altimetry boundaries
@@ -63,7 +65,8 @@ public:
    * @param gridY Y-coordinate grid points
    */
   void setQuadraticBottom(double depth, const std::vector<double> &gridX,
-                          const std::vector<double> &gridY);
+                          const std::vector<double> &gridY,
+                          bool autoGenerateTop);
 
   /**
    * @brief Set top boundary (surface) shape using flat profile
@@ -84,13 +87,14 @@ public:
   /**
    * @brief Mark boundaries as dirty to trigger recomputation
    */
-  void markDirty();
+  void markDirty(bool setTop);
 
   /**
    * @brief Validate boundary configuration
    * @return ValidationResult containing any errors or warnings
    */
   ValidationResult validate() const;
+  void assertBoundariesValid();
 
 private:
   bhc::bhcParams<true> &params_;
@@ -108,6 +112,12 @@ private:
   void quadBoundary3D(bhc::BdryInfoTopBot<true> &boundary, double depth,
                       const std::vector<double> &gridX,
                       const std::vector<double> &gridY);
+
+  void assertBoundariesEqual();
+  void assertCornerEq(size_t botX, size_t botY, size_t topX, size_t topY);
 };
+
+size_t getIndex(const bhc::BdryInfoTopBot<true> &boundary, size_t ix,
+                size_t iy);
 
 } // namespace acoustics

@@ -84,23 +84,11 @@ int main() {
   boundaryBuild.setupBathymetry(grid, nBottomProvince);
   const double depth = 500;
   std::vector<double> gridX = acoustics::linspace<double>(-10, 10, grid[0]);
-  std::vector<double> gridY = acoustics::linspace<double>(-10, 10, grid[1]);
-  boundaryBuild.setQuadraticBottom(depth, gridX, gridY);
-  boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::LINEAR,
+  std::vector<double> gridY = acoustics::linspace<double>(-11, 11, grid[1]);
+  boundaryBuild.setQuadraticBottom(depth, gridX, gridY, true);
+  boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::kLinear,
                                      false);
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Top altimetry setup
-  //////////////////////////////////////////////////////////////////////////////
-  boundaryBuild.setupAltimetry({2, 2});
-  boundaryBuild.setFlatTop(0.0, {-10.0, 10.0},
-                 {-10.0, 10.0});
-  boundaryBuild.setInterpolationType(
-    acoustics::BathyInterpolationType::LINEAR,
-    true
-    );
-  context.params().bdinfo->top.dirty = true;
-  context.params().bdinfo->bot.dirty = true;
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
