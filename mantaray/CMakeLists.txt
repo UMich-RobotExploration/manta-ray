@@ -12,7 +12,7 @@ set(ACOUSTIC_LIB_NAME acoustics)
 set(CMAKE_BUILD_TYPE Debug)
 # For santizing builds -fsanitize=undefined
 set(MY_DEBUG_OPTIONS "-Wall;-Wextra;-Wpedantic;-g;-O0")
-
+set (EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
 
 add_subdirectory(src)
 
@@ -25,11 +25,12 @@ else ()
     message(FATAL_ERROR "Could not find Bell HPCXX library!")
 endif ()
 
-find_package(Eigen3 REQUIRED)
-target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
+#find_package(Eigen3 REQUIRED)
+#target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
+target_include_directories(${TARGET_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
 
-find_package(manif REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})
+#find_package(manif REQUIRED)
+#target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})
 # Optionally, you can also specify CXX flags specifically for debugging
 # If you want extra debug options, you could also do something like:
 #target_compile_options(${TARGET_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${MY_DEBUG_OPTIONS}>")
