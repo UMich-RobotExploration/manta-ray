@@ -38,12 +38,17 @@ void BoundaryBuilder::setFlatTop(double depth, const std::vector<double> &gridX,
   flatBoundary3D(params_.bdinfo->top, depth, gridX, gridY);
 }
 
-void BoundaryBuilder::setBottomInterpolationType(const char *type) {
-  memcpy(params_.bdinfo->bot.type, type, kBathymetryBuffSize);
-}
+void BoundaryBuilder::setInterpolationType(BathyInterpolationType interpType,
+                                           bool setTop) {
+  bhc::BdryInfoTopBot<true> &boundary =
+      setTop ? params_.bdinfo->top : params_.bdinfo->bot;
 
-void BoundaryBuilder::setTopInterpolationType(const char *type) {
-  memcpy(params_.bdinfo->top.type, type, kBathymetryBuffSize);
+  switch (interpType) {
+  case BathyInterpolationType::LINEAR:
+    memcpy(boundary.type, kBathymetryInterpLinearShort, kBathymetryBuffSize);
+  case BathyInterpolationType::CURVEINTERP:
+    memcpy(boundary.type, kBathymetryCurveInterpShort, kBathymetryBuffSize);
+  }
 }
 
 void BoundaryBuilder::markDirty() {

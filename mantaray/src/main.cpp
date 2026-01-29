@@ -7,6 +7,7 @@
 #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
+#include "acoustics/BoundaryBuilder.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -77,27 +78,27 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   // Bathymetry Setup
   //////////////////////////////////////////////////////////////////////////////
-
+  auto boundaryBuild = acoustics::BoundaryBuilder(context.params());
   const bhc::IORI2<true> grid = {100, 100};
   const int32_t nBottomProvince = 1;
-  bhc::extsetup_bathymetry(context.params(), grid, nBottomProvince);
+  boundaryBuild.setupBathymetry(grid, nBottomProvince);
   const double depth = 500;
   std::vector<double> gridX = acoustics::linspace<double>(-10, 10, grid[0]);
   std::vector<double> gridY = acoustics::linspace<double>(-10, 10, grid[1]);
-  QuadBoundary3D(context.params().bdinfo->bot, depth, gridX, gridY);
-  memcpy(context.params().bdinfo->bot.type,
-         acoustics::kBathymetryInterpLinearShort,
-         acoustics::kBathymetryBuffSize);
+  boundaryBuild.setQuadraticBottom(depth, gridX, gridY);
+  boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::LINEAR,
+                                     false);
 
   //////////////////////////////////////////////////////////////////////////////
   // Top altimetry setup
   //////////////////////////////////////////////////////////////////////////////
-  bhc::extsetup_altimetry(context.params(), {2, 2});
-  FlatBoundary3D(context.params().bdinfo->top, 0.0, {-10.0, 10.0},
+  boundaryBuild.setupAltimetry({2, 2});
+  boundaryBuild.setFlatTop(0.0, {-10.0, 10.0},
                  {-10.0, 10.0});
-  memcpy(context.params().bdinfo->top.type,
-         acoustics::kBathymetryInterpLinearShort,
-         acoustics::kBathymetryBuffSize);
+  boundaryBuild.setInterpolationType(
+    acoustics::BathyInterpolationType::LINEAR,
+    true
+    );
   context.params().bdinfo->top.dirty = true;
   context.params().bdinfo->bot.dirty = true;
 

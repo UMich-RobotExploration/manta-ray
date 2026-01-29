@@ -11,6 +11,14 @@
 
 namespace acoustics {
 
+// Provides types for bathymetry interpolation types
+constexpr char kBathymetryInterpLinearShort[] = "LS";
+constexpr char kBathymetryCurveInterpShort[] = "CS";
+
+enum class BathyInterpolationType {
+  LINEAR,
+  CURVEINTERP,
+};
 /**
  * @brief Builder class for configuring bathymetry and altimetry boundaries
  *
@@ -67,16 +75,11 @@ public:
                   const std::vector<double> &gridY);
 
   /**
-   * @brief Set interpolation type for bottom boundary
-   * @param type Interpolation type string (e.g., "LS" for linear short)
+   * @brief Set interpolation type for boundary
+   * @param interpType Interpolation enum
+   * @param setTop true sets top, false sets bottom
    */
-  void setBottomInterpolationType(const char *type);
-
-  /**
-   * @brief Set interpolation type for top boundary
-   * @param type Interpolation type string (e.g., "LS" for linear short)
-   */
-  void setTopInterpolationType(const char *type);
+  void setInterpolationType(BathyInterpolationType interpType, bool setTop);
 
   /**
    * @brief Mark boundaries as dirty to trigger recomputation
