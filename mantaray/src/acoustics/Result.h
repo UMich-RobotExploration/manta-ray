@@ -12,6 +12,7 @@ enum class ErrorCode {
 };
 
 enum class WarningCode {
+  NotImplementedCheck,
   Unknown
 };
 
@@ -43,24 +44,25 @@ struct Result {
     warnings.clear();
   }
 
-  void print(std::ostream &os = std::cout) const {
+  std::ostream& print(std::ostream &os = std::cout) const {
     if (hasErrors()) {
-      os << "=== ERRORS ===" << std::endl;
+      os << "=== ERRORS ===" << "\n";
       for (size_t i = 0; i < errors.size(); ++i) {
-        os << "  [ERROR " << (i + 1) << "] " << errors[i] << std::endl;
+        os << "  [ERROR " << (i + 1) << "] " << errors[i] << "\n";
       }
     }
 
     if (hasWarnings()) {
-      os << "=== WARNINGS ===" << std::endl;
+      os << "=== WARNINGS ===" << "\n";
       for (size_t i = 0; i < warnings.size(); ++i) {
-        os << "  [WARNING " << (i + 1) << "] " << warnings[i] << std::endl;
+        os << "  [WARNING " << (i + 1) << "] " << warnings[i] << "\n";
       }
     }
 
     if (!hasErrors() && !hasWarnings()) {
-      os << "=== VALIDATION PASSED ===" << std::endl;
+      os << "=== VALIDATION PASSED ===" << "\n";
     }
+    return os;
   }
 
 private:
@@ -82,6 +84,8 @@ private:
 
   static std::string errorCodeToString(ErrorCode code) {
     switch (code) {
+      case ErrorCode::MismatchedDimensions:
+        return "Mismatched boundary dimensions:";
       default:
         return "Unknown error";
     }
@@ -89,6 +93,8 @@ private:
 
   static std::string warningCodeToString(WarningCode code) {
     switch (code) {
+      case WarningCode::NotImplementedCheck:
+        return "Validation check not implemented:";
       default:
         return "Unknown warning";
     }

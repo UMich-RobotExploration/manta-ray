@@ -74,6 +74,7 @@ public:
 
 private:
   bhc::bhcParams<true> &params_;
+  Result result_ = Result();
 };
 
 } // namespace acoustics

@@ -23,7 +23,6 @@ public:
   BellhopContext(const BellhopContext&) = delete;
   BellhopContext& operator=(const BellhopContext&) = delete;
 
-  // Maybe allow move?
   BellhopContext(BellhopContext&& other) noexcept
       : params_(std::move(other.params_)),
         outputs_(std::move(other.outputs_)) {

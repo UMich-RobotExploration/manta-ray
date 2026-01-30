@@ -41,7 +41,8 @@ template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
  * @param high Upper bound value
  * @param size Number of elements in array
  *
- * @note No bounds checking is performed. Caller must ensure arr has sufficient space.
+ * @note No bounds checking is performed. Caller must ensure arr has sufficient
+ * space.
  */
 template <typename T> void SetupVector(T *arr, T low, T high, int size) {
   for (int i = 0; i < size; ++i) {
@@ -61,5 +62,7 @@ template <typename T> void printVector(const std::vector<T> &vec) {
   }
   std::cout << "]" << std::endl;
 }
+
+enum class RectangleCorners { kTopRight, kTopLeft, kBottomRight, kBottomLeft };
 
 } // namespace acoustics

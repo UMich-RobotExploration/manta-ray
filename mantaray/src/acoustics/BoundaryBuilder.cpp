@@ -3,7 +3,9 @@
 //
 
 #include "BoundaryBuilder.h"
+#include "Arrival.h"
 #include "acousticsConstants.h"
+
 #include <cmath>
 #include <cstring>
 
@@ -81,17 +83,14 @@ void BoundaryBuilder::markDirty(bool setTop) {
   }
 }
 
-Result BoundaryBuilder::validate() const {
-  Result result;
+Result BoundaryBuilder::validate() {
 
-  // TODO: Implement validation logic
-  // - Check grid dimensions > 0
-  // - Check valid depth ranges
-  // - Check grid coordinate consistency
-  // - Warn if grids are very small or large
   assertBoundariesValid();
+  // TODO: add check for max(bottom z) < min (top z)
+  result_.addWarning(WarningCode::NotImplementedCheck,
+    "Check for boundary max(bottom z) < min(top z)");
 
-  return result;
+  return result_;
 }
 
 void BoundaryBuilder::flatBoundary3D(bhc::BdryInfoTopBot<true> &boundary,
@@ -134,9 +133,15 @@ void BoundaryBuilder::quadBoundary3D(bhc::BdryInfoTopBot<true> &boundary,
   }
 }
 
-void BoundaryBuilder::assertBoundariesValid() const{
-  throw std::runtime_error("Function not implemented so you are not validating");
+std::pair<bhc::VEC23<true>, bhc::VEC23<true>>
+BoundaryBuilder::getCornerValues(size_t botX, size_t botY, size_t topX,
+                                 size_t topY) const {
+  auto botIdx = getIndex(params_.bdinfo->bot, botX, botY);
+  auto topIdx = getIndex(params_.bdinfo->top, topX, topY);
+  return std::pair(params_.bdinfo->bot.bd[botIdx].x,
+                   params_.bdinfo->top.bd[topIdx].x);
 }
+
 void BoundaryBuilder::assertBoundariesEqual() {
 
   auto xBotPts = params_.bdinfo->bot.NPts[0];
@@ -151,6 +156,45 @@ void BoundaryBuilder::assertBoundariesEqual() {
   assertCornerEq(0, yBotPts - 1, 0, yTopPts - 1);
 }
 
+void BoundaryBuilder::assertBoundariesValid() {
+  auto xBotPts = params_.bdinfo->bot.NPts[0] - 1;
+  auto yBotPts = params_.bdinfo->bot.NPts[1] - 1;
+  auto xTopPts = params_.bdinfo->top.NPts[0] - 1;
+  auto yTopPts = params_.bdinfo->top.NPts[1] - 1;
+
+  std::stringstream errMsg;
+  // Bottom left corners of the boundary
+  auto [bottom, top] = getCornerValues(0, 0, 0, 0);
+  // Writing what should be correct and appling not before it in all cases
+  if (!(top.x <= bottom.x && top.y <= bottom.y)) {
+    // Using errMsg.str() to clear any previous values
+    errMsg.str("Top boundary does not include bottom left corner of boundary");
+    result_.addError(ErrorCode::MismatchedDimensions, errMsg.str());
+  }
+  // Top right corners of the boundary
+  std::tie(bottom, top) = getCornerValues(xBotPts, yBotPts, xTopPts, yTopPts);
+  // Writing what should be correct and appling not before it in all cases
+  if (!(top.x >= bottom.x && top.y >= bottom.y)) {
+    errMsg.str("Top boundary does not include top right corner of boundary");
+    result_.addError(ErrorCode::MismatchedDimensions, errMsg.str());
+  }
+  // These are the cases that now swap between x and y ineq checks
+  // Top left corners of the boundary
+  std::tie(bottom, top) = getCornerValues(0, yBotPts, 0, yTopPts);
+  // Writing what should be correct and appling not before it in all cases
+  if (!(top.x <= bottom.x && top.y >= bottom.y)) {
+    errMsg.str("Top boundary does not include top left corner of boundary");
+    result_.addError(ErrorCode::MismatchedDimensions, errMsg.str());
+  }
+  // Bottm rightcorners of the boundary
+  std::tie(bottom, top) = getCornerValues(xBotPts, 0, xTopPts, 0);
+  // Writing what should be correct and appling not before it in all cases
+  if (!(top.x >= bottom.x && top.y <= bottom.y)) {
+    errMsg.str("Top boundary does not include bottom right corner of boundary");
+    result_.addError(ErrorCode::MismatchedDimensions, errMsg.str());
+  }
+}
+
 void BoundaryBuilder::assertCornerEq(size_t botX, size_t botY, size_t topX,
                                      size_t topY) {
   auto botIdx = getIndex(params_.bdinfo->bot, botX, botY);
@@ -160,7 +204,6 @@ void BoundaryBuilder::assertCornerEq(size_t botX, size_t botY, size_t topX,
   assert(params_.bdinfo->bot.bd[botIdx].x.y ==
          params_.bdinfo->top.bd[topIdx].x.y);
 }
-
 
 size_t getIndex(const bhc::BdryInfoTopBot<true> &boundary, size_t ix,
                 size_t iy) {

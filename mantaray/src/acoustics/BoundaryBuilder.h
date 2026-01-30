@@ -8,8 +8,8 @@
 #include "helpers.h"
 #include <algorithm>
 #include <bhc/bhc.hpp>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 namespace acoustics {
 
@@ -21,6 +21,7 @@ enum class BathyInterpolationType {
   kLinear,
   kCurveInterp,
 };
+
 /**
  * @brief Builder class for configuring bathymetry and altimetry boundaries
  *
@@ -35,6 +36,19 @@ public:
    * @param params Reference to bhcParams that will be modified
    */
   explicit BoundaryBuilder(bhc::bhcParams<true> &params);
+
+  // No copy (cannot finalize twice)
+  BoundaryBuilder(const BoundaryBuilder &) = delete;
+  // Copy assignment operator. Utilized when a new object does not
+  // need to be created but an existing object needs to be assigned
+  BoundaryBuilder &operator=(const BoundaryBuilder &) = delete;
+
+  // Move constructor being deleted to prevent moves
+  // && is an r-value aka the Construct(a), the a in here
+  BoundaryBuilder(BoundaryBuilder &&other) noexcept = delete;
+
+  // Move assignment operator being delete to prevent moves
+  BoundaryBuilder &operator=(BoundaryBuilder &&) = delete;
 
   /**
    * @brief Setup bathymetry grid and province structure
@@ -93,11 +107,11 @@ public:
    * @brief Validate boundary configuration
    * @return ValidationResult containing any errors or warnings
    */
-  Result validate() const;
-  void assertBoundariesValid() const;
+  Result validate();
 
 private:
   bhc::bhcParams<true> &params_;
+  Result result_ = Result();
 
   /**
    * @brief Helper to populate flat boundary structure
@@ -114,7 +128,15 @@ private:
                       const std::vector<double> &gridY);
 
   void assertBoundariesEqual();
+  /**
+   * @brief Validates that the top boundary in all corners is at least equal
+   * to the bottom boundary
+   * @details Does this by checking by follow rectangular vertex comparisons
+   */
+  void assertBoundariesValid();
   void assertCornerEq(size_t botX, size_t botY, size_t topX, size_t topY);
+  std::pair<bhc::VEC23<true>, bhc::VEC23<true>>
+  getCornerValues(size_t botX, size_t botY, size_t topX, size_t topY) const;
 };
 
 size_t getIndex(const bhc::BdryInfoTopBot<true> &boundary, size_t ix,

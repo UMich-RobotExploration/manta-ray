@@ -64,6 +64,7 @@ void QuadBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
 
 int main() {
   auto init = bhc::bhcInit();
+  auto acousticsResult = acoustics::Result();
 
   std::cout << "Current path is " << std::filesystem::current_path()
             << std::endl;
@@ -89,6 +90,8 @@ int main() {
   boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::kLinear,
                                      false);
 
+  auto output = boundaryBuild.validate();
+  acousticsResult.merge(output);
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
@@ -167,6 +170,11 @@ int main() {
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
+  if (!acousticsResult.isValid()) {
+    acousticsResult.print();
+  } else if (acousticsResult.hasWarnings()) {
+    acousticsResult.print();
+  }
   try {
     bhc::echo(context.params());
   } catch (const std::exception &e) {
