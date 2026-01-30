@@ -85,7 +85,7 @@ void BoundaryBuilder::markDirty(bool setTop) {
 
 Result BoundaryBuilder::validate() {
 
-  assertBoundariesValid();
+  validateBoundaries();
   // TODO: add check for max(bottom z) < min (top z)
   result_.addWarning(WarningCode::NotImplementedCheck,
     "Check for boundary max(bottom z) < min(top z)");
@@ -156,7 +156,7 @@ void BoundaryBuilder::assertBoundariesEqual() {
   assertCornerEq(0, yBotPts - 1, 0, yTopPts - 1);
 }
 
-void BoundaryBuilder::assertBoundariesValid() {
+void BoundaryBuilder::validateBoundaries() {
   auto xBotPts = params_.bdinfo->bot.NPts[0] - 1;
   auto yBotPts = params_.bdinfo->bot.NPts[1] - 1;
   auto xTopPts = params_.bdinfo->top.NPts[0] - 1;

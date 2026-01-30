@@ -133,7 +133,7 @@ private:
    * to the bottom boundary
    * @details Does this by checking by follow rectangular vertex comparisons
    */
-  void assertBoundariesValid();
+  void validateBoundaries();
   void assertCornerEq(size_t botX, size_t botY, size_t topX, size_t topY);
   std::pair<bhc::VEC23<true>, bhc::VEC23<true>>
   getCornerValues(size_t botX, size_t botY, size_t topX, size_t topY) const;

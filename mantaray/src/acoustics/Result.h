@@ -6,56 +6,64 @@
 
 namespace acoustics {
 
-enum class ErrorCode {
-  MismatchedDimensions,
-  Unknown
-};
+enum class ErrorCode { MismatchedDimensions, Unknown };
 
-enum class WarningCode {
-  NotImplementedCheck,
-  Unknown
-};
+enum class WarningCode { NotImplementedCheck, Unknown };
 
 struct Result {
-  std::vector<std::string> errors;
-  std::vector<std::string> warnings;
+  std::vector<ErrorCode> errorCodes;
+  std::vector<WarningCode> warningCodes;
+  std::vector<std::string> errorsDetails;
+  std::vector<std::string> warningsDetails;
 
-  [[nodiscard]] bool hasErrors() const { return !errors.empty(); }
+  [[nodiscard]] bool hasErrors() const { return !errorCodes.empty(); }
 
-  [[nodiscard]] bool hasWarnings() const { return !warnings.empty(); }
+  [[nodiscard]] bool hasWarnings() const { return !warningCodes.empty(); }
 
   [[nodiscard]] bool isValid() const { return !hasErrors(); }
 
   void addError(ErrorCode code, const std::string &details = "") {
-    errors.emplace_back(formatError(code, details));
+    errorCodes.emplace_back(code);
+    errorsDetails.emplace_back(details);
   }
 
   void addWarning(WarningCode code, const std::string &details = "") {
-    warnings.emplace_back(formatWarning(code, details));
+    warningCodes.emplace_back(code);
+    warningsDetails.emplace_back(details);
   }
 
   void merge(const Result &other) {
-    errors.insert(errors.end(), other.errors.begin(), other.errors.end());
-    warnings.insert(warnings.end(), other.warnings.begin(), other.warnings.end());
+    errorCodes.insert(errorCodes.end(), other.errorCodes.begin(),
+                      other.errorCodes.end());
+    warningCodes.insert(warningCodes.end(), other.warningCodes.begin(),
+                        other.warningCodes.end());
+    errorsDetails.insert(errorsDetails.end(), other.errorsDetails.begin(),
+                         other.errorsDetails.end());
+    warningsDetails.insert(warningsDetails.end(), other.warningsDetails.begin(),
+                           other.warningsDetails.end());
   }
 
   void clear() {
-    errors.clear();
-    warnings.clear();
+    errorCodes.clear();
+    warningCodes.clear();
+    errorsDetails.clear();
+    warningsDetails.clear();
   }
 
-  std::ostream& print(std::ostream &os = std::cout) const {
+  std::ostream &print(std::ostream &os = std::cout) const {
     if (hasErrors()) {
       os << "=== ERRORS ===" << "\n";
-      for (size_t i = 0; i < errors.size(); ++i) {
-        os << "  [ERROR " << (i + 1) << "] " << errors[i] << "\n";
+      for (size_t i = 0; i < errorsDetails.size(); ++i) {
+        os << "  [ERROR " << (i + 1) << "] "
+           << formatError(errorCodes[i], errorsDetails[i]) << "\n";
       }
     }
 
     if (hasWarnings()) {
       os << "=== WARNINGS ===" << "\n";
-      for (size_t i = 0; i < warnings.size(); ++i) {
-        os << "  [WARNING " << (i + 1) << "] " << warnings[i] << "\n";
+      for (size_t i = 0; i < warningsDetails.size(); ++i) {
+        os << "  [WARNING " << (i + 1) << "] "
+           << formatWarning(warningCodes[i], warningsDetails[i]) << "\n";
       }
     }
 
@@ -74,7 +82,8 @@ private:
     return msg;
   }
 
-  static std::string formatWarning(WarningCode code, const std::string &details) {
+  static std::string formatWarning(WarningCode code,
+                                   const std::string &details) {
     std::string msg = warningCodeToString(code);
     if (!details.empty()) {
       msg += ": " + details;
@@ -84,19 +93,19 @@ private:
 
   static std::string errorCodeToString(ErrorCode code) {
     switch (code) {
-      case ErrorCode::MismatchedDimensions:
-        return "Mismatched boundary dimensions:";
-      default:
-        return "Unknown error";
+    case ErrorCode::MismatchedDimensions:
+      return "Mismatched boundary dimensions:";
+    default:
+      return "Unknown error";
     }
   }
 
   static std::string warningCodeToString(WarningCode code) {
     switch (code) {
-      case WarningCode::NotImplementedCheck:
-        return "Validation check not implemented:";
-      default:
-        return "Unknown warning";
+    case WarningCode::NotImplementedCheck:
+      return "Validation check not implemented:";
+    default:
+      return "Unknown warning";
     }
   }
 };
