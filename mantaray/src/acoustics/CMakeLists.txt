@@ -11,6 +11,8 @@ add_library(${ACOUSTIC_LIB_NAME}
         SspBuilder.h
         BellhopValidator.cpp
         BellhopValidator.h
+        Agents.cpp
+        Agents.h
 )
 
 # Link the bellhop library to acoustics

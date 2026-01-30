@@ -100,7 +100,6 @@ int main() {
   acousticsResult.merge(sspBuilder.validate());
   if (acousticsResult.hasWarnings()) {
     acousticsResult.print();
-    return 1;
   }
 
 
