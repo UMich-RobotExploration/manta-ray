@@ -22,10 +22,10 @@ void Agents::initializeSource(double x, double y, double z, bool inKm) {
 }
 
 Result Agents::initializeReceivers(const std::vector<double> &x,
-                                 const std::vector<double> &y,
-                                 const std::vector<float> &z, bool inKm) {
+                                   const std::vector<double> &y,
+                                   const std::vector<float> &z, bool inKm) {
   params_.Pos->RrInKm = inKm;
-  params_.Pos->SxSyInKm= inKm;
+  params_.Pos->SxSyInKm = inKm;
   if (!(x.size() == y.size() == z.size())) {
     result_.addError(ErrorCode::MismatchedDimensions,
                      "Receiver coordinate vectors must be the same size.");
@@ -33,15 +33,26 @@ Result Agents::initializeReceivers(const std::vector<double> &x,
   }
   size_t nReceivers = x.size();
 
-  bhc::extsetup_rcvrranges(params_, nReceivers);
-  bhc::extsetup_rcvrbearings(params_, nReceivers);
+  bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(nReceivers));
+  bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(nReceivers));
+  for (size_t i = 0; i < nReceivers; ++i) {
+    double delta_x = x[i] - params_.Pos->Sx[0];
+    double delta_y = y[i] - params_.Pos->Sy[0];
+    params_.Pos->theta[i] = std::atan2(delta_y, delta_x);
+    params_.Pos->Rr[i] = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+  }
 
   // Managing detph setup. Here need to deal with bellhop defaulting to meters
   bhc::extsetup_rcvrdepths(params_, nReceivers);
-  setupVector(params_.Pos->Rz, z, nReceivers);
+  for (size_t i = 0; i < nReceivers; ++i) {
+    if (inKm) {
+      params_.Pos->Rz[i] = z[i] / 1000.0f;
+    } else {
+      params_.Pos->Rz[i] = z[i];
+    }
+  }
 
-
-  initializer_.receiver= true;
+  initializer_.receiver = true;
 
   return result_;
 }
