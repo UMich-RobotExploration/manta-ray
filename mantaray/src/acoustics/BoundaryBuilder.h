@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ValidationResult.h"
+#include "Result.h"
 #include "helpers.h"
 #include <algorithm>
 #include <bhc/bhc.hpp>
@@ -93,8 +93,8 @@ public:
    * @brief Validate boundary configuration
    * @return ValidationResult containing any errors or warnings
    */
-  ValidationResult validate() const;
-  void assertBoundariesValid();
+  Result validate() const;
+  void assertBoundariesValid() const;
 
 private:
   bhc::bhcParams<true> &params_;

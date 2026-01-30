@@ -8,9 +8,9 @@
 
 namespace acoustics {
 
-ValidationResult BellhopValidator::validateSspBoundaryDepthAlignment(
+Result BellhopValidator::validateSspBoundaryDepthAlignment(
     const bhc::bhcParams<true> &params) {
-  ValidationResult result;
+  Result result;
 
   // TODO: Implement SSP-Boundary depth alignment validation
   // Check params.Bdry->Top.hs.Depth == params.ssp->Seg.z[0]
@@ -20,9 +20,9 @@ ValidationResult BellhopValidator::validateSspBoundaryDepthAlignment(
   return result;
 }
 
-ValidationResult BellhopValidator::validateBeamBoxWithinBounds(
+Result BellhopValidator::validateBeamBoxWithinBounds(
     const bhc::bhcParams<true> &params) {
-  ValidationResult result;
+  Result result;
 
   // TODO: Implement beam box bounds validation
   // Check Beam->Box.x against boundary X extent
@@ -33,9 +33,9 @@ ValidationResult BellhopValidator::validateBeamBoxWithinBounds(
   return result;
 }
 
-ValidationResult BellhopValidator::validateSourceReceiverPositions(
+Result BellhopValidator::validateSourceReceiverPositions(
     const bhc::bhcParams<true> &params) {
-  ValidationResult result;
+  Result result;
 
   // TODO: Implement source/receiver position validation
   // Check source positions within boundary extents
@@ -45,9 +45,8 @@ ValidationResult BellhopValidator::validateSourceReceiverPositions(
   return result;
 }
 
-ValidationResult
-BellhopValidator::validateAll(const bhc::bhcParams<true> &params) {
-  ValidationResult result;
+Result BellhopValidator::validateAll(const bhc::bhcParams<true> &params) {
+  Result result;
 
   // Merge all validation results
   result.merge(validateSspBoundaryDepthAlignment(params));

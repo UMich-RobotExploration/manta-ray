@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ValidationResult.h"
+#include "Result.h"
 #include <bhc/bhc.hpp>
 
 namespace acoustics {
@@ -26,7 +26,7 @@ public:
    * - params.Bdry->Top.hs.Depth == params.ssp->Seg.z[0]
    * - params.Bdry->Bot.hs.Depth == params.ssp->Seg.z[Nz-1]
    */
-  static ValidationResult
+  static Result
   validateSspBoundaryDepthAlignment(const bhc::bhcParams<true> &params);
 
   /**
@@ -39,7 +39,7 @@ public:
    * - Beam->Box.y <= max boundary Y extent
    * - Beam->Box.z <= max SSP depth
    */
-  static ValidationResult
+  static Result
   validateBeamBoxWithinBounds(const bhc::bhcParams<true> &params);
 
   /**
@@ -51,7 +51,7 @@ public:
    * - Source positions within boundary extents
    * - Receiver positions reachable within beam box
    */
-  static ValidationResult
+  static Result
   validateSourceReceiverPositions(const bhc::bhcParams<true> &params);
 
   /**
@@ -59,7 +59,7 @@ public:
    * @param params Bellhop parameters to validate
    * @return ValidationResult with all errors and warnings combined
    */
-  static ValidationResult validateAll(const bhc::bhcParams<true> &params);
+  static Result validateAll(const bhc::bhcParams<true> &params);
 };
 
 } // namespace acoustics

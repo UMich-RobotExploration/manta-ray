@@ -49,8 +49,8 @@ void SspBuilder::syncBoundaryDepths() {
 
 void SspBuilder::markDirty() { params_.ssp->dirty = true; }
 
-ValidationResult SspBuilder::validate() const {
-  ValidationResult result;
+Result SspBuilder::validate() const {
+  Result result;
 
   // TODO: Implement validation logic
   // - Check consistent grid dimensions (Nx, Ny, Nz, NPts)

@@ -35,8 +35,8 @@ void BeamBuilder::setAngleUnits(bool inDegrees) {
 
 void BeamBuilder::setRangeUnits(bool inKm) { params_.Beam->rangeInKm = inKm; }
 
-ValidationResult BeamBuilder::validate() const {
-  ValidationResult result;
+Result BeamBuilder::validate() const {
+  Result result;
 
   // TODO: Implement validation logic
   // - Check positive beam counts

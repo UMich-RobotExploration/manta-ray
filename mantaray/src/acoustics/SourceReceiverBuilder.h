@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ValidationResult.h"
+#include "Result.h"
 #include "helpers.h"
 #include <bhc/bhc.hpp>
 
@@ -102,7 +102,7 @@ public:
    * @brief Validate source/receiver configuration
    * @return ValidationResult containing any errors or warnings
    */
-  ValidationResult validate() const;
+  Result validate() const;
 
 private:
   bhc::bhcParams<true> &params_;

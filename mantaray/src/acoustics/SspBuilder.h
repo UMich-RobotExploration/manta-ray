@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ValidationResult.h"
+#include "Result.h"
 #include <bhc/bhc.hpp>
 #include <vector>
 
@@ -72,7 +72,7 @@ public:
    * @brief Validate SSP configuration
    * @return ValidationResult containing any errors or warnings
    */
-  ValidationResult validate() const;
+  Result validate() const;
 
 private:
   bhc::bhcParams<true> &params_;

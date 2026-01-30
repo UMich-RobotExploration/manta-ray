@@ -60,8 +60,8 @@ void SourceReceiverBuilder::setReceiverRangeUnits(bool inKm) {
   params_.Pos->RrInKm = inKm;
 }
 
-ValidationResult SourceReceiverBuilder::validate() const {
-  ValidationResult result;
+Result SourceReceiverBuilder::validate() const {
+  Result result;
 
   // TODO: Implement validation logic
   // - Check positive position counts

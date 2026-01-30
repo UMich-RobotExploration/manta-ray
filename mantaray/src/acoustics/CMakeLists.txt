@@ -4,7 +4,7 @@ add_library(${ACOUSTIC_LIB_NAME}
         BhHandler.h
         acousticsConstants.h
         helpers.h
-        ValidationResult.h
+        Result.h
         BoundaryBuilder.cpp
         BoundaryBuilder.h
         SspBuilder.cpp

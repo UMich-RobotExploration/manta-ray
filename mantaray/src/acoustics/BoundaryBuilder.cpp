@@ -81,8 +81,8 @@ void BoundaryBuilder::markDirty(bool setTop) {
   }
 }
 
-ValidationResult BoundaryBuilder::validate() const {
-  ValidationResult result;
+Result BoundaryBuilder::validate() const {
+  Result result;
 
   // TODO: Implement validation logic
   // - Check grid dimensions > 0
@@ -134,7 +134,7 @@ void BoundaryBuilder::quadBoundary3D(bhc::BdryInfoTopBot<true> &boundary,
   }
 }
 
-void BoundaryBuilder::assertBoundariesValid() {
+void BoundaryBuilder::assertBoundariesValid() const{
   throw std::runtime_error("Function not implemented so you are not validating");
 }
 void BoundaryBuilder::assertBoundariesEqual() {
