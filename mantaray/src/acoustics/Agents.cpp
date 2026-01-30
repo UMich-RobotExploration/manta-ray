@@ -11,7 +11,7 @@ Agents::Agents(bhc::bhcParams<true> &params) : params_(params) {}
 void Agents::updateSource(double x, double y, double z, Result &result,
                             bool inKm) {
   if (!initializer_.source) {
-    result.addError(ErrorCode::MismatchedDimensions,
+    result.addError(ErrorCode::UninitializedBellhop,
                     "Source must be initialized before it can be updated.");
     return;
   }
