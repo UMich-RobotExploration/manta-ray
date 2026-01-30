@@ -95,7 +95,7 @@ private:
   static std::string errorCodeToString(ErrorCode code) {
     switch (code) {
     case ErrorCode::MismatchedDimensions:
-      return "Mismatched boundary dimensions:";
+      return "Mismatched dimensions:";
     case ErrorCode::UninitializedBellhop:
       return "Uninitialized bellhop:";
     case ErrorCode::NullPtr:

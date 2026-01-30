@@ -2,10 +2,10 @@
 // Created by tko on 1/30/26.
 //
 #pragma once
-#include <bhc/bhc.hpp>
-#include <vector>
 #include "Result.h"
 #include "helpers.h"
+#include <bhc/bhc.hpp>
+#include <vector>
 
 namespace acoustics {
 
@@ -40,16 +40,27 @@ public:
    * @param inKm applies to all unlike bellhop
    */
   void initializeSource(double x, double y, double z, bool inKm = false);
+  /**
+   * @brief Updates a single source (multiple sources not supported)
+   * @details Conducts a check to ensure it was initialized first
+   * @param inKm applies to all unlike bellhop
+   */
+  [[nodiscard]] Result updateSource(double x, double y, double z, Result &result,
+                    bool inKm = false);
 
   /**
    * @brief Initialize receivers
    * @param inKm applies to all unlike bellhop
    * @param z Z coordinate bizarrely needs to be float
    */
-  Result initializeReceivers(const std::vector<double> &x,
-                           const std::vector<double> &y,
-                           const std::vector<float> &z,
-                           bool inKm = false);
+  [[nodiscard]] Result initializeReceivers(const std::vector<double> &x,
+                             const std::vector<double> &y,
+                             const std::vector<float> &z, bool inKm = false);
+
+  [[nodiscard]] Result updateReceivers(const std::vector<double> &x,
+                         const std::vector<double> &y,
+                         const std::vector<float> &z, Result &result,
+                         bool inKm = false);
 
 private:
   bhc::bhcParams<true> &params_;
