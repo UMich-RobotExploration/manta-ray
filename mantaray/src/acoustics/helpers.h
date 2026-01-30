@@ -4,6 +4,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 namespace acoustics {
 
@@ -44,10 +45,17 @@ template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
  * @note No bounds checking is performed. Caller must ensure arr has sufficient
  * space.
  */
-template <typename T> void SetupVector(T *arr, T low, T high, int size) {
+template <typename T> void setupVector(T *arr, T low, T high, int size) {
   for (int i = 0; i < size; ++i) {
     arr[i] = low + double(i) / double(size - 1) * (high - low);
   }
+}
+
+// @brief Helper to setup vectors from ranges. Operates on copying output buffer
+// size
+template <class T> void setupVector(T *arr, const std::vector<T> &vec, size_t size) {
+  static_assert(std::is_copy_constructible_v<T>, "Template type T must be copyable");
+  std::copy_n(vec.begin(), size, arr);
 }
 
 /**

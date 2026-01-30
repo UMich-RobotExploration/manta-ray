@@ -39,7 +39,7 @@ public:
    */
   explicit BoundaryBuilder(bhc::bhcParams<true> &params);
 
-  // No copy (cannot finalize twice)
+  // No copy
   BoundaryBuilder(const BoundaryBuilder &) = delete;
   // Copy assignment operator. Utilized when a new object does not
   // need to be created but an existing object needs to be assigned

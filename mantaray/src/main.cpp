@@ -11,6 +11,7 @@
 #include "acoustics/SspBuilder.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
+#include "acoustics/Agents.h"
 
 #include <bhc/bhc.hpp>
 #include <filesystem>
