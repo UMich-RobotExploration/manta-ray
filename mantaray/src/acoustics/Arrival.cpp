@@ -3,15 +3,9 @@
 //
 
 #include "Arrival.h"
+#include "helpers.h"
 
 namespace acoustics {
-template <typename T> void printVector(const std::vector<T> &vec) {
-  std::cout << "[ ";
-  for (const auto &element : vec) {
-    std::cout << element << " ";
-  }
-  std::cout << "]" << std::endl;
-}
 
 // Calculate the flattened index for the 6D ArrInfo arrays
 // Code taken directly from Bellhopcuda source common.hpp as they don't expose
