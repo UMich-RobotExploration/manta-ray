@@ -6,9 +6,9 @@
 
 namespace acoustics {
 
-enum class ErrorCode { MismatchedDimensions, UninitializedBellhop, Unknown };
+enum class ErrorCode { MismatchedDimensions, UninitializedBellhop, NullPtr, Unknown };
 
-enum class WarningCode { NotImplementedCheck, Unknown };
+enum class WarningCode { NotImplementedCheck, SSPOutOfBounds, Unknown };
 
 struct Result {
   std::vector<ErrorCode> errorCodes;
@@ -98,6 +98,8 @@ private:
       return "Mismatched boundary dimensions:";
     case ErrorCode::UninitializedBellhop:
       return "Uninitialized bellhop:";
+    case ErrorCode::NullPtr:
+      return "NullPtr where should not be null:";
     default:
       return "Unknown error";
     }
@@ -107,6 +109,8 @@ private:
     switch (code) {
     case WarningCode::NotImplementedCheck:
       return "Validation check not implemented:";
+    case WarningCode::SSPOutOfBounds:
+      return "SSP Out of Bounds:";
     default:
       return "Unknown warning";
     }

@@ -27,41 +27,6 @@ void OutputCallback(const char *message) {
   std::cout << "Out: " << message << std::endl << std::flush;
 }
 
-void FlatBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
-                    const std::vector<double> &GridX,
-                    const std::vector<double> &GridY) {
-  Boundary.dirty = true;
-  Boundary.rangeInKm = true;
-  Boundary.NPts[0] = static_cast<int>(GridX.size());
-  Boundary.NPts[1] = static_cast<int>(GridY.size());
-
-  for (size_t iy = 0; iy < GridY.size(); ++iy) {
-    for (size_t ix = 0; ix < GridX.size(); ++ix) {
-      Boundary.bd[ix * GridY.size() + iy].x.x = GridX[ix];
-      Boundary.bd[ix * GridY.size() + iy].x.y = GridY[iy];
-      Boundary.bd[ix * GridY.size() + iy].x.z = Depth;
-    }
-  }
-}
-
-void QuadBoundary3D(bhc::BdryInfoTopBot<true> &Boundary, const double &Depth,
-                    const std::vector<double> &GridX,
-                    const std::vector<double> &GridY) {
-  Boundary.dirty = true;
-  Boundary.rangeInKm = true;
-  Boundary.NPts[0] = static_cast<int>(GridX.size());
-  Boundary.NPts[1] = static_cast<int>(GridY.size());
-  for (size_t iy = 0; iy < GridY.size(); ++iy) {
-    for (size_t ix = 0; ix < GridX.size(); ++ix) {
-      Boundary.bd[ix * GridY.size() + iy].x.x = GridX[ix];
-      Boundary.bd[ix * GridY.size() + iy].x.y = GridY[iy];
-      Boundary.bd[ix * GridY.size() + iy].x.z =
-          Depth - std::pow(GridX[ix], 2.0) - std::pow(GridY[iy], 2.0);
-      // PROVINCE IS 1 INDEXED
-      Boundary.bd[ix * GridY.size() + iy].Province = 1;
-    }
-  }
-}
 
 int main() {
   auto init = bhc::bhcInit();
@@ -121,50 +86,23 @@ int main() {
   int nX = 10;
   int nY = 10;
   int nZ = 10;
-  sspBuilder.setupHexahedral(nX, nY, nZ);
-  sspBuilder.setRangeUnits(true);
+  sspBuilder.setupHexahedral(nX, nY, nZ, true);
   gridX = acoustics::linspace(-10.0, 10.0, nX);
   gridY = acoustics::linspace(-10.0, 10.0, nY);
   auto gridZ = acoustics::linspace(0.0, 1000.0, nZ);
   auto coordResult = sspBuilder.setCoordinateGrid(gridX, gridY, gridZ);
   if (coordResult.err()) {
-        acousticsResult.merge(coordResult);
-        acousticsResult.print();
-        return 1;
+    acousticsResult.merge(coordResult);
+    acousticsResult.print();
+    return 1;
   }
-  // bhc::extsetup_ssp_hexahedral(context.params(), 10, 10, 10);
-  // Old code being replaced
-  // context.params().ssp->Nx = 10;
-  // context.params().ssp->Ny = 10;
-  // context.params().ssp->Nz = 10;
-  // context.params().ssp->NPts = 10;
-  // context.params().ssp->rangeInKm = true;
-  // coords in params.ssp->Seg.x, .y, .z, and the speeds
-  // * in params.ssp->cMat[(x*Ny+y)*Nz+z].
-  for (auto i = 0; i < 10; ++i) {
-    context.params().ssp->Seg.x[i] = -10.0 + static_cast<float>(i) / 9.0 * 20.0;
-    context.params().ssp->Seg.y[i] = -10.0 + static_cast<float>(i) / 9.0 * 20.0;
-    context.params().ssp->Seg.z[i] = 0.0 + static_cast<float>(i) / 9.0 * 1000.0;
-    context.params().ssp->z[i] = 0.0 + static_cast<float>(i) / 9.0 * 1000.0;
+  sspBuilder.setConstantSsp(1500.0);
+  acousticsResult.merge(sspBuilder.validate());
+  if (acousticsResult.hasWarnings()) {
+    acousticsResult.print();
+    return 1;
   }
-  for (auto i = 0; i < 10; ++i) {
-    for (auto j = 0; j < 10; ++j) {
-      for (auto k = 0; k < 10; ++k) {
-        double sspd_scale = (k < 5) ? k : -k * 0.8;
-        context.params().ssp->cMat[(i * 10 + j) * 10 + k] = 1500.0 + sspd_scale;
-      }
-    }
-  }
-  std::cout << "SSP TYPE: " << context.params().ssp->Type << std::endl;
-  //  After writing your SSP, make sure params.Bdry->Top.hs.Depth (nominal
-  //  surface depth, normally zero) is equal to ssp->Seg.z[0], and
-  //  params.Bdry->Bot.hs.Depth (nominal ocean bottom depth) is equal to
-  //  ssp->Seg.z[Nz-1].
-  context.params().Bdry->Top.hs.Depth = context.params().ssp->Seg.z[0];
-  context.params().Bdry->Bot.hs.Depth =
-      context.params().ssp->Seg.z[context.params().ssp->NPts - 1];
 
-  context.params().ssp->dirty = true;
 
   //////////////////////////////////////////////////////////////////////////////
   // Beam Setup
@@ -187,7 +125,7 @@ int main() {
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
-  if (!acousticsResult.ok()) {
+  if (acousticsResult.err()) {
     acousticsResult.print();
   } else if (acousticsResult.hasWarnings()) {
     acousticsResult.print();
@@ -203,7 +141,7 @@ int main() {
   // auto arrival = acoustics::Arrival(context.params(), context.outputs());
   // arrival.extractEarliestArrivals();
 
-  bhc::writeout(context.params(), context.outputs(), "testing_bath");
+  // bhc::writeout(context.params(), context.outputs(), "testing_bath");
 
   return 0;
 }

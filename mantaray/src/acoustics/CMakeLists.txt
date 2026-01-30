@@ -9,8 +9,6 @@ add_library(${ACOUSTIC_LIB_NAME}
         BoundaryBuilder.h
         SspBuilder.cpp
         SspBuilder.h
-        SourceReceiverBuilder.cpp
-        SourceReceiverBuilder.h
         BellhopValidator.cpp
         BellhopValidator.h
 )

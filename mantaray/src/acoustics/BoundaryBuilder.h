@@ -31,6 +31,8 @@ enum class BathyInterpolationType {
  */
 class BoundaryBuilder {
 public:
+  // TODO: Need to update for this to work with results and provide incremental
+  // Failure information
   /**
    * @brief Construct a BoundaryBuilder with reference to Bellhop parameters
    * @param params Reference to bhcParams that will be modified

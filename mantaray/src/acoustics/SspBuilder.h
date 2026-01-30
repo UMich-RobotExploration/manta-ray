@@ -44,7 +44,7 @@ public:
    * @param ny Number of grid points in y direction
    * @param nz Number of grid points in z direction
    */
-  void setupHexahedral(int nx, int ny, int nz);
+  void setupHexahedral(int nx, int ny, int nz, bool inKm = false);
 
   /**
    * @brief Set coordinate grids for SSP
@@ -61,14 +61,20 @@ public:
    * @param inKm true if coordinates are in km, false if in meters
    */
   void setRangeUnits(bool inKm);
+  void setConstantSsp(double speed = 1500.0);
+
+
 
   /**
-   * @brief Synchronize boundary depth values with SSP depth range
-   *
-   * Critical: Sets params.Bdry->Top.hs.Depth = ssp->Seg.z[0] and
-   * params.Bdry->Bot.hs.Depth = ssp->Seg.z[Nz-1]
+   * @brief Validate SSP configuration
+   * @return ValidationResult containing any errors or warnings
    */
-  void syncBoundaryDepths();
+  Result validate();
+
+private:
+  bhc::bhcParams<true> &params_;
+  bool initialized_ = false;
+  Result result_ = Result();
 
   /**
    * @brief Mark SSP as dirty to trigger recomputation
@@ -76,15 +82,13 @@ public:
   void markDirty();
 
   /**
-   * @brief Validate SSP configuration
-   * @return ValidationResult containing any errors or warnings
+   * @brief Synchronize boundary depth values with SSP depth range
+   * @detail WARN: it does not check actual depth of boundary
+   *
+   * Critical: Sets params.Bdry->Top.hs.Depth = ssp->Seg.z[0] and
+   * params.Bdry->Bot.hs.Depth = ssp->Seg.z[Nz-1]
    */
-  Result validate() const;
-
-private:
-  bhc::bhcParams<true> &params_;
-  bool initialized_ = false;
-  Result result_ = Result();
+  Result syncBoundaryDepths(Result &result);
 };
 
 } // namespace acoustics
