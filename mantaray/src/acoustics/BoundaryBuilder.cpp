@@ -17,11 +17,13 @@ BoundaryBuilder::BoundaryBuilder(bhc::bhcParams<true> &params)
 void BoundaryBuilder::setupBathymetry(const bhc::IORI2<true> &grid,
                                       int32_t nProvinces) {
   bhc::extsetup_bathymetry(params_, grid, nProvinces);
+  bottomInitialized_ = true;
   markDirty(false);
 }
 
 void BoundaryBuilder::setupAltimetry(const bhc::IORI2<true> &grid) {
   bhc::extsetup_altimetry(params_, grid);
+  topInitialized_ = true;
   markDirty(true);
 }
 

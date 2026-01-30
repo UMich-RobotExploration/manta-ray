@@ -112,6 +112,9 @@ public:
 private:
   bhc::bhcParams<true> &params_;
   Result result_ = Result();
+  // TODO: Need to implement initialization checks for this class
+  bool topInitialized_ = false;
+  bool bottomInitialized_ = false;
 
   /**
    * @brief Helper to populate flat boundary structure

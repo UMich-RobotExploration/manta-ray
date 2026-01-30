@@ -25,6 +25,19 @@ public:
    */
   explicit SspBuilder(bhc::bhcParams<true> &params);
 
+
+  // No copy (cannot finalize twice)
+  SspBuilder(const SspBuilder &) = delete;
+  // Copy assignment operator. Utilized when a new object does not
+  // need to be created but an existing object needs to be assigned
+  SspBuilder &operator=(const SspBuilder &) = delete;
+
+  // Move constructor being deleted to prevent moves
+  // && is an r-value aka the Construct(a), the a in here
+  SspBuilder(SspBuilder &&other) noexcept = delete;
+
+  // Move assignment operator being delete to prevent moves
+  SspBuilder &operator=(SspBuilder &&) = delete;
   /**
    * @brief Setup hexahedral SSP grid structure
    * @param nx Number of grid points in x direction
@@ -39,15 +52,9 @@ public:
    * @param yCoords Y-coordinate values
    * @param zCoords Z-coordinate values (depth)
    */
-  void setCoordinateGrid(const std::vector<float> &xCoords,
-                         const std::vector<float> &yCoords,
-                         const std::vector<float> &zCoords);
-
-  /**
-   * @brief Set sound speed matrix values
-   * @param cMat Sound speed values indexed as (x*Ny+y)*Nz+z
-   */
-  void setSoundSpeedMatrix(const std::vector<float> &cMat);
+  [[nodiscard]] Result setCoordinateGrid(const std::vector<double> &xCoords,
+                         const std::vector<double> &yCoords,
+                         const std::vector<double> &zCoords);
 
   /**
    * @brief Set whether range coordinates are in kilometers
@@ -76,6 +83,8 @@ public:
 
 private:
   bhc::bhcParams<true> &params_;
+  bool initialized_ = false;
+  Result result_ = Result();
 };
 
 } // namespace acoustics

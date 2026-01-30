@@ -8,6 +8,7 @@
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
 #include "acoustics/BoundaryBuilder.h"
+#include "acoustics/SspBuilder.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -116,12 +117,28 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   // SSP Setup
   //////////////////////////////////////////////////////////////////////////////
-  bhc::extsetup_ssp_hexahedral(context.params(), 10, 10, 10);
-  context.params().ssp->Nx = 10;
-  context.params().ssp->Ny = 10;
-  context.params().ssp->Nz = 10;
-  context.params().ssp->NPts = 10;
-  context.params().ssp->rangeInKm = true;
+  auto sspBuilder = acoustics::SspBuilder(context.params());
+  int nX = 10;
+  int nY = 10;
+  int nZ = 10;
+  sspBuilder.setupHexahedral(nX, nY, nZ);
+  sspBuilder.setRangeUnits(true);
+  gridX = acoustics::linspace(-10.0, 10.0, nX);
+  gridY = acoustics::linspace(-10.0, 10.0, nY);
+  auto gridZ = acoustics::linspace(0.0, 1000.0, nZ);
+  auto coordResult = sspBuilder.setCoordinateGrid(gridX, gridY, gridZ);
+  if (coordResult.err()) {
+        acousticsResult.merge(coordResult);
+        acousticsResult.print();
+        return 1;
+  }
+  // bhc::extsetup_ssp_hexahedral(context.params(), 10, 10, 10);
+  // Old code being replaced
+  // context.params().ssp->Nx = 10;
+  // context.params().ssp->Ny = 10;
+  // context.params().ssp->Nz = 10;
+  // context.params().ssp->NPts = 10;
+  // context.params().ssp->rangeInKm = true;
   // coords in params.ssp->Seg.x, .y, .z, and the speeds
   // * in params.ssp->cMat[(x*Ny+y)*Nz+z].
   for (auto i = 0; i < 10; ++i) {
@@ -170,7 +187,7 @@ int main() {
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
-  if (!acousticsResult.isValid()) {
+  if (!acousticsResult.ok()) {
     acousticsResult.print();
   } else if (acousticsResult.hasWarnings()) {
     acousticsResult.print();

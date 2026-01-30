@@ -6,7 +6,7 @@
 
 namespace acoustics {
 
-enum class ErrorCode { MismatchedDimensions, Unknown };
+enum class ErrorCode { MismatchedDimensions, UninitializedBellhop, Unknown };
 
 enum class WarningCode { NotImplementedCheck, Unknown };
 
@@ -20,7 +20,8 @@ struct Result {
 
   [[nodiscard]] bool hasWarnings() const { return !warningCodes.empty(); }
 
-  [[nodiscard]] bool isValid() const { return !hasErrors(); }
+  [[nodiscard]] bool ok() const { return !hasErrors(); }
+  [[nodiscard]] bool err() const { return hasErrors(); }
 
   void addError(ErrorCode code, const std::string &details = "") {
     errorCodes.emplace_back(code);
@@ -95,6 +96,8 @@ private:
     switch (code) {
     case ErrorCode::MismatchedDimensions:
       return "Mismatched boundary dimensions:";
+    case ErrorCode::UninitializedBellhop:
+      return "Uninitialized bellhop:";
     default:
       return "Unknown error";
     }
