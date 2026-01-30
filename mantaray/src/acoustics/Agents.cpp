@@ -8,12 +8,12 @@ namespace acoustics {
 
 Agents::Agents(bhc::bhcParams<true> &params) : params_(params) {}
 
-Result Agents::updateSource(double x, double y, double z, Result &result,
+void Agents::updateSource(double x, double y, double z, Result &result,
                             bool inKm) {
   if (!initializer_.source) {
     result.addError(ErrorCode::MismatchedDimensions,
                     "Source must be initialized before it can be updated.");
-    return result;
+    return;
   }
   params_.Pos->SxSyInKm = inKm;
   if (inKm) {
@@ -22,7 +22,7 @@ Result Agents::updateSource(double x, double y, double z, Result &result,
   params_.Pos->Sx[0] = x;
   params_.Pos->Sy[0] = y;
   params_.Pos->Sy[0] = z;
-  return result;
+  return;
 }
 
 void Agents::initializeSource(double x, double y, double z, bool inKm) {
@@ -32,7 +32,7 @@ void Agents::initializeSource(double x, double y, double z, bool inKm) {
   updateSource(x, y, z, result_, inKm);
 }
 
-Result Agents::updateReceivers(const std::vector<double> &x,
+void Agents::updateReceivers(const std::vector<double> &x,
                                const std::vector<double> &y,
                                const std::vector<float> &z, Result &result,
                                bool inKm) {
@@ -44,7 +44,7 @@ Result Agents::updateReceivers(const std::vector<double> &x,
     msg << " (x size: " << x.size() << ", y size: " << y.size()
         << ", z size: " << z.size() << ")";
     result_.addError(ErrorCode::MismatchedDimensions, msg.str());
-    return result_;
+    return;
   }
   size_t nReceivers = x.size();
 
@@ -73,7 +73,7 @@ Result Agents::updateReceivers(const std::vector<double> &x,
 
   initializer_.receiver = true;
 
-  return result_;
+  return;
 }
 Result Agents::initializeReceivers(const std::vector<double> &x,
                                    const std::vector<double> &y,

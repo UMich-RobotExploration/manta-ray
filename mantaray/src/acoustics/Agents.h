@@ -45,7 +45,7 @@ public:
    * @details Conducts a check to ensure it was initialized first
    * @param inKm applies to all unlike bellhop
    */
-  [[nodiscard]] Result updateSource(double x, double y, double z, Result &result,
+  void updateSource(double x, double y, double z, Result &result,
                     bool inKm = false);
 
   /**
@@ -57,7 +57,7 @@ public:
                              const std::vector<double> &y,
                              const std::vector<float> &z, bool inKm = false);
 
-  [[nodiscard]] Result updateReceivers(const std::vector<double> &x,
+  void updateReceivers(const std::vector<double> &x,
                          const std::vector<double> &y,
                          const std::vector<float> &z, Result &result,
                          bool inKm = false);
