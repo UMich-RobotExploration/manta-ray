@@ -9,7 +9,7 @@ namespace acoustics {
 Agents::Agents(bhc::bhcParams<true> &params) : params_(params) {}
 
 void Agents::updateSource(double x, double y, double z, Result &result,
-                            bool inKm) {
+                          bool inKm) {
   if (!initializer_.source) {
     result.addError(ErrorCode::UninitializedBellhop,
                     "Source must be initialized before it can be updated.");
@@ -21,7 +21,7 @@ void Agents::updateSource(double x, double y, double z, Result &result,
   }
   params_.Pos->Sx[0] = x;
   params_.Pos->Sy[0] = y;
-  params_.Pos->Sy[0] = z;
+  params_.Pos->Sz[0] = z;
   return;
 }
 
@@ -33,9 +33,9 @@ void Agents::initializeSource(double x, double y, double z, bool inKm) {
 }
 
 void Agents::updateReceivers(const std::vector<double> &x,
-                               const std::vector<double> &y,
-                               const std::vector<float> &z, Result &result,
-                               bool inKm) {
+                             const std::vector<double> &y,
+                             const std::vector<float> &z, Result &result,
+                             bool inKm) {
   params_.Pos->RrInKm = inKm;
   params_.Pos->SxSyInKm = inKm;
   if (!(x.size() == y.size() || !(y.size() == z.size()))) {
@@ -55,20 +55,17 @@ void Agents::updateReceivers(const std::vector<double> &x,
     bhc::extsetup_rcvrdepths(params_, nReceivers);
   }
 
-  for (size_t i = 0; i < nReceivers; ++i) {
-    double delta_x = x[i] - params_.Pos->Sx[0];
-    double delta_y = y[i] - params_.Pos->Sy[0];
-    params_.Pos->theta[i] = std::atan2(delta_y, delta_x);
-    params_.Pos->Rr[i] = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
-  }
+  // Hoist invariants outside the loop
+  const double source_x = params_.Pos->Sx[0];
+  const double source_y = params_.Pos->Sy[0];
+  const float kmScale = inKm ? (1.0f / 1000.0f) : 1.0f;
 
-  // Managing detph setup. Here need to deal with bellhop defaulting to meters
   for (size_t i = 0; i < nReceivers; ++i) {
-    if (inKm) {
-      params_.Pos->Rz[i] = z[i] / 1000.0f;
-    } else {
-      params_.Pos->Rz[i] = z[i];
-    }
+    double delta_x = x[i] - source_x;
+    double delta_y = y[i] - source_y;
+    params_.Pos->theta[i] = std::atan2(delta_y, delta_x);
+    params_.Pos->Rr[i] = std::sqrt(delta_x * delta_x + delta_y * delta_y);
+    params_.Pos->Rz[i] = z[i] * kmScale;
   }
 
   initializer_.receiver = true;
