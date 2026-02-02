@@ -49,79 +49,48 @@ int main() {
   // Bathymetry Setup
   //////////////////////////////////////////////////////////////////////////////
 
-  // std::vector<double> bathGridX = acoustics::utils::linspace<double>(-10, 10, grid[0]);
-  // std::vector<double> bathGridY = acoustics::utils::linspace<double>(-11, 11, grid[1]);
-  // acoustics::Grid2D<double> bathGrid = acoustics::Grid2D<double>(
-  //     bathGridX, bathGridY, );
-  // acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig(
-  //     bathGrid, acoustics::BathyInterpolationType::kLinear, false);
-
-  auto boundaryBuild = acoustics::BoundaryBuilder(context.params());
-  const bhc::IORI2<true> grid = {100, 100};
-  const int32_t nBottomProvince = 1;
-  boundaryBuild.setupBathymetry(grid, nBottomProvince);
-  const double bathDepth = 800;
-  std::vector<double> gridX = acoustics::utils::linspace<double>(-10, 10, grid[0]);
-  std::vector<double> gridY = acoustics::utils::linspace<double>(-11, 11, grid[1]);
-  boundaryBuild.setQuadraticBottom(bathDepth, gridX, gridY, true);
-  boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::kLinear,
-                                     false);
-
-  auto output = boundaryBuild.validate();
-  acousticsResult.merge(output);
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Source / Receivers Setup
-  //////////////////////////////////////////////////////////////////////////////
-  auto agents = acoustics::Agents(context.params());
-  agents.initializeSource(10.0, 30.0, 100.0, false);
-  // bhc::extsetup_sxsy(context.params(), 1, 1);
-  // bhc::extsetup_sz(context.params(), 1);
-  // context.params().Pos->SxSyInKm = false;
-  // context.params().Pos->Sx[0] = 10.0f;
-  // context.params().Pos->Sy[0] = 30.0f;
-  // context.params().Pos->Sz[0] = 100.0f;
-
-  // disk of receivers
-  std::vector<double> x = acoustics::utils::linspace(100.0, 500.0, 10);
-  std::vector<double> y = acoustics::utils::linspace(-10.0, 10.0, 10);
-  std::vector<float> z(y.size(), 50.0f);
-  acousticsResult.merge(agents.initializeReceivers(x, y, z, false));
-  if (acousticsResult.err()) {
-    acousticsResult.print();
-    return 1;
-  }
-  // context.params().Pos->RrInKm = false;
-  // context.params().Pos->SxSyInKm = false;
-  // bhc::extsetup_rcvrbearings(context.params(), 5);
-  // SetupVector(context.params().Pos->theta, 2.0, 20.0, 5);
-  // bhc::extsetup_rcvrranges(context.params(), 2);
-  // SetupVector(context.params().Pos->Rr, 10.0, 300.0, 2);
-  // bhc::extsetup_rcvrdepths(context.params(), 1);
-  // context.params().Pos->Rz[0] = 50.0;
+  std::vector<double> bathGridX =
+      acoustics::utils::linspace<double>(-10, 10, 100);
+  std::vector<double> bathGridY =
+      acoustics::utils::linspace<double>(-11, 11, 100);
+  std::vector<double> bathData;
+  double bathDepth = 8.0;
+  acoustics::SimulationBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
+                                                      bathData, bathDepth);
+  acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
+      acoustics::Grid2D<double>(bathGridX, bathGridY, bathData),
+      acoustics::BathyInterpolationType::kLinear, true};
 
   //////////////////////////////////////////////////////////////////////////////
   // SSP Setup
   //////////////////////////////////////////////////////////////////////////////
-  auto sspBuilder = acoustics::SspBuilder(context.params());
   int nX = 10;
   int nY = 10;
   int nZ = 10;
-  sspBuilder.setupHexahedral(nX, nY, nZ, true);
-  gridX = acoustics::utils::linspace(-10.0, 10.0, nX);
-  gridY = acoustics::utils::linspace(-10.0, 10.0, nY);
-  auto gridZ = acoustics::utils::linspace(0.0, 2000.0, nZ);
-  auto coordResult = sspBuilder.setCoordinateGrid(gridX, gridY, gridZ);
-  if (coordResult.err()) {
-    acousticsResult.merge(coordResult);
-    acousticsResult.print();
-    return 1;
+  auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
+  auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
+  auto SSPgridZ = acoustics::utils::linspace(0.0, 2000.0 / 1000.0, nZ);
+  acoustics::SSPConfig sspConfig = acoustics::SSPConfig{
+      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0), true};
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Source / Receivers Setup
+  //////////////////////////////////////////////////////////////////////////////
+  Eigen::Vector3d sourcePos(10.0, 30.0, 100.0);
+  std::vector<double> x = acoustics::utils::linspace(100.0, 500.0, 10);
+  std::vector<double> y = acoustics::utils::linspace(-10.0, 10.0, 10);
+  std::vector<Eigen::Vector3d> receiverPos;
+  for (const auto xVal : x) {
+    for (const auto yVal : y) {
+      receiverPos.emplace_back(Eigen::Vector3d(xVal, yVal, 50.0));
+    }
   }
-  sspBuilder.setConstantSsp(1500.0);
-  acousticsResult.merge(sspBuilder.validate());
-  if (acousticsResult.hasWarnings()) {
-    acousticsResult.print();
-  }
+  acoustics::AgentsConfig agents =
+      acoustics::AgentsConfig{sourcePos, receiverPos, false};
+
+  acoustics::SimulationBuilder simBuilder = acoustics::SimulationBuilder(
+      context.params(), bathConfig, sspConfig, agents);
+  simBuilder.build();
 
   //////////////////////////////////////////////////////////////////////////////
   // Beam Setup
@@ -139,7 +108,7 @@ int main() {
   context.params().Beam->deltas = 1.0;
   context.params().Beam->Box.x = 7.0;
   context.params().Beam->Box.y = 7.0;
-  context.params().Beam->Box.z = bathDepth + 10.0;
+  context.params().Beam->Box.z = bathDepth + 10.0 / 1000.0;
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
