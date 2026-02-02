@@ -2,40 +2,36 @@
 // Created by tko on 2/2/26.
 //
 #pragma once
-#include <vector>
-#include <optional>
+#include "Grid.h"
 #include <Eigen/Dense>
-#include "Grid3D.h"
+#include <vector>
+#include "acousticsConstants.h"
 
+namespace acoustics {
 // SimulationConfig.h
+/**
+ * @brief Holds configuration for bathymetry setup
+ * @details Assumes a flat top alitmetry, only applies single constant province
+ * @param isKm applies to all dimensions of grid (unlike bellhop)
+ */
 struct BathymetryConfig {
-  acoustics::Grid2D<double> customGrid;
-  acoustics::BathyInterpolationType interpolation =
-      acoustics::BathyInterpolationType::kLinear;
+  Grid2D<double> Grid;
+  BathyInterpolationType interpolation = BathyInterpolationType::kLinear;
   bool isKm{false};
 };
 
 struct SSPConfig {
-  acoustics::Grid3D<double> customGrid;
+  Grid3D<double> Grid;
   bool isKm{false};
 };
 
-struct SimulationConfig {
-  // Required
-  std::string title;
-  std::string runType = "R";
+struct AgentsConfig {
 
   // Source (required)
   Eigen::Vector3d source;
-  bool sourceInKm = false;
-
   // Receivers (required)
-  std::vector<double> receiverX, receiverY;
-  std::vector<float> receiverZ;
-  bool receiversInKm = false;
-
-  // Required
-  BathymetryConfig &bathymetry;
-  SSPConfig &ssp;
-
+  std::vector<Eigen::Vector3d> receivers;
+  bool isKm = false;
 };
+
+}; // namespace acoustics

@@ -4,12 +4,12 @@
 #pragma once
 #include "Result.h"
 #include "helpers.h"
+#include "acousticsConstants.h"
 #include <bhc/bhc.hpp>
 #include <vector>
 
 namespace acoustics {
 
-constexpr int kNumSources = 1;
 struct agentInitializer {
   bool source{false};
   bool receiver{false};

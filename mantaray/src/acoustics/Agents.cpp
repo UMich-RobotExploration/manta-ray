@@ -37,7 +37,6 @@ void Agents::updateReceivers(const std::vector<double> &x,
                              const std::vector<float> &z, Result &result,
                              bool inKm) {
   params_.Pos->RrInKm = inKm;
-  params_.Pos->SxSyInKm = inKm;
   if (!(x.size() == y.size() || !(y.size() == z.size()))) {
     std::stringstream msg;
     msg << "Receiver coordinate vectors must be the same size.";

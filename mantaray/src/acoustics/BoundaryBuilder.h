@@ -10,17 +10,10 @@
 #include <bhc/bhc.hpp>
 #include <stdexcept>
 #include <vector>
+#include "acousticsConstants.h"
 
 namespace acoustics {
 
-// Provides types for bathymetry interpolation types
-constexpr char kBathymetryInterpLinearShort[] = "LS";
-constexpr char kBathymetryCurveInterpShort[] = "CS";
-
-enum class BathyInterpolationType {
-  kLinear,
-  kCurveInterp,
-};
 
 /**
  * @brief Builder class for configuring bathymetry and altimetry boundaries

@@ -13,11 +13,14 @@ add_library(${ACOUSTIC_LIB_NAME}
         Agents.h
         SimulationConfig.h
         Grid.h
+        SimulationBuilder.cpp
+        SimulationBuilder.h
 )
 
 # Link the bellhop library to acoustics
 target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${INCLUDE_BHC})
 target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${INCLUDE_GLM})
+target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${EIGEN3_INCLUDE_DIRS})
 
 # Apply compiler options based on build type
 target_compile_options(${ACOUSTIC_LIB_NAME} PUBLIC
