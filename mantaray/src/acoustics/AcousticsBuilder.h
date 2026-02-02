@@ -4,6 +4,7 @@
 
 #pragma once
 #include "SimulationConfig.h"
+#include "checkAssert.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>

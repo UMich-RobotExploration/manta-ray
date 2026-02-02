@@ -1,6 +1,7 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
-        main.cpp)
+        main.cpp
+        checkAssert.h)
 
 set(INCLUDE_BHC ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/include/)
 set(INCLUDE_GLM ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/glm/)

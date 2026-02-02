@@ -6,9 +6,9 @@
 
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
-                                     BathymetryConfig &bathConfig,
-                                     SSPConfig &sspConfig,
-                                     AgentsConfig &agentsConfig)
+                                   BathymetryConfig &bathConfig,
+                                   SSPConfig &sspConfig,
+                                   AgentsConfig &agentsConfig)
     : params_(params),
       bathymetryConfig_(std::move(bathConfig)),
       sspConfig_(std::move(sspConfig)),
@@ -29,18 +29,20 @@ void AcousticsBuilder::buildBathymetry() {
   bhc::extsetup_bathymetry(params_, grid, kNumProvince);
   bhc::BdryInfoTopBot<true> &boundary = params_.bdinfo->bot;
   boundary.dirty = true;
-  boundary.dirty = bathymetryConfig_.isKm;
+  boundary.rangeInKm = bathymetryConfig_.isKm;
   const double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
 
   boundary.NPts[0] = static_cast<int>(bathymetryConfig_.Grid.nx());
   boundary.NPts[1] = static_cast<int>(bathymetryConfig_.Grid.ny());
 
-  for (size_t iy = 0; iy < bathymetryConfig_.Grid.ny(); ++iy) {
-    for (size_t ix = 0; ix < bathymetryConfig_.Grid.ny(); ++ix) {
+  for (size_t ix = 0; ix < bathymetryConfig_.Grid.nx(); ++ix) {
+    for (size_t iy = 0; iy < bathymetryConfig_.Grid.ny(); ++iy) {
       auto idx = bathymetryConfig_.Grid.index(ix, iy);
       boundary.bd[idx].x.x = bathymetryConfig_.Grid.xCoords[ix];
       boundary.bd[idx].x.y = bathymetryConfig_.Grid.yCoords[iy];
-      boundary.bd[idx].x.z = bathymetryConfig_.Grid.data[idx] * kmScaler;
+      auto depth = bathymetryConfig_.Grid.data[idx] * kmScaler;
+      CHECK(depth >= 0.0, "Bathymetry depth values must be non-negative.");
+      boundary.bd[idx].x.z = depth;
       // PROVINCE IS 1 INDEXED
       boundary.bd[idx].Province = 1;
     }
@@ -60,6 +62,7 @@ void AcousticsBuilder::buildSSP() {
   params_.ssp->rangeInKm = sspConfig_.isKm;
 
   const double kmScaler = sspConfig_.isKm ? 1000.0 : 1.0;
+  params_.ssp->AttenUnit[0] = 'M';
 
   // setup coordinate grid and ssp in single nested MEGA loop
   for (size_t ix = 0; ix < grid.nx(); ++ix) {
@@ -73,7 +76,11 @@ void AcousticsBuilder::buildSSP() {
         double scaledZ = grid.zCoords[iz] * kmScaler;
         params_.ssp->Seg.z[iz] = scaledZ;
         params_.ssp->z[iz] = scaledZ;
-        params_.ssp->c[idx] = grid.data[idx];
+        params_.ssp->cMat[idx] = grid.data[idx];
+        // TODO: Comment out this alpha
+        CHECK((params_.ssp->cMat[idx] >= 1400.0) &&
+                  (params_.ssp->cMat[idx] <= 1600.0),
+              "Unrealistic sound speed profile input into grid.");
       }
     }
   }
@@ -165,7 +172,7 @@ void AcousticsBuilder::build() {
 };
 
 void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
-                                         const BathymetryConfig &bathConfig) {
+                                        const BathymetryConfig &bathConfig) {
   boundary.dirty = true;
   boundary.rangeInKm = bathConfig.isKm;
   boundary.NPts[0] = kNumAltimetryPts;
@@ -183,8 +190,8 @@ void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
   std::array<double, kNumAltimetryPts> xVals{minX, maxX};
   std::array<double, kNumAltimetryPts> yVals{minY, maxY};
 
-  for (size_t iy = 0; iy < yVals.size(); ++iy) {
-    for (size_t ix = 0; ix < xVals.size(); ++ix) {
+  for (size_t ix = 0; ix < xVals.size(); ++ix) {
+    for (size_t iy = 0; iy < yVals.size(); ++iy) {
       boundary.bd[ix * kNumAltimetryPts + iy].x.x = xVals[ix];
       boundary.bd[ix * kNumAltimetryPts + iy].x.y = yVals[iy];
       boundary.bd[ix * kNumAltimetryPts + iy].x.z = 0;
@@ -192,17 +199,21 @@ void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
   }
 };
 void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
-                                              const std::vector<double> &gridY,
-                                              std::vector<double> &data,
-                                              double depth) {
+                                             const std::vector<double> &gridY,
+                                             std::vector<double> &data,
+                                             double depth) {
   if (data.size() != gridX.size() * gridY.size()) {
     // setting to -1.0 to indicate uninitialized for easier debugging
     data.resize(gridX.size() * gridY.size(), -1.0);
   }
+  double scalerReduction = 1.0 / 100.0;
   for (size_t iy = 0; iy < gridY.size(); ++iy) {
     for (size_t ix = 0; ix < gridX.size(); ++ix) {
-      data[ix * gridY.size() + iy] =
-          depth - (gridX[ix] * gridX[ix] + gridY[iy] * gridY[iy]);
+      auto currDepth =
+          depth -
+          (scalerReduction * (gridX[ix] * gridX[ix] + gridY[iy] * gridY[iy]));
+      CHECK(currDepth > 0, "Quadratic bathymetry should have some depth.");
+      data[ix * gridY.size() + iy] = currDepth;
     }
   }
 }
