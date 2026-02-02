@@ -5,13 +5,11 @@
 #include <vector>
 
 #define BHC_DLL_IMPORT 1
-#include "acoustics/Agents.h"
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
-#include "acoustics/BoundaryBuilder.h"
-#include "acoustics/SspBuilder.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
+#include "acoustics/Result.h"
 
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"

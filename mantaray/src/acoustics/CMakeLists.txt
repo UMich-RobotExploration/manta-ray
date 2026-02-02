@@ -5,12 +5,6 @@ add_library(${ACOUSTIC_LIB_NAME}
         acousticsConstants.h
         helpers.h
         Result.h
-        BoundaryBuilder.cpp
-        BoundaryBuilder.h
-        SspBuilder.cpp
-        SspBuilder.h
-        Agents.cpp
-        Agents.h
         SimulationConfig.h
         Grid.h
         AcousticsBuilder.cpp
