@@ -77,13 +77,14 @@ int main() {
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
   Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
+  int nRecievers = 10;
   std::vector<double> x = acoustics::utils::linspace(100.0, 500.0, 10);
-  std::vector<double> y = acoustics::utils::linspace(0.0, 50.0, 2);
+  std::vector<double> y = acoustics::utils::linspace(0.0, 50.0, 10);
   std::vector<Eigen::Vector3d> receiverPos;
-  for (auto xVal : x) {
-    for (auto yVal : y) {
-      receiverPos.emplace_back(Eigen::Vector3d(xVal, yVal, 50.0));
-    }
+  receiverPos.reserve(nRecievers);
+
+  for (int i =0; i < nRecievers; ++i) {
+    receiverPos.emplace_back(Eigen::Vector3d(x[i], y[i], 50.0));
   }
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos, false};
