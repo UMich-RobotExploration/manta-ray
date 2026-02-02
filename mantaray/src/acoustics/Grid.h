@@ -41,6 +41,11 @@ public:
         data(std::move(initData)) {
     validateInitialization();
   }
+  void clear() {
+    xCoords.clear();
+    yCoords.clear();
+    data.clear();
+  }
 
   size_t nx() const { return xCoords.size(); }
   size_t ny() const { return yCoords.size(); }
@@ -115,6 +120,12 @@ public:
     validateInitialization();
   }
 
+  void clear() {
+    xCoords.clear();
+    yCoords.clear();
+    zCoords.clear();
+    data.clear();
+  }
   size_t nx() const { return xCoords.size(); }
   size_t ny() const { return yCoords.size(); }
   size_t nz() const { return zCoords.size(); }

@@ -13,8 +13,8 @@
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
+#include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
-#include "acoustics/SimulationBuilder.h"
 #include "acoustics/SimulationConfig.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
@@ -55,7 +55,7 @@ int main() {
       acoustics::utils::linspace<double>(-11, 11, 100);
   std::vector<double> bathData;
   double bathDepth = 8.0;
-  acoustics::SimulationBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
+  acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
                                                       bathData, bathDepth);
   acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
       acoustics::Grid2D<double>(bathGridX, bathGridY, bathData),
@@ -76,21 +76,27 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(10.0, 30.0, 100.0);
+  Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
   std::vector<double> x = acoustics::utils::linspace(100.0, 500.0, 10);
-  std::vector<double> y = acoustics::utils::linspace(-10.0, 10.0, 10);
+  std::vector<double> y = acoustics::utils::linspace(0.0, 50.0, 2);
   std::vector<Eigen::Vector3d> receiverPos;
-  for (const auto xVal : x) {
-    for (const auto yVal : y) {
+  for (auto xVal : x) {
+    for (auto yVal : y) {
       receiverPos.emplace_back(Eigen::Vector3d(xVal, yVal, 50.0));
     }
   }
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos, false};
 
-  acoustics::SimulationBuilder simBuilder = acoustics::SimulationBuilder(
+  acoustics::AcousticsBuilder simBuilder = acoustics::AcousticsBuilder(
       context.params(), bathConfig, sspConfig, agents);
   simBuilder.build();
+
+  for (size_t i =0; i < simBuilder.getAgentsConfig().receivers.size(); ++i) {
+        std::cout << "Receiver " << i << ": "
+                  << context.params().Pos->Rr[i]
+                  << "\n";
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   // Beam Setup

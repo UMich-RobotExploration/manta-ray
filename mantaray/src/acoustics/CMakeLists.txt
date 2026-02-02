@@ -13,8 +13,8 @@ add_library(${ACOUSTIC_LIB_NAME}
         Agents.h
         SimulationConfig.h
         Grid.h
-        SimulationBuilder.cpp
-        SimulationBuilder.h
+        AcousticsBuilder.cpp
+        AcousticsBuilder.h
 )
 
 # Link the bellhop library to acoustics

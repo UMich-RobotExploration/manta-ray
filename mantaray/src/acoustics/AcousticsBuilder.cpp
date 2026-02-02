@@ -2,33 +2,35 @@
 // Created by tko on 2/2/26.
 //
 
-#include "SimulationBuilder.h"
+#include "AcousticsBuilder.h"
 
 namespace acoustics {
-SimulationBuilder::SimulationBuilder(bhc::bhcParams<true> &params,
-                                     const BathymetryConfig &bathConfig,
-                                     const SSPConfig &sspConfig,
+AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
+                                     BathymetryConfig &bathConfig,
+                                     SSPConfig &sspConfig,
                                      AgentsConfig &agentsConfig)
     : params_(params),
-      bathymetryConfig_(bathConfig),
-      sspConfig_(sspConfig),
-      agentsConfig_(agentsConfig) {};
+      bathymetryConfig_(std::move(bathConfig)),
+      sspConfig_(std::move(sspConfig)),
+      agentsConfig_(std::move(agentsConfig)) {};
 
-void SimulationBuilder::autogenerateAltimetry() {
+AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
+
+void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
   bhc::extsetup_altimetry(params_, grid);
   params_.bdinfo->top.dirty = true;
   flatAltimetery3D(params_.bdinfo->top, bathymetryConfig_);
 };
 
-void SimulationBuilder::buildBathymetry() {
+void AcousticsBuilder::buildBathymetry() {
   const bhc::IORI2<true> grid = {bathymetryConfig_.Grid.nx(),
                                  bathymetryConfig_.Grid.ny()};
   bhc::extsetup_bathymetry(params_, grid, kNumProvince);
   bhc::BdryInfoTopBot<true> &boundary = params_.bdinfo->bot;
   boundary.dirty = true;
   boundary.dirty = bathymetryConfig_.isKm;
-  const double kmScaler = bathymetryConfig_.isKm ? 1 / 1000.0 : 1.0;
+  const double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
 
   boundary.NPts[0] = static_cast<int>(bathymetryConfig_.Grid.nx());
   boundary.NPts[1] = static_cast<int>(bathymetryConfig_.Grid.ny());
@@ -45,7 +47,7 @@ void SimulationBuilder::buildBathymetry() {
   }
   bathymetryBuilt_ = true;
 };
-void SimulationBuilder::buildSSP() {
+void AcousticsBuilder::buildSSP() {
   const Grid3D<double> &grid = sspConfig_.Grid;
   bhc::extsetup_ssp_hexahedral(params_, static_cast<int>(grid.nx()),
                                static_cast<int>(grid.ny()),
@@ -57,7 +59,7 @@ void SimulationBuilder::buildSSP() {
   params_.ssp->NPts = static_cast<int>(grid.nz());
   params_.ssp->rangeInKm = sspConfig_.isKm;
 
-  const double kmScaler = bathymetryConfig_.isKm ? 1 / 1000.0 : 1.0;
+  const double kmScaler = sspConfig_.isKm ? 1000.0 : 1.0;
 
   // setup coordinate grid and ssp in single nested MEGA loop
   for (size_t ix = 0; ix < grid.nx(); ++ix) {
@@ -84,12 +86,12 @@ void SimulationBuilder::buildSSP() {
  * params.Bdry->Top.hs.Depth = ssp->Seg.z[0] and
  * params.Bdry->Bot.hs.Depth = ssp->Seg.z[ssp->NPts-1]
  */
-void SimulationBuilder::syncBoundaryAndSSP() {
+void AcousticsBuilder::syncBoundaryAndSSP() {
   params_.Bdry->Top.hs.Depth = params_.ssp->Seg.z[0];
   params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[sspConfig_.Grid.nz() - 1];
 }
 
-void SimulationBuilder::updateAgents() {
+void AcousticsBuilder::updateAgents() {
   if (!agentsBuilt_) {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
@@ -108,21 +110,28 @@ void SimulationBuilder::updateAgents() {
 
   // no smart checking, everything is overwritten
   params_.Pos->RrInKm = agentsConfig_.isKm;
-  const double kmScaler = agentsConfig_.isKm ? 1 / 1000.0 : 1.0;
+  const double kmScaler = agentsConfig_.isKm ? 1000.0 : 1.0;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
   params_.Pos->Sz[0] = agentsConfig_.source(2) * kmScaler;
 
+  double prevRange = -1.0;
   for (size_t i = 0; i < nReceivers; ++i) {
     double delta_x = agentsConfig_.receivers[i](0) - agentsConfig_.source(0);
     double delta_y = agentsConfig_.receivers[i](1) - agentsConfig_.source(1);
     params_.Pos->theta[i] = std::atan2(delta_y, delta_x);
+    double currRange = std::sqrt(delta_x * delta_x + delta_y * delta_y);
+    if (currRange <= prevRange) {
+      throw std::runtime_error(
+          "Receiver ranges must be non-decreasing for Bellhop.");
+    }
     params_.Pos->Rr[i] = std::sqrt(delta_x * delta_x + delta_y * delta_y);
     params_.Pos->Rz[i] = agentsConfig_.receivers[i](2) * kmScaler;
   }
+  // std::sort(params_.Pos->Rr);
 };
 
-void SimulationBuilder::buildAgents() {
+void AcousticsBuilder::buildAgents() {
   // Setup Sources but do not assign yet (assigned in update)
   bhc::extsetup_sxsy(params_, kNumSources, kNumSources);
   bhc::extsetup_sz(params_, kNumSources);
@@ -142,7 +151,7 @@ void SimulationBuilder::buildAgents() {
   updateAgents();
 }
 
-void SimulationBuilder::build() {
+void AcousticsBuilder::build() {
   buildBathymetry();
   autogenerateAltimetry();
   if (bathymetryBuilt_) {
@@ -155,8 +164,8 @@ void SimulationBuilder::build() {
   buildAgents();
 };
 
-void SimulationBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
-                      const BathymetryConfig &bathConfig) {
+void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
+                                         const BathymetryConfig &bathConfig) {
   boundary.dirty = true;
   boundary.rangeInKm = bathConfig.isKm;
   boundary.NPts[0] = kNumAltimetryPts;
@@ -182,5 +191,20 @@ void SimulationBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
     }
   }
 };
+void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
+                                              const std::vector<double> &gridY,
+                                              std::vector<double> &data,
+                                              double depth) {
+  if (data.size() != gridX.size() * gridY.size()) {
+    // setting to -1.0 to indicate uninitialized for easier debugging
+    data.resize(gridX.size() * gridY.size(), -1.0);
+  }
+  for (size_t iy = 0; iy < gridY.size(); ++iy) {
+    for (size_t ix = 0; ix < gridX.size(); ++ix) {
+      data[ix * gridY.size() + iy] =
+          depth - (gridX[ix] * gridX[ix] + gridY[iy] * gridY[iy]);
+    }
+  }
+}
 
 } // namespace acoustics
