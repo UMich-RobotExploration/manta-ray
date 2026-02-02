@@ -13,6 +13,8 @@
 #include "acoustics/helpers.h"
 #include "acoustics/Agents.h"
 
+#include "acoustics/Grid.h"
+#include "acoustics/SimulationConfig.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
 
