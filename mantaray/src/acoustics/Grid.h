@@ -26,8 +26,8 @@ public:
   Grid() = delete;
   Grid(const Grid &) = delete;
   Grid &operator=(const Grid &) = delete;
-  Grid(Grid &&) noexcept = delete;
-  Grid &operator=(Grid &&) = delete;
+  Grid(Grid &&) noexcept = default;
+  Grid &operator=(Grid &&) = default;
 
   Grid(std::vector<double> x, std::vector<double> y, T defaultValue = T{})
       : xCoords(std::move(x)),
@@ -103,8 +103,8 @@ public:
   Grid() = delete;
   Grid(const Grid &) = delete;
   Grid &operator=(const Grid &) = delete;
-  Grid(Grid &&) noexcept = delete;
-  Grid &operator=(Grid &&) = delete;
+  Grid(Grid &&) noexcept = default;
+  Grid &operator=(Grid &&) = default;
 
   Grid(std::vector<double> x, std::vector<double> y, std::vector<double> z,
        T defaultValue = T{})
