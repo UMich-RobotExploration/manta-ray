@@ -92,7 +92,7 @@ void SimulationBuilder::syncBoundaryAndSSP() {
 void SimulationBuilder::updateAgents() {
   if (!agentsBuilt_) {
     throw std::runtime_error(
-      "Cannot update agents: Agents have not been built yet.");
+        "Cannot update agents: Agents have not been built yet.");
   }
   size_t nReceivers = agentsConfig_.receivers.size();
   bool isReceiverCountChanged =
@@ -155,7 +155,7 @@ void SimulationBuilder::build() {
   buildAgents();
 };
 
-void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
+void SimulationBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                       const BathymetryConfig &bathConfig) {
   boundary.dirty = true;
   boundary.rangeInKm = bathConfig.isKm;

@@ -48,9 +48,9 @@ private:
   void buildSSP();
   void syncBoundaryAndSSP();
   void buildAgents();
+  static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
+                      const BathymetryConfig &bathConfig);
 };
 
-void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
-                      const BathymetryConfig &bathConfig);
 
 } // namespace acoustics

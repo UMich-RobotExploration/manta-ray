@@ -5,15 +5,16 @@
 #include <vector>
 
 #define BHC_DLL_IMPORT 1
+#include "acoustics/Agents.h"
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
 #include "acoustics/BoundaryBuilder.h"
 #include "acoustics/SspBuilder.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
-#include "acoustics/Agents.h"
 
 #include "acoustics/Grid.h"
+#include "acoustics/SimulationBuilder.h"
 #include "acoustics/SimulationConfig.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
@@ -30,7 +31,6 @@ void OutputCallback(const char *message) {
   std::cout << "Out: " << message << std::endl << std::flush;
 }
 
-
 int main() {
   auto init = bhc::bhcInit();
   auto acousticsResult = acoustics::Result();
@@ -43,18 +43,26 @@ int main() {
   init.outputCallback = OutputCallback;
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "R");
-  strcpy(context.params().Title, "testing_bath");
+  strcpy(context.params().Title, "overhaul");
 
   //////////////////////////////////////////////////////////////////////////////
   // Bathymetry Setup
   //////////////////////////////////////////////////////////////////////////////
+
+  // std::vector<double> bathGridX = acoustics::utils::linspace<double>(-10, 10, grid[0]);
+  // std::vector<double> bathGridY = acoustics::utils::linspace<double>(-11, 11, grid[1]);
+  // acoustics::Grid2D<double> bathGrid = acoustics::Grid2D<double>(
+  //     bathGridX, bathGridY, );
+  // acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig(
+  //     bathGrid, acoustics::BathyInterpolationType::kLinear, false);
+
   auto boundaryBuild = acoustics::BoundaryBuilder(context.params());
   const bhc::IORI2<true> grid = {100, 100};
   const int32_t nBottomProvince = 1;
   boundaryBuild.setupBathymetry(grid, nBottomProvince);
   const double bathDepth = 800;
-  std::vector<double> gridX = acoustics::linspace<double>(-10, 10, grid[0]);
-  std::vector<double> gridY = acoustics::linspace<double>(-11, 11, grid[1]);
+  std::vector<double> gridX = acoustics::utils::linspace<double>(-10, 10, grid[0]);
+  std::vector<double> gridY = acoustics::utils::linspace<double>(-11, 11, grid[1]);
   boundaryBuild.setQuadraticBottom(bathDepth, gridX, gridY, true);
   boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::kLinear,
                                      false);
@@ -75,10 +83,10 @@ int main() {
   // context.params().Pos->Sz[0] = 100.0f;
 
   // disk of receivers
-  std::vector<double> x = acoustics::linspace(100.0, 500.0, 10);
-  std::vector<double> y = acoustics::linspace(-10.0, 10.0, 10);
+  std::vector<double> x = acoustics::utils::linspace(100.0, 500.0, 10);
+  std::vector<double> y = acoustics::utils::linspace(-10.0, 10.0, 10);
   std::vector<float> z(y.size(), 50.0f);
-  acousticsResult.merge(agents.initializeReceivers(x,y,z,false));
+  acousticsResult.merge(agents.initializeReceivers(x, y, z, false));
   if (acousticsResult.err()) {
     acousticsResult.print();
     return 1;
@@ -100,9 +108,9 @@ int main() {
   int nY = 10;
   int nZ = 10;
   sspBuilder.setupHexahedral(nX, nY, nZ, true);
-  gridX = acoustics::linspace(-10.0, 10.0, nX);
-  gridY = acoustics::linspace(-10.0, 10.0, nY);
-  auto gridZ = acoustics::linspace(0.0, 2000.0, nZ);
+  gridX = acoustics::utils::linspace(-10.0, 10.0, nX);
+  gridY = acoustics::utils::linspace(-10.0, 10.0, nY);
+  auto gridZ = acoustics::utils::linspace(0.0, 2000.0, nZ);
   auto coordResult = sspBuilder.setCoordinateGrid(gridX, gridY, gridZ);
   if (coordResult.err()) {
     acousticsResult.merge(coordResult);
@@ -114,7 +122,6 @@ int main() {
   if (acousticsResult.hasWarnings()) {
     acousticsResult.print();
   }
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Beam Setup

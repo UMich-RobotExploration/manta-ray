@@ -21,6 +21,7 @@ enum class RectangleCorners { kTopRight, kTopLeft, kBottomRight, kBottomLeft };
  * @param num Number of points to generate
  * @return Vector of linearly spaced values
  */
+namespace utils{
 template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
   std::vector<T> result;
   result.reserve(num);
@@ -111,4 +112,5 @@ inline float safe_double_to_float(double value, bool strict = false) {
   return result;
 }
 
-} // namespace acoustics
+}  // namespace utils
+}// namespace acoustics

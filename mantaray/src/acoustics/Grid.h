@@ -35,6 +35,12 @@ public:
         data(xCoords.size() * yCoords.size(), defaultValue) {
     validateInitialization();
   }
+  Grid(std::vector<double> x, std::vector<double> y, std::vector<T> initData)
+      : xCoords(std::move(x)),
+        yCoords(std::move(y)),
+        data(std::move(initData)) {
+    validateInitialization();
+  }
 
   size_t nx() const { return xCoords.size(); }
   size_t ny() const { return yCoords.size(); }

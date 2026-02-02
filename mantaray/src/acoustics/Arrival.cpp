@@ -120,7 +120,7 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               }
               if (narr != 0) {
                 arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
-                printVector(arrivalDelays);
+                utils::printVector(arrivalDelays);
                 std::cout << "Min Delay for Receiver: " << minDelay << "\n";
               }
             }
