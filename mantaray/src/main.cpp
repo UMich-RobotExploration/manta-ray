@@ -87,12 +87,11 @@ int main() {
   std::vector<double> y = acoustics::utils::linspace(-10.0, 50.0, nRecievers);
   acoustics::utils::printVector(x);
   acoustics::utils::printVector(y);
-  std::vector<Eigen::Vector3d> receiverPos;
-  receiverPos.reserve(nRecievers);
+  Eigen::Vector3d receiverPos;
+  receiverPos(0) = 500;
+  receiverPos(1) = 50;
+  receiverPos(2) = 100;
 
-  for (int i = 0; i < nRecievers; ++i) {
-    receiverPos.emplace_back(Eigen::Vector3d(x[i], y[i], 50.0));
-  }
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos, false};
 
@@ -100,11 +99,11 @@ int main() {
       context.params(), bathConfig, sspConfig, agents);
   simBuilder.build();
 
-  for (size_t i = 0; i < simBuilder.getAgentsConfig().receivers.size(); ++i) {
+  for (size_t i = 0; i < acoustics::kNumRecievers; ++i) {
     std::cout << "Receiver " << i << ": " << context.params().Pos->Rr[i] << ", "
               << context.params().Pos->theta[i] << " ,"
               << "Estimate TOF: "
-              << (receiverPos[0] - sourcePos).norm() / 1500.0 << "\n";
+              << (receiverPos - sourcePos).norm() / 1500.0 << "\n";
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -166,7 +165,7 @@ int main() {
   // }
 
   bhc::postprocess(context.params(), context.outputs());
-  bhc::writeout(context.params(), context.outputs(), runName);
+  // bhc::writeout(context.params(), context.outputs(), runName);
 
   auto arrival = acoustics::Arrival(context.params(), context.outputs());
   auto arrivalVec = arrival.extractEarliestArrivals();

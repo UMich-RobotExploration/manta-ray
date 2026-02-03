@@ -14,6 +14,7 @@ constexpr size_t kMaxTitle = 80;
 constexpr char kBathymetryInterpLinearShort[] = "LS";
 constexpr char kBathymetryCurveInterpShort[] = "CS";
 constexpr int kNumSources = 1;
+constexpr int kNumRecievers = 1;
 
 enum class BathyInterpolationType {
   kLinear,

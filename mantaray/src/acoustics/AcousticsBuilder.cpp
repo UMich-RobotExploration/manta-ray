@@ -103,16 +103,15 @@ void AcousticsBuilder::updateAgents() {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
   }
-  size_t nReceivers = agentsConfig_.receivers.size();
   bool isReceiverCountChanged =
-      params_.Pos->NRr != static_cast<int32_t>(nReceivers);
+      params_.Pos->NRr != static_cast<int32_t>(kNumRecievers);
   if (isReceiverCountChanged) {
-    bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(nReceivers));
-    bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(nReceivers));
-    bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(nReceivers));
-    params_.Pos->NRr = static_cast<int32_t>(nReceivers);
-    params_.Pos->NRz = static_cast<int32_t>(nReceivers);
-    params_.Pos->Ntheta = static_cast<int32_t>(nReceivers);
+    bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(kNumRecievers));
+    bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(kNumRecievers));
+    bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(kNumRecievers));
+    params_.Pos->NRr = static_cast<int32_t>(kNumRecievers);
+    params_.Pos->NRz = static_cast<int32_t>(kNumRecievers);
+    params_.Pos->Ntheta = static_cast<int32_t>(kNumRecievers);
   }
 
   // no smart checking, everything is overwritten
@@ -122,20 +121,12 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->Sy[0] = agentsConfig_.source(1);
   params_.Pos->Sz[0] = agentsConfig_.source(2) * kmScaler;
 
-  double prevRange = -1.0;
-  for (size_t i = 0; i < nReceivers; ++i) {
-    double delta_x = agentsConfig_.receivers[i](0) - agentsConfig_.source(0);
-    double delta_y = agentsConfig_.receivers[i](1) - agentsConfig_.source(1);
-    params_.Pos->theta[i] = std::atan2(delta_y, delta_x);
-    double currRange = std::sqrt(delta_x * delta_x + delta_y * delta_y);
-    if (currRange <= prevRange) {
-      throw std::runtime_error(
-          "Receiver ranges must be non-decreasing for Bellhop.");
-    }
-    params_.Pos->Rr[i] = std::sqrt(delta_x * delta_x + delta_y * delta_y);
-    params_.Pos->Rz[i] = agentsConfig_.receivers[i](2) * kmScaler;
-  }
-  // std::sort(params_.Pos->Rr);
+  auto delta = agentsConfig_.receivers(Eigen::seq(0, 1)) -
+               agentsConfig_.source(Eigen::seq(0, 1));
+  std::cout << "Eigen Delta: " << delta.norm() << "\n";
+  params_.Pos->theta[0] = std::atan2(delta(1), delta(0));
+  params_.Pos->Rr[0] = delta.norm();
+  params_.Pos->Rz[0] = agentsConfig_.receivers(2) * kmScaler;
 };
 
 void AcousticsBuilder::buildAgents() {

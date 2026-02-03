@@ -30,7 +30,7 @@ struct AgentsConfig {
   // Source (required)
   Eigen::Vector3d source;
   // Receivers (required)
-  std::vector<Eigen::Vector3d> receivers;
+  Eigen::Vector3d receivers;
   bool isKm = false;
 };
 
