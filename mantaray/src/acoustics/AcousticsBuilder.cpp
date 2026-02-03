@@ -108,13 +108,12 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
     bhc::extsetup_rayelevations(params_, kNumBeams);
     beamBuilt_ = true;
   }
-  constexpr double spacingBeams = 10.0 * (M_PI / 180.0);
   utils::unsafeSetupVector(params_.Angles->beta.angles,
-                           bearingAngle - spacingBeams,
-                           bearingAngle + spacingBeams, kNumBeams);
+                           bearingAngle - kBeamSpreadRadians,
+                           bearingAngle + kBeamSpreadRadians, kNumBeams);
   utils::unsafeSetupVector(params_.Angles->alpha.angles,
-                           elevationAngle - spacingBeams,
-                           elevationAngle + spacingBeams, kNumBeams);
+                           elevationAngle - kBeamSpreadRadians,
+                           elevationAngle + kBeamSpreadRadians, kNumBeams);
 
   auto beam = params_.Beam;
   double boxScale = 1.1;
@@ -136,9 +135,10 @@ void AcousticsBuilder::updateAgents() {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
   }
-  bool isReceiverCountChanged =
-      params_.Pos->NRr != static_cast<int32_t>(kNumRecievers);
-  if (isReceiverCountChanged) {
+  bool isReceiverCountIdentical =
+      params_.Pos->NRr == static_cast<int32_t>(kNumRecievers);
+  if (!isReceiverCountIdentical) {
+    std::cout << "Reallocating receiver arrays for updated agents.\n";
     bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(kNumRecievers));
     bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(kNumRecievers));
     bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(kNumRecievers));
