@@ -1,5 +1,6 @@
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -145,7 +146,11 @@ int main() {
   bhc::writeenv(context.params(), runName);
 
   for (int i = 0; i < 10; ++i) {
+    std::chrono::high_resolution_clock::time_point t1 =
+        std::chrono::high_resolution_clock::now();
     bhc::run(context.params(), context.outputs());
+    std::chrono::nanoseconds delta =
+        std::chrono::high_resolution_clock::now() - t1;
     auto &agentConfig = simBuilder.getAgentsConfig();
     agentConfig.receivers(0) += 50;
     simBuilder.updateAgents();
@@ -173,6 +178,10 @@ int main() {
 
     auto arrival = acoustics::Arrival(context.params(), context.outputs());
     auto arrivalVec = arrival.extractEarliestArrivals();
+    std ::cout
+        << "Iteration " << i << " took "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+        << " ms\n";
     acoustics::utils::printVector(arrivalVec);
   }
   // bhc::writeout(context.params(), context.outputs(), runName);
