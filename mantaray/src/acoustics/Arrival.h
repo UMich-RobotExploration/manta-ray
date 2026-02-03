@@ -7,9 +7,8 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include "checkAssert.h"
 
-#ifndef MANTARAY_ARRIVAL_H
-#define MANTARAY_ARRIVAL_H
 
 namespace acoustics {
 constexpr float kNoArrival = -1.0f;
@@ -29,4 +28,3 @@ private:
 };
 } // namespace acoustics
 
-#endif // MANTARAY_ARRIVAL_H

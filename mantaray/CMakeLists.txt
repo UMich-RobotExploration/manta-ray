@@ -29,7 +29,7 @@ set(EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
 
 add_subdirectory(src)
 
-find_library(BELLHPCXXLIB NAMES libbellhopcxxlib.so PATHS ${CMAKE_SOURCE_DIR}/deps/lib)
+find_library(BELLHPCXXLIB NAMES libbellhopcudalib.so PATHS ${CMAKE_SOURCE_DIR}/deps/lib)
 if (BELLHPCXXLIB)
     message(STATUS "Found Bell HPCXX library: ${BELLHPCXXLIB}")
     target_link_libraries(${ACOUSTIC_LIB_NAME} PUBLIC ${BELLHPCXXLIB})
