@@ -20,7 +20,7 @@ target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DI
 
 # Apply compiler options based on build type
 target_compile_options(${ACOUSTIC_LIB_NAME} PUBLIC
-    "$<$<CONFIG:DEBUG>:${DEBUG_COMPILER_OPTIONS}>"
-    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
 )
 

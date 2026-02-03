@@ -116,7 +116,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
                            elevationAngle + kBeamSpreadRadians, kNumBeams);
 
   auto beam = params_.Beam;
-  double boxScale = 1.1;
+  double boxScale = 1.10;
   beam->rangeInKm = agentsConfig_.isKm;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   beam->deltas = delta.norm() * kBeamStepSizeRatio;
@@ -158,7 +158,7 @@ void AcousticsBuilder::updateAgents() {
                agentsConfig_.source(Eigen::seq(0, 1));
   // std::cout << "Eigen Delta: " << delta.norm() << "\n";
   double bearingAngle = std::atan2(delta(1), delta(0));
-  params_.Pos->theta[0] = bearingAngle;
+  params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
   params_.Pos->Rz[0] = agentsConfig_.receivers(2) * kmScaler;
 

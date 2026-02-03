@@ -17,9 +17,9 @@ set(RELEASE_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-O3;-DNDEBUG")
 
 # Print which configuration is being applied
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "${TARGET_NAME}: Using CONFIG:DEBUG with options: ${DEBUG_COMPILER_OPTIONS}")
+    message(STATUS "${TARGET_NAME}: Using CONFIG:Debug with options: ${DEBUG_COMPILER_OPTIONS}")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    message(STATUS "${TARGET_NAME}: Using CONFIG:RELEASE with options: ${RELEASE_COMPILER_OPTIONS}")
+    message(STATUS "${TARGET_NAME}: Using CONFIG:Release with options: ${RELEASE_COMPILER_OPTIONS}")
 else()
     message(STATUS "${TARGET_NAME}: Build type is '${CMAKE_BUILD_TYPE}'")
 endif()

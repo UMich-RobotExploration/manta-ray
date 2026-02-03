@@ -18,7 +18,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE ${ACOUSTIC_LIB_NAME})
 
 # Apply compiler options based on build type
 target_compile_options(${TARGET_NAME} PRIVATE
-    "$<$<CONFIG:DEBUG>:${DEBUG_COMPILER_OPTIONS}>"
-    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
 )
 

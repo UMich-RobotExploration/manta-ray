@@ -41,6 +41,10 @@ int main() {
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
+  // Profiled memory to find PreProcess was the longest task in the sim
+  // Reducing memory is the only way to limit it's overhead.
+  init.maxMemory = 30ull * 1024ull * 1024ull; // 30 MiB
+  init.numThreads = static_cast<int32_t>(1);
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "A");
   // Important to set to I for irregular grid tracking
@@ -84,7 +88,7 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
   Eigen::Vector3d receiverPos;
-  receiverPos(0) = 500;
+  receiverPos(0) = 0.0;
   receiverPos(1) = 50;
   receiverPos(2) = 100;
 
@@ -102,34 +106,6 @@ int main() {
               << "\n";
   }
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Beam Setup
-  //////////////////////////////////////////////////////////////////////////////
-  // context.params().Angles->alpha.inDegrees = true;
-  // context.params().Angles->beta.inDegrees = true;
-  // bhc::extsetup_raybearings(context.params(), 30);
-  // acoustics::utils::unsafeSetupVector(context.params().Angles->beta.angles,
-  //                                     -10.0, 12.0, 30);
-  // bhc::extsetup_rayelevations(context.params(), 30);
-  // acoustics::utils::unsafeSetupVector(context.params().Angles->alpha.angles,
-  //                                     -20.0, 50.0, 30);
-  //
-  // context.params().Beam->rangeInKm = true;
-  // // Here we need to define the limit of the beam tracing to prevent
-  // exceeding
-  // // the bathymetry grid and the SSP grid
-  // context.params().Beam->deltas = 0.01;
-  // context.params().Beam->Box.x = 4.0;
-  // context.params().Beam->Box.y = 4.0;
-  // context.params().Beam->Box.z = bathDepth * 1000 + 40.0 / 1000.0;
-  // context.params().freqinfo->Nfreq = 1;
-  // context.params().freqinfo->freq0 = 1000.0;
-  // bhc::extsetup_sbp(context.params(), 1);
-  // context.params().sbp->SBPFlag = 'O';  // Enable source beam pattern
-  // context.params().sbp->SBPIndB = true;
-  // context.params().sbp->NSBPPts = 1;
-  //
-  // // context.params().sbp->SrcBmPat[0] = 200.0; // dB
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
@@ -144,15 +120,17 @@ int main() {
     return 1;
   }
   bhc::writeenv(context.params(), runName);
-
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 5; ++i) {
     std::chrono::high_resolution_clock::time_point t1 =
         std::chrono::high_resolution_clock::now();
     bhc::run(context.params(), context.outputs());
     std::chrono::nanoseconds delta =
         std::chrono::high_resolution_clock::now() - t1;
     auto &agentConfig = simBuilder.getAgentsConfig();
-    agentConfig.receivers(0) += 50;
+    agentConfig.receivers(0) += 100;
+    agentConfig.receivers(1) += 100;
+    agentConfig.receivers(2) += 25;
+    std::cout << "Receiver Location: " << agentConfig.receivers << "\n";
     simBuilder.updateAgents();
     // // Debugging Ray memory issues
     // std::cout << "Max points per ray: "
