@@ -5,10 +5,10 @@
 #pragma once
 #include "SimulationConfig.h"
 #include "checkAssert.h"
+#include "helpers.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>
-#include <optional>
 
 namespace acoustics {
 constexpr int kNumAltimetryPts = 2;
@@ -61,12 +61,14 @@ private:
   AgentsConfig agentsConfig_;
   bool bathymetryBuilt_{false};
   bool agentsBuilt_{false};
+  bool beamBuilt_{false};
 
   void buildBathymetry();
   void autogenerateAltimetry();
   void buildSSP();
   void syncBoundaryAndSSP();
   void buildAgents();
+  void constructBeam(double bearingAngle);
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                                const BathymetryConfig &bathConfig);
 };

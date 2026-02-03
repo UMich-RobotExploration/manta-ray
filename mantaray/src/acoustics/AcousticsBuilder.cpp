@@ -98,6 +98,39 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
   params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[sspConfig_.Grid.nz() - 1];
 }
 
+void AcousticsBuilder::constructBeam(double bearingAngle) {
+  params_.Angles->alpha.inDegrees = false;
+  params_.Angles->beta.inDegrees = false;
+  auto delta = agentsConfig_.receivers - agentsConfig_.source;
+  double elevationAngle = std::atan2(delta(2), delta(1));
+  if (!beamBuilt_) {
+    bhc::extsetup_raybearings(params_, kNumBeams);
+    bhc::extsetup_rayelevations(params_, kNumBeams);
+    beamBuilt_ = true;
+  }
+  constexpr double spacingBeams = 10.0 * (M_PI / 180.0);
+  utils::unsafeSetupVector(params_.Angles->beta.angles,
+                           bearingAngle - spacingBeams,
+                           bearingAngle + spacingBeams, kNumBeams);
+  utils::unsafeSetupVector(params_.Angles->alpha.angles,
+                           elevationAngle - spacingBeams,
+                           elevationAngle + spacingBeams, kNumBeams);
+
+  auto beam = params_.Beam;
+  double boxScale = 1.1;
+  beam->rangeInKm = agentsConfig_.isKm;
+  double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
+  beam->deltas = delta.norm() / 100.0;
+  double deltaX = std::abs(delta(0));
+  double deltaY = std::abs(delta(1));
+  CHECK((deltaX > 0.0) && (deltaY > 0.0),
+        "Delta's need to be positive in bellhop box");
+  beam->Box.x = deltaX * boxScale;
+  beam->Box.y = deltaY * boxScale;
+  double max = *std::max_element(bathymetryConfig_.Grid.data.begin(), bathymetryConfig_.Grid.data.end());
+  beam->Box.z = max  * kmScaler+ 10;
+}
+
 void AcousticsBuilder::updateAgents() {
   if (!agentsBuilt_) {
     throw std::runtime_error(
@@ -123,10 +156,13 @@ void AcousticsBuilder::updateAgents() {
 
   auto delta = agentsConfig_.receivers(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
-  std::cout << "Eigen Delta: " << delta.norm() << "\n";
-  params_.Pos->theta[0] = std::atan2(delta(1), delta(0));
+  // std::cout << "Eigen Delta: " << delta.norm() << "\n";
+  double bearingAngle = std::atan2(delta(1), delta(0));
+  params_.Pos->theta[0] = bearingAngle;
   params_.Pos->Rr[0] = delta.norm();
   params_.Pos->Rz[0] = agentsConfig_.receivers(2) * kmScaler;
+
+  constructBeam(bearingAngle);
 };
 
 void AcousticsBuilder::buildAgents() {

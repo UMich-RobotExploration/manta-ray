@@ -15,6 +15,7 @@ constexpr char kBathymetryInterpLinearShort[] = "LS";
 constexpr char kBathymetryCurveInterpShort[] = "CS";
 constexpr int kNumSources = 1;
 constexpr int kNumRecievers = 1;
+constexpr int kNumBeams = 30;
 
 enum class BathyInterpolationType {
   kLinear,
