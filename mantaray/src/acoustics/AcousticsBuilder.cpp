@@ -119,7 +119,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   double boxScale = 1.1;
   beam->rangeInKm = agentsConfig_.isKm;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  beam->deltas = delta.norm() / 100.0;
+  beam->deltas = delta.norm() * kBeamStepSizeRatio;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),

@@ -17,6 +17,7 @@ constexpr int kNumSources = 1;
 constexpr int kNumRecievers = 1;
 constexpr int kNumBeams = 100;
 constexpr double kBeamSpreadRadians = 15.0 * (M_PI / 180.0);
+constexpr double kBeamStepSizeRatio = 1.0 / 50.0;
 
 enum class BathyInterpolationType {
   kLinear,
