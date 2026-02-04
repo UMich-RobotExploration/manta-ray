@@ -1,9 +1,12 @@
 // Grid3D.h
 #pragma once
 
+#include <Eigen/Dense>
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 namespace acoustics {
 
@@ -30,15 +33,15 @@ public:
   Grid &operator=(Grid &&) = default;
 
   Grid(std::vector<double> x, std::vector<double> y, T defaultValue = T{})
-      : xCoords(std::move(x)),
-        yCoords(std::move(y)),
+      : xCoords(x),
+        yCoords(y),
         data(xCoords.size() * yCoords.size(), defaultValue) {
     validateInitialization();
   }
   Grid(std::vector<double> x, std::vector<double> y, std::vector<T> initData)
-      : xCoords(std::move(x)),
-        yCoords(std::move(y)),
-        data(std::move(initData)) {
+      : xCoords(x),
+        yCoords(y),
+        data(initData) {
     validateInitialization();
   }
   void clear() {
@@ -77,6 +80,26 @@ public:
            !yCoords.empty();
   }
 
+  std::pair<Eigen::Vector2d, Eigen::Vector2d> boundingBox() const {
+    if (!isValid()) {
+      throw std::runtime_error("Cannot compute bounding box of invalid grid");
+    }
+    auto [xMin, xMax] = std::minmax(xCoords.begin(), xCoords.end());
+    auto [yMin, yMax] = std::minmax(yCoords.begin(), yCoords.end());
+    auto minVec = Eigen::Vector2d(*xMin, *yMin);
+    auto maxVec = Eigen::Vector2d(*xMax, *yMax);
+    return std::pair(minVec, maxVec);
+  }
+  bool checkInside(const Grid<true, T> &other) {
+    auto [minOther, maxOther] = other.boundingBox();
+    auto [minThis, maxThis] = boundingBox();
+    auto isMinValid = minOther(Eigen::seq(0, 1)).array() <= minThis.array();
+    auto isMaxValid = maxOther(Eigen::seq(0, 1)).array() >= maxThis.array();
+    auto tmp1 = isMinValid.eval();
+    auto tmp2 = isMaxValid.eval();
+    return (isMinValid.all() && isMaxValid.all());
+  }
+
 private:
   void validateInitialization() const {
     if (xCoords.empty() || yCoords.empty()) {
@@ -113,9 +136,9 @@ public:
 
   Grid(std::vector<double> x, std::vector<double> y, std::vector<double> z,
        T defaultValue = T{})
-      : xCoords(std::move(x)),
-        yCoords(std::move(y)),
-        zCoords(std::move(z)),
+      : xCoords(x),
+        yCoords(y),
+        zCoords(z),
         data(xCoords.size() * yCoords.size() * zCoords.size(), defaultValue) {
     validateInitialization();
   }
@@ -159,6 +182,24 @@ public:
   bool isValid() const {
     return data.size() == xCoords.size() * yCoords.size() * zCoords.size() &&
            !xCoords.empty() && !yCoords.empty() && !zCoords.empty();
+  }
+  std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const {
+    if (!isValid()) {
+      throw std::runtime_error("Cannot compute bounding box of invalid grid");
+    }
+    auto [xMin, xMax] = std::minmax(xCoords.begin(), xCoords.end());
+    auto [yMin, yMax] = std::minmax(yCoords.begin(), yCoords.end());
+    auto [zMin, zMax] = std::minmax(zCoords.begin(), zCoords.end());
+    auto minVec = Eigen::Vector3d(*xMin, *yMin, *zMin);
+    auto maxVec = Eigen::Vector3d(*xMax, *yMax, *zMax);
+    return std::pair(minVec, maxVec);
+  }
+  bool checkInside(const Grid<true, T> &other) {
+    auto [minOther, maxOther] = other.boundingBox();
+    auto [minThis, maxThis] = boundingBox();
+    auto isMinValid = minOther.array() >= minThis.array();
+    auto isMaxValid = maxOther.array() <= maxThis.array();
+    return (isMinValid.all() && isMaxValid.all());
   }
 
 private:
