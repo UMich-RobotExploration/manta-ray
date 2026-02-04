@@ -83,7 +83,7 @@ private:
       throw std::runtime_error("Grid cannot have empty coordinate vectors");
     }
     if (data.size() != xCoords.size() * yCoords.size()) {
-      throw std::runtime_error("Grid data size mismatch");
+      throw std::invalid_argument("Grid data size mismatch");
     }
   }
 
@@ -167,7 +167,7 @@ private:
       throw std::runtime_error("Grid cannot have empty coordinate vectors");
     }
     if (data.size() != xCoords.size() * yCoords.size() * zCoords.size()) {
-      throw std::runtime_error("Grid data size mismatch");
+      throw std::invalid_argument("Grid data size mismatch");
     }
   }
 
