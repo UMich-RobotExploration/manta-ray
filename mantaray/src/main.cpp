@@ -41,10 +41,10 @@ int main() {
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  init.maxMemory = 30ull * 1024ull * 1024ull; // 30 MiB
+  // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
   init.numThreads = static_cast<int32_t>(1);
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "A");
+  strcpy(context.params().Beam->RunType, "R");
   // Important to set to I for irregular grid tracking
   context.params().Beam->RunType[4] = 'I';
   strcpy(context.params().Title, runName);
@@ -73,23 +73,26 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   int nX = 10;
   int nY = 10;
-  int nZ = 10;
+  int nZ = 100;
   auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
   auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
-  auto SSPgridZ = acoustics::utils::linspace(0.0, 2000.0 / 1000.0, nZ);
-  auto SSPdata = std::vector<double>(nX * nY * nZ, 1500.0);
-  acoustics::SSPConfig sspConfig = acoustics::SSPConfig{
-      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0), true};
-  // std::cout << sspConfig.Grid.at(0, 0, 0) << "\n";
+  auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
+  auto SSPGrid =
+      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
+  acoustics::munkProfile(SSPGrid, 1750.0 / 1000.0, 1500.0, true);
+
+  acoustics::SSPConfig sspConfig =
+      acoustics::SSPConfig{std::move(SSPGrid), true};
+  std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
+  Eigen::Vector3d sourcePos(10.0, 0.0, 3750.0);
   Eigen::Vector3d receiverPos;
-  receiverPos(0) = 0.0;
-  receiverPos(1) = 50;
-  receiverPos(2) = 100;
+  receiverPos(0) = -2000.0;
+  receiverPos(1) = 2000.0;
+  receiverPos(2) = 2000.0;
 
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos, false};
@@ -99,12 +102,23 @@ int main() {
   simBuilder.build();
 
   for (size_t i = 0; i < acoustics::kNumRecievers; ++i) {
+    float sspVal = 0;
+    bhc::VEC23<true> vec = {receiverPos(0), receiverPos(1), receiverPos(2)};
+    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
     std::cout << "Receiver " << i << ": " << context.params().Pos->Rr[i] << ", "
               << context.params().Pos->theta[i] << " ,"
-              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / 1500.0
+              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / sspVal
               << "\n";
   }
-
+  const acoustics::SSPConfig &sspConfigBuilt = simBuilder.getSSPConfig();
+  for (size_t iz = 0; iz < sspConfigBuilt.Grid.nz(); ++iz) {
+    float sspVal = 0;
+    bhc::VEC23<true> vec = {0.0, 0.0, sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
+    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
+    std::cout << "(" << sspVal << ", " << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
+              << "\n";
+  }
+  return 0;
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
@@ -119,7 +133,7 @@ int main() {
     return 1;
   }
   bhc::writeenv(context.params(), runName);
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 1; ++i) {
     std::chrono::high_resolution_clock::time_point t1 =
         std::chrono::high_resolution_clock::now();
 
@@ -135,22 +149,27 @@ int main() {
     // -> updateAgents
     // simBuilder.moveReciever(x,y,z);
     // -> updateAgents
-    // Need to consider a 2D arrival time matrix where (i,j) relates agents arrival times
+    // Need to consider a 2D arrival time matrix where (i,j) relates agents
+    // arrival times
     agentConfig.receiver(0) += 100;
     agentConfig.receiver(1) += 100;
     agentConfig.receiver(2) += 25;
     std::cout << "Receiver Location: " << agentConfig.receiver << "\n";
     simBuilder.updateAgents();
 
-    auto arrival = acoustics::Arrival(context.params(), context.outputs());
-    auto arrivalVec = arrival.extractEarliestArrivals();
+    try {
+      auto arrival = acoustics::Arrival(context.params(), context.outputs());
+      auto arrivalVec = arrival.extractEarliestArrivals();
+      acoustics::utils::printVector(arrivalVec);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during arrival extraction: " << e.what() << std::endl;
+    }
     std ::cout
         << "Iteration " << i << " took "
         << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
         << " ms\n";
-    acoustics::utils::printVector(arrivalVec);
   }
-  // bhc::writeout(context.params(), context.outputs(), runName);
+  bhc::writeout(context.params(), context.outputs(), runName);
 
   return 0;
 }

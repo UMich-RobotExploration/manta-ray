@@ -15,6 +15,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
       agentsConfig_(std::move(agentsConfig)) {};
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
+const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; };
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
@@ -119,7 +120,8 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   double boxScale = 1.10;
   beam->rangeInKm = agentsConfig_.isKm;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  beam->deltas = 10.0; // TODO: Adjust overide
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),

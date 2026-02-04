@@ -53,6 +53,7 @@ public:
                                     const std::vector<double> &gridY,
                                     std::vector<double> &data, double depth);
   AgentsConfig &getAgentsConfig();
+  const SSPConfig &getSSPConfig();
 
 private:
   bhc::bhcParams<true> &params_;

@@ -3,10 +3,10 @@
 
 #include <Eigen/Dense>
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
-#include <iostream>
 
 namespace acoustics {
 
@@ -42,9 +42,7 @@ public:
     validateInitialization();
   }
   Grid(std::vector<double> x, std::vector<double> y, std::vector<T> initData)
-      : xCoords(x),
-        yCoords(y),
-        data(initData) {
+      : xCoords(x), yCoords(y), data(initData) {
     validateInitialization();
   }
   void clear() {
@@ -95,6 +93,7 @@ public:
   }
   bool checkInside(const Grid<kGrid3D, T> &other) {
     auto [minOther, maxOther] = other.boundingBox();
+    // TODO: Fix this as it is currently not working and failing tests.
     auto [minThis, maxThis] = boundingBox();
     auto isMinValid = minOther.head(2).array() <= minThis.head(2).array();
     auto isMaxValid = maxOther.head(2).array() <= maxThis.head(2).array();
@@ -229,5 +228,22 @@ private:
 template <typename T> using Grid2D = Grid<kGrid2D, T>;
 
 template <typename T> using Grid3D = Grid<kGrid3D, T>;
+
+inline void munkProfile(Grid3D<double> &grid, double sofarDepth, double sofarSpeed, bool isKm) {
+  const double kmScaler = isKm ? 1000.0 : 1.0;
+  sofarDepth *= kmScaler;
+  const double kMunk = 1.0 / 1300.0;
+  const double kEpsilon = 0.00737;
+  for (size_t ix = 0; ix < grid.xCoords.size(); ++ix) {
+    for (size_t iy = 0; iy < grid.yCoords.size(); ++iy) {
+      for (size_t iz = 0; iz < grid.zCoords.size(); ++iz) {
+        double zVal = grid.zCoords[iz] * kmScaler;
+        double zBar = 2 * (zVal - 1300.0)  * kMunk;
+        grid.at(ix, iy, iz) =
+            sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
+      }
+    }
+  }
+};
 
 } // namespace acoustics
