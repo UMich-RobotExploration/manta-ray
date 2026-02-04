@@ -10,6 +10,9 @@
 
 namespace acoustics {
 
+enum GridDimension { kGrid2D, kGrid3D };
+
+// TODO: Create enum for template
 /**
  * @brief Grid class for 2D and 3D grids or Bellhop
  * @detail The index structure MUST align with Bellhop's internal storage order
@@ -17,10 +20,10 @@ namespace acoustics {
  * @tparam Is3D 3D or 2D grid
  * @tparam T double or float
  */
-template <bool Is3D, typename T> class Grid;
+template <GridDimension, typename T> class Grid;
 
 // 2D Grid Specialization
-template <typename T> class Grid<false, T> {
+template <typename T> class Grid<kGrid2D, T> {
 public:
   std::vector<double> xCoords;
   std::vector<double> yCoords;
@@ -90,11 +93,11 @@ public:
     auto maxVec = Eigen::Vector2d(*xMax, *yMax);
     return std::pair(minVec, maxVec);
   }
-  bool checkInside(const Grid<true, T> &other) {
+  bool checkInside(const Grid<kGrid3D, T> &other) {
     auto [minOther, maxOther] = other.boundingBox();
     auto [minThis, maxThis] = boundingBox();
-    auto isMinValid = minOther(Eigen::seq(0, 1)).array() <= minThis.array();
-    auto isMaxValid = maxOther(Eigen::seq(0, 1)).array() >= maxThis.array();
+    auto isMinValid = minOther.head(2).array() <= minThis.head(2).array();
+    auto isMaxValid = maxOther.head(2).array() <= maxThis.head(2).array();
     auto tmp1 = isMinValid.eval();
     auto tmp2 = isMaxValid.eval();
     return (isMinValid.all() && isMaxValid.all());
@@ -121,7 +124,7 @@ private:
 };
 
 // 3D Grid Specialization
-template <typename T> class Grid<true, T> {
+template <typename T> class Grid<kGrid3D, T> {
 public:
   std::vector<double> xCoords;
   std::vector<double> yCoords;
@@ -194,7 +197,7 @@ public:
     auto maxVec = Eigen::Vector3d(*xMax, *yMax, *zMax);
     return std::pair(minVec, maxVec);
   }
-  bool checkInside(const Grid<true, T> &other) {
+  bool checkInside(const Grid<kGrid2D, T> &other) {
     auto [minOther, maxOther] = other.boundingBox();
     auto [minThis, maxThis] = boundingBox();
     auto isMinValid = minOther.array() >= minThis.array();
@@ -223,8 +226,8 @@ private:
 };
 
 // Type aliases for convenience
-template <typename T> using Grid2D = Grid<false, T>;
+template <typename T> using Grid2D = Grid<kGrid2D, T>;
 
-template <typename T> using Grid3D = Grid<true, T>;
+template <typename T> using Grid3D = Grid<kGrid3D, T>;
 
 } // namespace acoustics

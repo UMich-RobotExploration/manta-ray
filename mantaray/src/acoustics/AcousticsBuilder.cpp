@@ -101,7 +101,7 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
 void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
-  auto delta = agentsConfig_.receivers - agentsConfig_.source;
+  auto delta = agentsConfig_.receiver - agentsConfig_.source;
   double elevationAngle = std::atan2(delta(2), delta(1));
   if (!beamBuilt_) {
     bhc::extsetup_raybearings(params_, kNumBeams);
@@ -154,13 +154,13 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->Sy[0] = agentsConfig_.source(1);
   params_.Pos->Sz[0] = agentsConfig_.source(2) * kmScaler;
 
-  auto delta = agentsConfig_.receivers(Eigen::seq(0, 1)) -
+  auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
   // std::cout << "Eigen Delta: " << delta.norm() << "\n";
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = agentsConfig_.receivers(2) * kmScaler;
+  params_.Pos->Rz[0] = agentsConfig_.receiver(2) * kmScaler;
 
   constructBeam(bearingAngle);
 };
@@ -172,7 +172,7 @@ void AcousticsBuilder::buildAgents() {
   params_.Pos->SxSyInKm = agentsConfig_.isKm;
 
   // Receivers
-  size_t nReceivers = agentsConfig_.receivers.size();
+  size_t nReceivers = agentsConfig_.receiver.size();
   bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(nReceivers));
   bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(nReceivers));
   bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(nReceivers));

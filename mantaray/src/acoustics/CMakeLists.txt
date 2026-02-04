@@ -4,7 +4,6 @@ add_library(${ACOUSTIC_LIB_NAME}
         BhHandler.h
         acousticsConstants.h
         helpers.h
-        Result.h
         SimulationConfig.h
         Grid.h
         AcousticsBuilder.cpp

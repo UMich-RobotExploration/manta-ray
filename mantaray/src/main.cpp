@@ -8,7 +8,6 @@
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
-#include "acoustics/Result.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -32,7 +31,6 @@ void OutputCallback(const char *message) {
 
 int main() {
   auto init = bhc::bhcInit();
-  auto acousticsResult = acoustics::Result();
 
   char runName[] = "overhaul";
   std::cout << "Current path is " << std::filesystem::current_path()
@@ -79,6 +77,7 @@ int main() {
   auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
   auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 2000.0 / 1000.0, nZ);
+  auto SSPdata = std::vector<double>(nX * nY * nZ, 1500.0);
   acoustics::SSPConfig sspConfig = acoustics::SSPConfig{
       acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0), true};
   // std::cout << sspConfig.Grid.at(0, 0, 0) << "\n";
@@ -123,36 +122,25 @@ int main() {
   for (int i = 0; i < 5; ++i) {
     std::chrono::high_resolution_clock::time_point t1 =
         std::chrono::high_resolution_clock::now();
+
     bhc::run(context.params(), context.outputs());
+
     std::chrono::nanoseconds delta =
         std::chrono::high_resolution_clock::now() - t1;
-    auto &agentConfig = simBuilder.getAgentsConfig();
-    agentConfig.receivers(0) += 100;
-    agentConfig.receivers(1) += 100;
-    agentConfig.receivers(2) += 25;
-    std::cout << "Receiver Location: " << agentConfig.receivers << "\n";
-    simBuilder.updateAgents();
-    // // Debugging Ray memory issues
-    // std::cout << "Max points per ray: "
-    //           << context.outputs().rayinfo->MaxPointsPerRay << "\n";
-    // std::cout << "Num Arrays : " << context.outputs().rayinfo->NRays << "\n";
-    // std::cout << "Array Mem Capacity : "
-    //           << context.outputs().rayinfo->RayMemCapacity << "\n";
-    //
-    // std::cout << "\n" << context.outputs().rayinfo->NRays << " rays:\n";
-    // for (int r = 0; r < context.outputs().rayinfo->NRays; ++r) {
-    //   std::cout << "\nRay " << r << ", " <<
-    //   context.outputs().rayinfo->results[r].Nsteps
-    //             << "steps, SrcDeclAngle = "
-    //             << context.outputs().rayinfo->results[r].SrcDeclAngle <<
-    //             ":\n";
-    //   for(int s=0; s<context.outputs().rayinfo->results[r].Nsteps; ++s){
-    //     std::cout << context.outputs().rayinfo->results[r].ray[s] << "\n";
-    //   }
-    // }
 
-    // bhc::postprocess(context.params(), context.outputs());
-    // bhc::writeout(context.params(), context.outputs(), runName);
+    auto &agentConfig = simBuilder.getAgentsConfig();
+    // TODO: ONLY HAVE A SINGLE RECEIVER NOW DUMMY
+    // just double^3 on these not Eigen
+    // simBuilder.moveSource(x,y,z);
+    // -> updateAgents
+    // simBuilder.moveReciever(x,y,z);
+    // -> updateAgents
+    // Need to consider a 2D arrival time matrix where (i,j) relates agents arrival times
+    agentConfig.receiver(0) += 100;
+    agentConfig.receiver(1) += 100;
+    agentConfig.receiver(2) += 25;
+    std::cout << "Receiver Location: " << agentConfig.receiver << "\n";
+    simBuilder.updateAgents();
 
     auto arrival = acoustics::Arrival(context.params(), context.outputs());
     auto arrivalVec = arrival.extractEarliestArrivals();
