@@ -22,3 +22,11 @@ target_compile_options(${TARGET_NAME} PRIVATE
     "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
 )
 
+# BUILD CONFIGURATIONS
+# Enable faster instruction sets (SIMD/AVX)
+set(ENABLE_VECTORIZATION ON CACHE BOOL "Enable vectorized instruction sets (SIMD/AVX)? [enabled by default]")
+
+if(${ENABLE_VECTORIZATION})
+    message(STATUS "Enabling SIMD/AVX instruction sets")
+    add_definitions(-march=native)
+endif()

@@ -62,3 +62,11 @@ target_include_directories(${TARGET_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
 # Optionally, you can also specify CXX flags specifically for debugging
 # If you want extra debug options, you could also do something like:
 #target_compile_options(${TARGET_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${MY_DEBUG_OPTIONS}>")
+
+# Enable testing only if requested
+option(BUILD_TESTS "Build the tests" OFF)
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
