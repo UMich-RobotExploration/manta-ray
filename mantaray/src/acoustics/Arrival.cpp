@@ -89,6 +89,14 @@ std::vector<float> Arrival::extractEarliestArrivals() {
   arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
   std::cout << "Number of receivers: "
             << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
+  std::cout << "Number of receiver ranges: " << Pos->NRr
+            << ", Number of Rz per range: " << Pos->NRz_per_range
+            << ", Number Theta: " << Pos->Ntheta << "\n";
+
+  CHECK(Pos->NRz_per_range == 1,
+        "Z values should be singular per range. A potential issue is that "
+        "regular grids ('I') were not used in the Runtype[4]");
+
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
     for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
       for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
@@ -102,16 +110,17 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               // Iterating over Individual Ray arrival times
               float minDelay = std::numeric_limits<float>::max();
 
-              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
-              printReceiverInfo(Pos, ir, iz, itheta);
+              // std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              // printReceiverInfo(Pos, ir, iz, itheta);
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
                 bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
-                // delay
-                //           << "\n";
+                // std::cout << "Arrival Delay: " << std::setprecision(10) << delay
+                          // << "\n";
+                // float amplitude_dB = 20.0f * std::log10(arr->a);
+                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB << "\n";
                 if (delay < 0) {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
@@ -120,8 +129,6 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               }
               if (narr != 0) {
                 arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
-                printVector(arrivalDelays);
-                std::cout << "Min Delay for Receiver: " << minDelay << "\n";
               }
             }
           }

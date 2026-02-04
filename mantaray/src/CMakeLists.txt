@@ -1,6 +1,7 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
-        main.cpp)
+        main.cpp
+        checkAssert.h)
 
 set(INCLUDE_BHC ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/include/)
 set(INCLUDE_GLM ${CMAKE_SOURCE_DIR}/deps/bellhopcuda/glm/)
@@ -17,7 +18,15 @@ target_link_libraries(${TARGET_NAME} PRIVATE ${ACOUSTIC_LIB_NAME})
 
 # Apply compiler options based on build type
 target_compile_options(${TARGET_NAME} PRIVATE
-    "$<$<CONFIG:DEBUG>:${DEBUG_COMPILER_OPTIONS}>"
-    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
 )
 
+# BUILD CONFIGURATIONS
+# Enable faster instruction sets (SIMD/AVX)
+set(ENABLE_VECTORIZATION ON CACHE BOOL "Enable vectorized instruction sets (SIMD/AVX)? [enabled by default]")
+
+if(${ENABLE_VECTORIZATION})
+    message(STATUS "Enabling SIMD/AVX instruction sets")
+    add_definitions(-march=native)
+endif()

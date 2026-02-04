@@ -1,25 +1,28 @@
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <vector>
 
-#define BHC_DLL_IMPORT 1
+// #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
-#include "acoustics/BoundaryBuilder.h"
-#include "acoustics/SspBuilder.h"
+#include "acoustics/Result.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
+#include "acoustics/AcousticsBuilder.h"
+#include "acoustics/Grid.h"
+#include "acoustics/SimulationConfig.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
 
-// Helper to setup vectors from ranges. No checking.
-template <class T> void SetupVector(T *arr, T low, T high, int size) {
-  for (int i = 0; i < size; ++i) {
-    arr[i] = low + double(i) / double(size - 1) * (high - low);
-  }
+std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
+  out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
+      << " " << x.t.x << " " << x.t.y << " " << x.c << " " << x.Amp << " "
+      << x.Phase << " " << x.tau;
+  return out;
 }
 
 void PrtCallback(const char *message) { std::cout << message << std::flush; }
@@ -27,121 +30,139 @@ void OutputCallback(const char *message) {
   std::cout << "Out: " << message << std::endl << std::flush;
 }
 
-
 int main() {
   auto init = bhc::bhcInit();
   auto acousticsResult = acoustics::Result();
 
+  char runName[] = "overhaul";
   std::cout << "Current path is " << std::filesystem::current_path()
             << std::endl;
   // init.FileRoot = "manual";
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
+  // Profiled memory to find PreProcess was the longest task in the sim
+  // Reducing memory is the only way to limit it's overhead.
+  init.maxMemory = 30ull * 1024ull * 1024ull; // 30 MiB
+  init.numThreads = static_cast<int32_t>(1);
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "R");
-  strcpy(context.params().Title, "testing_bath");
+  strcpy(context.params().Beam->RunType, "A");
+  // Important to set to I for irregular grid tracking
+  context.params().Beam->RunType[4] = 'I';
+  strcpy(context.params().Title, runName);
 
   //////////////////////////////////////////////////////////////////////////////
   // Bathymetry Setup
   //////////////////////////////////////////////////////////////////////////////
-  auto boundaryBuild = acoustics::BoundaryBuilder(context.params());
-  const bhc::IORI2<true> grid = {100, 100};
-  const int32_t nBottomProvince = 1;
-  boundaryBuild.setupBathymetry(grid, nBottomProvince);
-  const double depth = 500;
-  std::vector<double> gridX = acoustics::linspace<double>(-10, 10, grid[0]);
-  std::vector<double> gridY = acoustics::linspace<double>(-11, 11, grid[1]);
-  boundaryBuild.setQuadraticBottom(depth, gridX, gridY, true);
-  boundaryBuild.setInterpolationType(acoustics::BathyInterpolationType::kLinear,
-                                     false);
 
-  auto output = boundaryBuild.validate();
-  acousticsResult.merge(output);
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Source / Receivers Setup
-  //////////////////////////////////////////////////////////////////////////////
-  bhc::extsetup_sxsy(context.params(), 1, 1);
-  bhc::extsetup_sz(context.params(), 1);
-  context.params().Pos->SxSyInKm = false;
-  context.params().Pos->Sx[0] = 10.0f;
-  context.params().Pos->Sy[0] = 30.0f;
-  context.params().Pos->Sz[0] = 100.0f;
-
-  // disk of receivers
-  context.params().Pos->RrInKm = false;
-  context.params().Pos->SxSyInKm = false;
-  bhc::extsetup_rcvrbearings(context.params(), 5);
-  SetupVector(context.params().Pos->theta, 2.0, 20.0, 5);
-  bhc::extsetup_rcvrranges(context.params(), 2);
-  SetupVector(context.params().Pos->Rr, 10.0, 300.0, 2);
-  bhc::extsetup_rcvrdepths(context.params(), 1);
-  context.params().Pos->Rz[0] = 50.0;
+  std::vector<double> bathGridX =
+      acoustics::utils::linspace<double>(-10, 10, 10);
+  std::vector<double> bathGridY =
+      acoustics::utils::linspace<double>(-11, 11, 10);
+  std::vector<double> bathData;
+  double bathDepth = 5.0;
+  acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
+                                                     bathData, bathDepth);
+  // acoustics::utils::printVector(bathGridX);
+  // acoustics::utils::printVector(bathGridY);
+  // acoustics::utils::printVector(bathData);
+  acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
+      acoustics::Grid2D<double>(bathGridX, bathGridY, bathData),
+      acoustics::BathyInterpolationType::kLinear, true};
 
   //////////////////////////////////////////////////////////////////////////////
   // SSP Setup
   //////////////////////////////////////////////////////////////////////////////
-  auto sspBuilder = acoustics::SspBuilder(context.params());
   int nX = 10;
   int nY = 10;
   int nZ = 10;
-  sspBuilder.setupHexahedral(nX, nY, nZ, true);
-  gridX = acoustics::linspace(-10.0, 10.0, nX);
-  gridY = acoustics::linspace(-10.0, 10.0, nY);
-  auto gridZ = acoustics::linspace(0.0, 1000.0, nZ);
-  auto coordResult = sspBuilder.setCoordinateGrid(gridX, gridY, gridZ);
-  if (coordResult.err()) {
-    acousticsResult.merge(coordResult);
-    acousticsResult.print();
-    return 1;
-  }
-  sspBuilder.setConstantSsp(1500.0);
-  acousticsResult.merge(sspBuilder.validate());
-  if (acousticsResult.hasWarnings()) {
-    acousticsResult.print();
-    return 1;
-  }
-
+  auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
+  auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
+  auto SSPgridZ = acoustics::utils::linspace(0.0, 2000.0 / 1000.0, nZ);
+  acoustics::SSPConfig sspConfig = acoustics::SSPConfig{
+      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0), true};
+  // std::cout << sspConfig.Grid.at(0, 0, 0) << "\n";
 
   //////////////////////////////////////////////////////////////////////////////
-  // Beam Setup
+  // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  context.params().Angles->alpha.inDegrees = true;
-  context.params().Angles->beta.inDegrees = true;
-  bhc::extsetup_raybearings(context.params(), 144);
-  SetupVector(context.params().Angles->beta.angles, 0.0, 12.0, 144);
-  bhc::extsetup_rayelevations(context.params(), 20);
-  SetupVector(context.params().Angles->alpha.angles, -14.66, 20.0, 20);
+  Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
+  Eigen::Vector3d receiverPos;
+  receiverPos(0) = 0.0;
+  receiverPos(1) = 50;
+  receiverPos(2) = 100;
 
-  context.params().Beam->rangeInKm = true;
-  // Here we need to define the limit of the beam tracing to prevent exceeding
-  // the bathymetry grid and the SSP grid
-  context.params().Beam->deltas = 1.0;
-  context.params().Beam->Box.x = 7.0;
-  context.params().Beam->Box.y = 7.0;
-  context.params().Beam->Box.z = 1000.0;
+  acoustics::AgentsConfig agents =
+      acoustics::AgentsConfig{sourcePos, receiverPos, false};
+
+  acoustics::AcousticsBuilder simBuilder = acoustics::AcousticsBuilder(
+      context.params(), bathConfig, sspConfig, agents);
+  simBuilder.build();
+
+  for (size_t i = 0; i < acoustics::kNumRecievers; ++i) {
+    std::cout << "Receiver " << i << ": " << context.params().Pos->Rr[i] << ", "
+              << context.params().Pos->theta[i] << " ,"
+              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / 1500.0
+              << "\n";
+  }
+
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
+  std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
+  std::cout << "Box y: " << context.params().Beam->Box.y << "\n";
+  std::cout << "Box z: " << context.params().Beam->Box.z << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
   std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
-  if (acousticsResult.err()) {
-    acousticsResult.print();
-  } else if (acousticsResult.hasWarnings()) {
-    acousticsResult.print();
-  }
   try {
     bhc::echo(context.params());
   } catch (const std::exception &e) {
     std::cerr << "Error during echo: " << e.what() << std::endl;
     return 1;
   }
-  bhc::writeenv(context.params(), "testing_bath");
-  bhc::run(context.params(), context.outputs());
-  // auto arrival = acoustics::Arrival(context.params(), context.outputs());
-  // arrival.extractEarliestArrivals();
+  bhc::writeenv(context.params(), runName);
+  for (int i = 0; i < 5; ++i) {
+    std::chrono::high_resolution_clock::time_point t1 =
+        std::chrono::high_resolution_clock::now();
+    bhc::run(context.params(), context.outputs());
+    std::chrono::nanoseconds delta =
+        std::chrono::high_resolution_clock::now() - t1;
+    auto &agentConfig = simBuilder.getAgentsConfig();
+    agentConfig.receivers(0) += 100;
+    agentConfig.receivers(1) += 100;
+    agentConfig.receivers(2) += 25;
+    std::cout << "Receiver Location: " << agentConfig.receivers << "\n";
+    simBuilder.updateAgents();
+    // // Debugging Ray memory issues
+    // std::cout << "Max points per ray: "
+    //           << context.outputs().rayinfo->MaxPointsPerRay << "\n";
+    // std::cout << "Num Arrays : " << context.outputs().rayinfo->NRays << "\n";
+    // std::cout << "Array Mem Capacity : "
+    //           << context.outputs().rayinfo->RayMemCapacity << "\n";
+    //
+    // std::cout << "\n" << context.outputs().rayinfo->NRays << " rays:\n";
+    // for (int r = 0; r < context.outputs().rayinfo->NRays; ++r) {
+    //   std::cout << "\nRay " << r << ", " <<
+    //   context.outputs().rayinfo->results[r].Nsteps
+    //             << "steps, SrcDeclAngle = "
+    //             << context.outputs().rayinfo->results[r].SrcDeclAngle <<
+    //             ":\n";
+    //   for(int s=0; s<context.outputs().rayinfo->results[r].Nsteps; ++s){
+    //     std::cout << context.outputs().rayinfo->results[r].ray[s] << "\n";
+    //   }
+    // }
 
-  // bhc::writeout(context.params(), context.outputs(), "testing_bath");
+    // bhc::postprocess(context.params(), context.outputs());
+    // bhc::writeout(context.params(), context.outputs(), runName);
+
+    auto arrival = acoustics::Arrival(context.params(), context.outputs());
+    auto arrivalVec = arrival.extractEarliestArrivals();
+    std ::cout
+        << "Iteration " << i << " took "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+        << " ms\n";
+    acoustics::utils::printVector(arrivalVec);
+  }
+  // bhc::writeout(context.params(), context.outputs(), runName);
 
   return 0;
 }
