@@ -10,6 +10,8 @@ add_library(${ACOUSTIC_LIB_NAME}
         AcousticsBuilder.h
         ../checkAssert.h
 )
+target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE pch.h)
+
 
 # Link the bellhop library to acoustics
 target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${INCLUDE_BHC})

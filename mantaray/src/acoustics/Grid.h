@@ -51,14 +51,14 @@ public:
     data.clear();
   }
 
-  size_t nx() const { return xCoords.size(); }
-  size_t ny() const { return yCoords.size(); }
-  size_t size() const { return data.size(); }
+  inline size_t nx() const { return xCoords.size(); }
+  inline size_t ny() const { return yCoords.size(); }
+  inline size_t size() const { return data.size(); }
 
   /**
    * Index Structure MUST Align with Bellhop's Internal Storage Order
    */
-  size_t index(size_t ix, size_t iy) const { return ix * yCoords.size() + iy; }
+  inline size_t index(size_t ix, size_t iy) const { return ix * yCoords.size() + iy; }
 
   T &at(size_t ix, size_t iy) {
     boundsCheck(ix, iy);
@@ -93,13 +93,20 @@ public:
   }
   bool checkInside(const Grid<kGrid3D, T> &other) {
     auto [minOther, maxOther] = other.boundingBox();
-    // TODO: Fix this as it is currently not working and failing tests.
     auto [minThis, maxThis] = boundingBox();
-    auto isMinValid = minOther.head(2).array() <= minThis.head(2).array();
-    auto isMaxValid = maxOther.head(2).array() <= maxThis.head(2).array();
-    auto tmp1 = isMinValid.eval();
-    auto tmp2 = isMaxValid.eval();
-    return (isMinValid.all() && isMaxValid.all());
+
+    const T epsilon = std::numeric_limits<T>::epsilon() * 100;
+
+    // Extract only x and y components for 2D comparison
+    Eigen::VectorBlock minOther2D = minOther.head(2);
+    auto maxOther2D = maxOther.head(2);
+
+    bool isMinValid = minOther2D.isApprox(minThis, epsilon) ||
+                      (minOther2D.array() <= minThis.array()).all();
+    bool isMaxValid = maxOther2D.isApprox(maxThis, epsilon) ||
+                      (maxOther2D.array() >= maxThis.array()).all();
+
+    return isMinValid && isMaxValid;
   }
 
 private:
@@ -151,15 +158,15 @@ public:
     zCoords.clear();
     data.clear();
   }
-  size_t nx() const { return xCoords.size(); }
-  size_t ny() const { return yCoords.size(); }
-  size_t nz() const { return zCoords.size(); }
-  size_t size() const { return data.size(); }
+  inline size_t nx() const { return xCoords.size(); }
+  inline size_t ny() const { return yCoords.size(); }
+  inline size_t nz() const { return zCoords.size(); }
+  inline size_t size() const { return data.size(); }
 
   /**
    * Index Structure MUST Align with Bellhop's Internal Storage Order
    */
-  size_t index(size_t ix, size_t iy, size_t iz) const {
+  inline size_t index(size_t ix, size_t iy, size_t iz) const {
     return (ix * yCoords.size() + iy) * zCoords.size() + iz;
   }
 
@@ -196,12 +203,18 @@ public:
     auto maxVec = Eigen::Vector3d(*xMax, *yMax, *zMax);
     return std::pair(minVec, maxVec);
   }
-  bool checkInside(const Grid<kGrid2D, T> &other) {
+
+  bool checkInside(const Grid<kGrid3D, T> &other) {
     auto [minOther, maxOther] = other.boundingBox();
     auto [minThis, maxThis] = boundingBox();
-    auto isMinValid = minOther.array() >= minThis.array();
-    auto isMaxValid = maxOther.array() <= maxThis.array();
-    return (isMinValid.all() && isMaxValid.all());
+
+    const T epsilon = std::numeric_limits<T>::epsilon() * 100;
+    bool isMinValid = minOther.isApprox(minThis, epsilon) ||
+                      (minOther.array() <= minThis.array()).all();
+    bool isMaxValid = maxOther.isApprox(maxThis, epsilon) ||
+                      (maxOther.array() >= maxThis.array()).all();
+
+    return isMinValid && isMaxValid;
   }
 
 private:
@@ -229,7 +242,8 @@ template <typename T> using Grid2D = Grid<kGrid2D, T>;
 
 template <typename T> using Grid3D = Grid<kGrid3D, T>;
 
-inline void munkProfile(Grid3D<double> &grid, double sofarDepth, double sofarSpeed, bool isKm) {
+inline void munkProfile(Grid3D<double> &grid, double sofarDepth,
+                        double sofarSpeed, bool isKm) {
   const double kmScaler = isKm ? 1000.0 : 1.0;
   sofarDepth *= kmScaler;
   const double kMunk = 1.0 / 1300.0;
@@ -238,7 +252,7 @@ inline void munkProfile(Grid3D<double> &grid, double sofarDepth, double sofarSpe
     for (size_t iy = 0; iy < grid.yCoords.size(); ++iy) {
       for (size_t iz = 0; iz < grid.zCoords.size(); ++iz) {
         double zVal = grid.zCoords[iz] * kmScaler;
-        double zBar = 2 * (zVal - 1300.0)  * kMunk;
+        double zBar = 2 * (zVal - 1300.0) * kMunk;
         grid.at(ix, iy, iz) =
             sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
       }

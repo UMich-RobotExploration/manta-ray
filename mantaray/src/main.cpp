@@ -42,7 +42,8 @@ int main() {
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
   // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
-  init.numThreads = static_cast<int32_t>(1);
+  init.numThreads = static_cast<int32_t>(-1);
+  init.useRayCopyMode= true;
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "R");
   // Important to set to I for irregular grid tracking
@@ -54,9 +55,9 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
 
   std::vector<double> bathGridX =
-      acoustics::utils::linspace<double>(-10, 10, 10);
+      acoustics::utils::linspace<double>(-10, 55, 10);
   std::vector<double> bathGridY =
-      acoustics::utils::linspace<double>(-11, 11, 10);
+      acoustics::utils::linspace<double>(-11, 41, 9);
   std::vector<double> bathData;
   double bathDepth = 5.0;
   acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
@@ -74,8 +75,8 @@ int main() {
   int nX = 10;
   int nY = 10;
   int nZ = 100;
-  auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
-  auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
+  auto SSPgridX = acoustics::utils::linspace(-1.0, 55.0, nX);
+  auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
   auto SSPGrid =
       acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
@@ -88,11 +89,11 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(10.0, 0.0, 3750.0);
+  Eigen::Vector3d sourcePos(10.0, 0.0, 1000.0);
   Eigen::Vector3d receiverPos;
-  receiverPos(0) = -2000.0;
-  receiverPos(1) = 2000.0;
-  receiverPos(2) = 2000.0;
+  receiverPos(0) = 50000.0;
+  receiverPos(1) = 10.0;
+  receiverPos(2) = 1000.0;
 
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos, false};
@@ -115,10 +116,9 @@ int main() {
     float sspVal = 0;
     bhc::VEC23<true> vec = {0.0, 0.0, sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
     bhc::get_ssp<true, true>(context.params(), vec, sspVal);
-    std::cout << "(" << sspVal << ", " << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
+    std::cout << "Z height (meters) " << sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0 << ", Bellhop vs Build in Data structure: (" << sspVal << ", " << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
               << "\n";
   }
-  return 0;
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
@@ -170,6 +170,5 @@ int main() {
         << " ms\n";
   }
   bhc::writeout(context.params(), context.outputs(), runName);
-
   return 0;
 }

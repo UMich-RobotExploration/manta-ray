@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include "checkAssert.h"
+#include "helpers.h"
 
 
 namespace acoustics {

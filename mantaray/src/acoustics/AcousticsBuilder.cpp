@@ -3,6 +3,7 @@
 //
 
 #include "AcousticsBuilder.h"
+#include "pch.h"
 
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
@@ -35,6 +36,22 @@ void AcousticsBuilder::buildBathymetry() {
 
   boundary.NPts[0] = static_cast<int>(bathymetryConfig_.Grid.nx());
   boundary.NPts[1] = static_cast<int>(bathymetryConfig_.Grid.ny());
+  switch (bathymetryConfig_.interpolation) {
+  case BathyInterpolationType::kLinear:
+    CHECK(std::strlen(kBathymetryInterpLinearShort) <= 2,
+          "Risking buffer overflow on bathymetry type string copy");
+    boundary.type[0] = kBathymetryInterpLinearShort[0];
+    boundary.type[1] = kBathymetryInterpLinearShort[1];
+    break;
+  case BathyInterpolationType::kCurveInterp:
+    CHECK(std::strlen(kBathymetryCurveInterpShort) <= 2,
+          "Risking buffer overflow on bathymetry type string copy");
+    boundary.type[0] = kBathymetryCurveInterpShort[0];
+    boundary.type[1] = kBathymetryCurveInterpShort[1];
+    break;
+  default:
+    throw std::invalid_argument("Unknown bathymetry interpolation type");
+  }
 
   for (size_t ix = 0; ix < bathymetryConfig_.Grid.nx(); ++ix) {
     for (size_t iy = 0; iy < bathymetryConfig_.Grid.ny(); ++iy) {
@@ -121,15 +138,18 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   beam->rangeInKm = agentsConfig_.isKm;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   // beam->deltas = delta.norm() * kBeamStepSizeRatio;
-  beam->deltas = 10.0; // TODO: Adjust overide
+  beam->deltas = 100.0; // TODO: Adjust overide
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),
         "Delta's need to be positive in bellhop box");
   beam->Box.x = deltaX * boxScale;
   beam->Box.y = deltaY * boxScale;
-  double max = *std::max_element(bathymetryConfig_.Grid.data.begin(), bathymetryConfig_.Grid.data.end());
-  beam->Box.z = max  * kmScaler+ 10;
+  // TODO: Fix this override
+  beam->Box.y = 10000.0;
+  double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
+                                 bathymetryConfig_.Grid.data.end());
+  beam->Box.z = max * kmScaler + 10;
 }
 
 void AcousticsBuilder::updateAgents() {
@@ -235,7 +255,8 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     // setting to -1.0 to indicate uninitialized for easier debugging
     data.resize(gridX.size() * gridY.size(), -1.0);
   }
-  double scalerReduction = 1.0 / 100.0;
+  // TODO: Set back to 100.0 after testing
+  double scalerReduction = 1.0 / 1000.0;
   for (size_t iy = 0; iy < gridY.size(); ++iy) {
     for (size_t ix = 0; ix < gridX.size(); ++ix) {
       auto currDepth =
