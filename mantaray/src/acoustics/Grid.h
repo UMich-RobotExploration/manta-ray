@@ -1,6 +1,7 @@
 // Grid3D.h
 #pragma once
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <iostream>
@@ -58,7 +59,9 @@ public:
   /**
    * Index Structure MUST Align with Bellhop's Internal Storage Order
    */
-  inline size_t index(size_t ix, size_t iy) const { return ix * yCoords.size() + iy; }
+  inline size_t index(size_t ix, size_t iy) const {
+    return ix * yCoords.size() + iy;
+  }
 
   T &at(size_t ix, size_t iy) {
     boundsCheck(ix, iy);
@@ -85,26 +88,56 @@ public:
     if (!isValid()) {
       throw std::runtime_error("Cannot compute bounding box of invalid grid");
     }
-    auto [xMin, xMax] = std::minmax(xCoords.begin(), xCoords.end());
-    auto [yMin, yMax] = std::minmax(yCoords.begin(), yCoords.end());
+    // TODO: consider a monotonic check and then we can not do this here
+    // these are sorted so technically we could just take the first and last
+    // element but this is more robust to unsorted input
+    auto [xMin, xMax] = std::minmax_element(xCoords.begin(), xCoords.end());
+    auto [yMin, yMax] = std::minmax_element(yCoords.begin(), yCoords.end());
     auto minVec = Eigen::Vector2d(*xMin, *yMin);
     auto maxVec = Eigen::Vector2d(*xMax, *yMax);
     return std::pair(minVec, maxVec);
   }
-  bool checkInside(const Grid<kGrid3D, T> &other) {
+
+  /** @brief Checks if this grid is completely inside other grid
+   */
+  bool checkInside(const Grid<kGrid3D, T> &other) const {
     auto [minOther, maxOther] = other.boundingBox();
     auto [minThis, maxThis] = boundingBox();
 
     const T epsilon = std::numeric_limits<T>::epsilon() * 100;
 
     // Extract only x and y components for 2D comparison
-    Eigen::VectorBlock minOther2D = minOther.head(2);
-    auto maxOther2D = maxOther.head(2);
+    Eigen::VectorBlock minOther2D = minOther(Eigen::seq(0, 1));
+    auto maxOther2D = maxOther(Eigen::seq(0, 1));
 
-    bool isMinValid = minOther2D.isApprox(minThis, epsilon) ||
-                      (minOther2D.array() <= minThis.array()).all();
-    bool isMaxValid = maxOther2D.isApprox(maxThis, epsilon) ||
-                      (maxOther2D.array() >= maxThis.array()).all();
+    bool isFloatingPointError = minOther2D.isApprox(minThis, epsilon);
+    bool isMinValid =
+        isFloatingPointError || (minOther2D.array() <= minThis.array()).all();
+    isFloatingPointError = maxOther2D.isApprox(maxThis, epsilon);
+    bool isMaxValid =
+        isFloatingPointError || (maxOther2D.array() >= maxThis.array()).all();
+
+    return isMinValid && isMaxValid;
+  }
+
+  /** @brief Checks if this grid contains other grid
+   */
+  bool checkContain(const Grid<kGrid3D, T> &other) const {
+    auto [minOther, maxOther] = other.boundingBox();
+    auto [minThis, maxThis] = boundingBox();
+
+    const T epsilon = std::numeric_limits<T>::epsilon() * 100;
+
+    // Extract only x and y components for 2D comparison
+    Eigen::VectorBlock minOther2D = minOther(Eigen::seq(0, 1));
+    auto maxOther2D = maxOther(Eigen::seq(0, 1));
+
+    bool isFloatingPointError = minOther2D.isApprox(minThis, epsilon);
+    bool isMinValid =
+        isFloatingPointError || (minOther2D.array() >= minThis.array()).all();
+    isFloatingPointError = maxOther2D.isApprox(maxThis, epsilon);
+    bool isMaxValid =
+        isFloatingPointError || (maxOther2D.array() <= maxThis.array()).all();
 
     return isMinValid && isMaxValid;
   }
@@ -149,6 +182,10 @@ public:
         yCoords(y),
         zCoords(z),
         data(xCoords.size() * yCoords.size() * zCoords.size(), defaultValue) {
+    validateInitialization();
+  }
+  Grid(std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<T> initData)
+      : xCoords(x), yCoords(y), zCoords(z), data(initData) {
     validateInitialization();
   }
 
@@ -196,19 +233,22 @@ public:
     if (!isValid()) {
       throw std::runtime_error("Cannot compute bounding box of invalid grid");
     }
-    auto [xMin, xMax] = std::minmax(xCoords.begin(), xCoords.end());
-    auto [yMin, yMax] = std::minmax(yCoords.begin(), yCoords.end());
-    auto [zMin, zMax] = std::minmax(zCoords.begin(), zCoords.end());
+    auto [xMin, xMax] = std::minmax_element(xCoords.begin(), xCoords.end());
+    auto [yMin, yMax] = std::minmax_element(yCoords.begin(), yCoords.end());
+    auto [zMin, zMax] = std::minmax_element(zCoords.begin(), zCoords.end());
     auto minVec = Eigen::Vector3d(*xMin, *yMin, *zMin);
     auto maxVec = Eigen::Vector3d(*xMax, *yMax, *zMax);
     return std::pair(minVec, maxVec);
   }
 
-  bool checkInside(const Grid<kGrid3D, T> &other) {
+  /** @brief Checks if this grid is completely inside other grid
+   */
+  bool checkInside(const Grid<kGrid3D, T> &other) const {
     auto [minOther, maxOther] = other.boundingBox();
     auto [minThis, maxThis] = boundingBox();
 
     const T epsilon = std::numeric_limits<T>::epsilon() * 100;
+
     bool isMinValid = minOther.isApprox(minThis, epsilon) ||
                       (minOther.array() <= minThis.array()).all();
     bool isMaxValid = maxOther.isApprox(maxThis, epsilon) ||

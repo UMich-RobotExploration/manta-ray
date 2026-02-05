@@ -18,7 +18,6 @@ constexpr int kNumProvince = 1;
 // - Increasing bearing
 // - Increasing range always
 
-
 class AcousticsBuilder {
 public:
   AcousticsBuilder() = delete;
@@ -45,13 +44,37 @@ public:
    * @param agentsConfig
    */
   explicit AcousticsBuilder(bhc::bhcParams<true> &params,
-                             BathymetryConfig &bathConfig, SSPConfig &sspConfig,
-                             AgentsConfig &agentsConfig);
+                            BathymetryConfig &bathConfig, SSPConfig &sspConfig,
+                            AgentsConfig &agentsConfig);
+
+  /**
+   * @brief Creates bathymetry, altimetry, SSP, and agent configurations in
+   * Bellhop.
+   */
   void build();
-  void updateAgents();
   static void quadraticBathymetry3D(const std::vector<double> &gridX,
                                     const std::vector<double> &gridY,
                                     std::vector<double> &data, double depth);
+
+  /** @brief Updates source position (MUST USE SAME UNITS AS CONFIG
+   *
+   * @details UNITS WARNING AGAIN
+   */
+  void updateSource(double x, double y, double z);
+  /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG
+   *
+   * @details UNITS WARNING AGAIN
+   */
+  void updateReceiver(double x, double y, double z);
+
+  /** @brief Validates that bathymetry is completely enclosed by ssp grid.
+   *
+   * @param bathGrid
+   * @param sspGrid
+   */
+  void validateSPPandBathymetryBox(const Grid2D<double> &bathGrid,
+                                   const Grid3D<double> &sspGrid) const;
+
   AgentsConfig &getAgentsConfig();
   const SSPConfig &getSSPConfig();
 
@@ -60,15 +83,52 @@ private:
   BathymetryConfig bathymetryConfig_;
   SSPConfig sspConfig_;
   AgentsConfig agentsConfig_;
+
+  // // minBoxWidth_ is set during bathymetry build to help ensure box is
+  // // not too small
+  // double minBoxWidth_{-1.0};
   bool bathymetryBuilt_{false};
   bool agentsBuilt_{false};
   bool beamBuilt_{false};
 
+  /** @brief Constructs bathymetry based on bathymetry config
+   *  @details Assumes a 1 province of all points.
+   */
   void buildBathymetry();
+
+  /** @brief Autogenerates altimetry based on bathymetry config.
+   *  @details Coupled calling convention, bathymetry needs to be defined
+   *  Constructs the simplest 4 point flat altimetry
+   */
   void autogenerateAltimetry();
   void buildSSP();
+  void updateAgents();
+
+  /** @brief Synchronize boundary depth values with SSP depth range
+   *
+   *  @details The library requires that after writing the SSP, the boundary
+   * depths are set to match the SSP depth range: params.Bdry->Top.hs.Depth =
+   * ssp->Seg.z[0] and params.Bdry->Bot.hs.Depth = ssp->Seg.z[ssp->NPts-1]
+   */
   void syncBoundaryAndSSP();
+
+  /**
+   * @brief Initializes sources and receivers, then calls update function
+   */
   void buildAgents();
+
+  /**
+   * @brief Constructs and aims's ray's between sources and receivers
+   *
+   * @details For efficiency this functions assumes that sources and receivers
+   * have already been built. So be warned! If sources or receivers are updated
+   * after this function is called, the beam configuration will need to be
+   * updated by calling this function again with the new bearing angle.
+   *   * @param bearingAngle The angle in radians between source and receiver in
+   * x-y plane.
+   *
+   * TODO: In the future could fix this and add checks.
+   */
   void constructBeam(double bearingAngle);
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                                const BathymetryConfig &bathConfig);

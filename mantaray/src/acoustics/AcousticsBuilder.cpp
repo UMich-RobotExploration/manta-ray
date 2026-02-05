@@ -2,8 +2,9 @@
 // Created by tko on 2/2/26.
 //
 
-#include "AcousticsBuilder.h"
 #include "pch.h"
+
+#include "AcousticsBuilder.h"
 
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
@@ -38,14 +39,14 @@ void AcousticsBuilder::buildBathymetry() {
   boundary.NPts[1] = static_cast<int>(bathymetryConfig_.Grid.ny());
   switch (bathymetryConfig_.interpolation) {
   case BathyInterpolationType::kLinear:
-    CHECK(std::strlen(kBathymetryInterpLinearShort) <= 2,
-          "Risking buffer overflow on bathymetry type string copy");
+    CHECK(std::strlen(kBathymetryInterpLinearShort) == 2,
+          "Interpolation type should be two characters");
     boundary.type[0] = kBathymetryInterpLinearShort[0];
     boundary.type[1] = kBathymetryInterpLinearShort[1];
     break;
   case BathyInterpolationType::kCurveInterp:
-    CHECK(std::strlen(kBathymetryCurveInterpShort) <= 2,
-          "Risking buffer overflow on bathymetry type string copy");
+    CHECK(std::strlen(kBathymetryCurveInterpShort) == 2,
+          "Interpolation type should be two characters");
     boundary.type[0] = kBathymetryCurveInterpShort[0];
     boundary.type[1] = kBathymetryCurveInterpShort[1];
     break;
@@ -80,7 +81,7 @@ void AcousticsBuilder::buildSSP() {
   params_.ssp->rangeInKm = sspConfig_.isKm;
 
   const double kmScaler = sspConfig_.isKm ? 1000.0 : 1.0;
-  params_.ssp->AttenUnit[0] = 'M';
+  // params_.ssp->AttenUnit[0] = 'M';
 
   // setup coordinate grid and ssp in single nested MEGA loop
   for (size_t ix = 0; ix < grid.nx(); ++ix) {
@@ -95,7 +96,6 @@ void AcousticsBuilder::buildSSP() {
         params_.ssp->Seg.z[iz] = scaledZ;
         params_.ssp->z[iz] = scaledZ;
         params_.ssp->cMat[idx] = grid.data[idx];
-        // TODO: Comment out this alpha
         CHECK((params_.ssp->cMat[idx] >= 1400.0) &&
                   (params_.ssp->cMat[idx] <= 1600.0),
               "Unrealistic sound speed profile input into grid.");
@@ -104,13 +104,6 @@ void AcousticsBuilder::buildSSP() {
   }
 }
 
-/**
- * @brief Synchronize boundary depth values with SSP depth range
- * @detail The library requires that after writing the SSP, the boundary depths
- * are set to match the SSP depth range:
- * params.Bdry->Top.hs.Depth = ssp->Seg.z[0] and
- * params.Bdry->Bot.hs.Depth = ssp->Seg.z[ssp->NPts-1]
- */
 void AcousticsBuilder::syncBoundaryAndSSP() {
   params_.Bdry->Top.hs.Depth = params_.ssp->Seg.z[0];
   params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[sspConfig_.Grid.nz() - 1];
@@ -137,8 +130,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   double boxScale = 1.10;
   beam->rangeInKm = agentsConfig_.isKm;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  // beam->deltas = delta.norm() * kBeamStepSizeRatio;
-  beam->deltas = 100.0; // TODO: Adjust overide
+  beam->deltas = delta.norm() * kBeamStepSizeRatio;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),
@@ -207,13 +199,25 @@ void AcousticsBuilder::buildAgents() {
   updateAgents();
 }
 
+void AcousticsBuilder::validateSPPandBathymetryBox(
+    const Grid2D<double> &bathGrid, const Grid3D<double> &sspGrid) const {
+  bool isBathInside = bathGrid.checkInside(sspGrid);
+  if (isBathInside) {
+    return;
+  }
+  throw std::runtime_error("SSP grid must completely enclose bathymetry grid "
+                           "to avoid inability to interpolate rays.");
+}
+
 void AcousticsBuilder::build() {
   buildBathymetry();
   autogenerateAltimetry();
   if (bathymetryBuilt_) {
     buildSSP();
     syncBoundaryAndSSP();
+    validateSPPandBathymetryBox(bathymetryConfig_.Grid, sspConfig_.Grid);
   } else {
+    // ReSharper disable once CppDFAUnreachableCode
     throw std::runtime_error(
         "Cannot build simulation: Bathymetry must be built before SSP.");
   }
@@ -266,6 +270,19 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
       data[ix * gridY.size() + iy] = currDepth;
     }
   }
+}
+void AcousticsBuilder::updateReceiver(double x, double y, double z) {
+  agentsConfig_.receiver(0) = x;
+  agentsConfig_.receiver(1) = y;
+  agentsConfig_.receiver(2) = z;
+  updateAgents();
+}
+
+void AcousticsBuilder::updateSource(double x, double y, double z) {
+  agentsConfig_.source(0) = x;
+  agentsConfig_.source(1) = y;
+  agentsConfig_.source(2) = z;
+  updateAgents();
 }
 
 } // namespace acoustics

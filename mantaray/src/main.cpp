@@ -43,7 +43,7 @@ int main() {
   // Reducing memory is the only way to limit it's overhead.
   // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
   init.numThreads = static_cast<int32_t>(-1);
-  init.useRayCopyMode= true;
+  init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "R");
   // Important to set to I for irregular grid tracking
@@ -114,9 +114,13 @@ int main() {
   const acoustics::SSPConfig &sspConfigBuilt = simBuilder.getSSPConfig();
   for (size_t iz = 0; iz < sspConfigBuilt.Grid.nz(); ++iz) {
     float sspVal = 0;
-    bhc::VEC23<true> vec = {0.0, 0.0, sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
+    bhc::VEC23<true> vec = {0.0, 0.0,
+                            sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
     bhc::get_ssp<true, true>(context.params(), vec, sspVal);
-    std::cout << "Z height (meters) " << sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0 << ", Bellhop vs Build in Data structure: (" << sspVal << ", " << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
+    std::cout << "Z height (meters) "
+              << sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0
+              << ", Bellhop vs Build in Data structure: (" << sspVal << ", "
+              << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
               << "\n";
   }
 
@@ -143,19 +147,10 @@ int main() {
         std::chrono::high_resolution_clock::now() - t1;
 
     auto &agentConfig = simBuilder.getAgentsConfig();
-    // TODO: ONLY HAVE A SINGLE RECEIVER NOW DUMMY
-    // just double^3 on these not Eigen
-    // simBuilder.moveSource(x,y,z);
-    // -> updateAgents
-    // simBuilder.moveReciever(x,y,z);
-    // -> updateAgents
-    // Need to consider a 2D arrival time matrix where (i,j) relates agents
-    // arrival times
-    agentConfig.receiver(0) += 100;
-    agentConfig.receiver(1) += 100;
-    agentConfig.receiver(2) += 25;
     std::cout << "Receiver Location: " << agentConfig.receiver << "\n";
-    simBuilder.updateAgents();
+    simBuilder.updateReceiver(agentConfig.receiver(0) += 100,
+                              agentConfig.receiver(1) += 100,
+                              agentConfig.receiver(2) += 25);
 
     try {
       auto arrival = acoustics::Arrival(context.params(), context.outputs());
