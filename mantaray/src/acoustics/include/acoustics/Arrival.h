@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "checkAssert.h"
-#include "helpers.h"
+#include "acoustics/helpers.h"
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
 #include <iomanip>

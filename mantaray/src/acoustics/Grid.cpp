@@ -2,9 +2,9 @@
 // Created by tko on 2/6/26.
 //
 
-#include "include/acoustics/pch.h"
+#include "acoustics/pch.h"
 
-#include "include/acoustics/Grid.h"
+#include "acoustics/Grid.h"
 
 namespace acoustics {
 

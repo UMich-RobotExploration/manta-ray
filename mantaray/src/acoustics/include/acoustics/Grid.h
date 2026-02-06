@@ -7,7 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "helpers.h"
+#include "acoustics/helpers.h"
 
 namespace acoustics {
 
