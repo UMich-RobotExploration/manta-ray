@@ -55,9 +55,9 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
 
   std::vector<double> bathGridX =
-      acoustics::utils::linspace<double>(-10, 55, 10);
+      acoustics::utils::linspace<double>(-1, 55, 10);
   std::vector<double> bathGridY =
-      acoustics::utils::linspace<double>(-11, 41, 9);
+      acoustics::utils::linspace<double>(-11, 30, 9);
   std::vector<double> bathData;
   double bathDepth = 5.0;
   acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
@@ -66,7 +66,7 @@ int main() {
   // acoustics::utils::printVector(bathGridY);
   // acoustics::utils::printVector(bathData);
   acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
-      acoustics::Grid2D<double>(bathGridX, bathGridY, bathData),
+      acoustics::Grid2D(bathGridX, bathGridY, bathData),
       acoustics::BathyInterpolationType::kLinear, true};
 
   //////////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ int main() {
   auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
   auto SSPGrid =
-      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
+      acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
   acoustics::munkProfile(SSPGrid, 1500.0, true);
 
   acoustics::SSPConfig sspConfig =

@@ -9,6 +9,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <Eigen/Core>
 
 namespace acoustics {
 
