@@ -48,6 +48,7 @@ endif()
 
 
 set(EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
+set(ACOUSTICS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/acoustics/include)
 
 add_subdirectory(src)
 

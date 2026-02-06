@@ -2,10 +2,10 @@
 // Created by tko on 2/2/26.
 //
 #pragma once
-#include "Grid.h"
+#include "acoustics/Grid.h"
+#include "acoustics/acousticsConstants.h"
 #include <Eigen/Dense>
 #include <vector>
-#include "acousticsConstants.h"
 
 namespace acoustics {
 // SimulationConfig.h

@@ -2,7 +2,7 @@
 // Created by tko on 2/4/26.
 //
 
-#include "acoustics/Grid.h"
+#include "../src/acoustics/include/acoustics/Grid.h"
 #include "acoustics/helpers.h"
 #include "catch2/matchers/catch_matchers_vector.hpp"
 #include <stdexcept>

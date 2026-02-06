@@ -7,11 +7,9 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "helpers.h"
+#include "acoustics/helpers.h"
 
 namespace acoustics {
-
-enum GridDimension { kGrid2D, kGrid3D };
 
 // Forward declaration
 class Grid3D;

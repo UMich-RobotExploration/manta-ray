@@ -2,9 +2,9 @@
 // Created by tko on 1/26/26.
 //
 
-#include "pch.h"
+#include "acoustics/pch.h"
 
-#include "Arrival.h"
+#include "acoustics/Arrival.h"
 
 namespace acoustics {
 

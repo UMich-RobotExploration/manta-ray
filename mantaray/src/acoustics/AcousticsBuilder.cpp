@@ -2,11 +2,10 @@
 // Created by tko on 2/2/26.
 //
 
-#include "pch.h"
+#include "acoustics/pch.h"
 
-#include "AcousticsBuilder.h"
+#include "acoustics/AcousticsBuilder.h"
 
-#include "../../deps/bellhopcuda/src/common.hpp"
 
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,

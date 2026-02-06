@@ -2,14 +2,13 @@
 // Created by tko on 1/26/26.
 //
 #pragma once
+#include "checkAssert.h"
+#include "acoustics/helpers.h"
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
 #include <iomanip>
 #include <iostream>
 #include <vector>
-#include "checkAssert.h"
-#include "helpers.h"
-
 
 namespace acoustics {
 constexpr float kNoArrival = -1.0f;

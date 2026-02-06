@@ -3,9 +3,9 @@
 //
 
 #pragma once
-#include "SimulationConfig.h"
+#include "acoustics/SimulationConfig.h"
 #include "checkAssert.h"
-#include "helpers.h"
+#include "acoustics/helpers.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>

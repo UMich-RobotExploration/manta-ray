@@ -2,7 +2,7 @@
 // Created by tko on 1/27/26.
 //
 
-#include "BhHandler.h"
+#include "acoustics/BhHandler.h"
 
 template<bool O3D, bool R3D>
 class BellhopContext {
