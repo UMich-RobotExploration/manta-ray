@@ -8,7 +8,6 @@
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
-#include "acoustics/Result.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -32,21 +31,20 @@ void OutputCallback(const char *message) {
 
 int main() {
   auto init = bhc::bhcInit();
-  auto acousticsResult = acoustics::Result();
 
   char runName[] = "overhaul";
   std::cout << "Current path is " << std::filesystem::current_path()
             << std::endl;
-  // init.FileRoot = "manual";
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  init.maxMemory = 30ull * 1024ull * 1024ull; // 30 MiB
-  init.numThreads = static_cast<int32_t>(1);
+  // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
+  init.numThreads = -1;
+  init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "A");
+  strcpy(context.params().Beam->RunType, "R");
   // Important to set to I for irregular grid tracking
   context.params().Beam->RunType[4] = 'I';
   strcpy(context.params().Title, runName);
@@ -56,18 +54,15 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
 
   std::vector<double> bathGridX =
-      acoustics::utils::linspace<double>(-10, 10, 10);
+      acoustics::utils::linspace<double>(-1, 55, 10);
   std::vector<double> bathGridY =
-      acoustics::utils::linspace<double>(-11, 11, 10);
+      acoustics::utils::linspace<double>(-11, 30, 9);
   std::vector<double> bathData;
   double bathDepth = 5.0;
   acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
                                                      bathData, bathDepth);
-  // acoustics::utils::printVector(bathGridX);
-  // acoustics::utils::printVector(bathGridY);
-  // acoustics::utils::printVector(bathData);
   acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
-      acoustics::Grid2D<double>(bathGridX, bathGridY, bathData),
+      acoustics::Grid2D(bathGridX, bathGridY, bathData),
       acoustics::BathyInterpolationType::kLinear, true};
 
   //////////////////////////////////////////////////////////////////////////////
@@ -75,37 +70,55 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   int nX = 10;
   int nY = 10;
-  int nZ = 10;
-  auto SSPgridX = acoustics::utils::linspace(-10.0, 10.0, nX);
-  auto SPPgridY = acoustics::utils::linspace(-10.0, 10.0, nY);
-  auto SSPgridZ = acoustics::utils::linspace(0.0, 2000.0 / 1000.0, nZ);
-  acoustics::SSPConfig sspConfig = acoustics::SSPConfig{
-      acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0), true};
-  // std::cout << sspConfig.Grid.at(0, 0, 0) << "\n";
+  int nZ = 100;
+  auto SSPgridX = acoustics::utils::linspace(-1.0, 55.0, nX);
+  auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
+  auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
+  auto SSPGrid =
+      acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
+  acoustics::munkProfile(SSPGrid, 1500.0, true);
+
+  auto sspConfig =
+      acoustics::SSPConfig{std::move(SSPGrid), true};
+  std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(10.0, 0.0, 100.0);
+  Eigen::Vector3d sourcePos(10.0, 0.0, 1000.0);
   Eigen::Vector3d receiverPos;
-  receiverPos(0) = 0.0;
-  receiverPos(1) = 50;
-  receiverPos(2) = 100;
+  receiverPos(0) = 50000.0;
+  receiverPos(1) = 10.0;
+  receiverPos(2) = 1000.0;
 
   acoustics::AgentsConfig agents =
-      acoustics::AgentsConfig{sourcePos, receiverPos, false};
+      acoustics::AgentsConfig{sourcePos, receiverPos};
 
   acoustics::AcousticsBuilder simBuilder = acoustics::AcousticsBuilder(
       context.params(), bathConfig, sspConfig, agents);
   simBuilder.build();
 
   for (size_t i = 0; i < acoustics::kNumRecievers; ++i) {
+    float sspVal = 0;
+    bhc::VEC23<true> vec = {receiverPos(0), receiverPos(1), receiverPos(2)};
+    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
     std::cout << "Receiver " << i << ": " << context.params().Pos->Rr[i] << ", "
               << context.params().Pos->theta[i] << " ,"
-              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / 1500.0
+              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / sspVal
               << "\n";
   }
-
+  const acoustics::SSPConfig &sspConfigBuilt = simBuilder.getSSPConfig();
+  for (size_t iz = 0; iz < sspConfigBuilt.Grid.nz(); ++iz) {
+    float sspVal = 0;
+    bhc::VEC23<true> vec = {0.0, 0.0,
+                            sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
+    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
+    std::cout << "Z height (meters) "
+              << sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0
+              << ", Bellhop vs Build in Data structure: (" << sspVal << ", "
+              << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
+              << "\n";
+  }
 
   std::cout << "Run type: " << context.params().Beam->RunType << "\n";
   std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
@@ -120,49 +133,33 @@ int main() {
     return 1;
   }
   bhc::writeenv(context.params(), runName);
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 1; ++i) {
     std::chrono::high_resolution_clock::time_point t1 =
         std::chrono::high_resolution_clock::now();
+
     bhc::run(context.params(), context.outputs());
+
     std::chrono::nanoseconds delta =
         std::chrono::high_resolution_clock::now() - t1;
+
     auto &agentConfig = simBuilder.getAgentsConfig();
-    agentConfig.receivers(0) += 100;
-    agentConfig.receivers(1) += 100;
-    agentConfig.receivers(2) += 25;
-    std::cout << "Receiver Location: " << agentConfig.receivers << "\n";
-    simBuilder.updateAgents();
-    // // Debugging Ray memory issues
-    // std::cout << "Max points per ray: "
-    //           << context.outputs().rayinfo->MaxPointsPerRay << "\n";
-    // std::cout << "Num Arrays : " << context.outputs().rayinfo->NRays << "\n";
-    // std::cout << "Array Mem Capacity : "
-    //           << context.outputs().rayinfo->RayMemCapacity << "\n";
-    //
-    // std::cout << "\n" << context.outputs().rayinfo->NRays << " rays:\n";
-    // for (int r = 0; r < context.outputs().rayinfo->NRays; ++r) {
-    //   std::cout << "\nRay " << r << ", " <<
-    //   context.outputs().rayinfo->results[r].Nsteps
-    //             << "steps, SrcDeclAngle = "
-    //             << context.outputs().rayinfo->results[r].SrcDeclAngle <<
-    //             ":\n";
-    //   for(int s=0; s<context.outputs().rayinfo->results[r].Nsteps; ++s){
-    //     std::cout << context.outputs().rayinfo->results[r].ray[s] << "\n";
-    //   }
-    // }
+    std::cout << "Receiver Location: " << agentConfig.receiver << "\n";
+    simBuilder.updateReceiver(agentConfig.receiver(0) += 100,
+                              agentConfig.receiver(1) += 100,
+                              agentConfig.receiver(2) += 25);
 
-    // bhc::postprocess(context.params(), context.outputs());
-    // bhc::writeout(context.params(), context.outputs(), runName);
-
-    auto arrival = acoustics::Arrival(context.params(), context.outputs());
-    auto arrivalVec = arrival.extractEarliestArrivals();
+    try {
+      auto arrival = acoustics::Arrival(context.params(), context.outputs());
+      auto arrivalVec = arrival.extractEarliestArrivals();
+      acoustics::utils::printVector(arrivalVec);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during arrival extraction: " << e.what() << std::endl;
+    }
     std ::cout
         << "Iteration " << i << " took "
         << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
         << " ms\n";
-    acoustics::utils::printVector(arrivalVec);
   }
-  // bhc::writeout(context.params(), context.outputs(), runName);
-
+  bhc::writeout(context.params(), context.outputs(), runName);
   return 0;
 }

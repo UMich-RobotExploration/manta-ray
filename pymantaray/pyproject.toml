@@ -3,8 +3,10 @@ name = "pymantaray"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "arlpy>=1.9.1",
+    "aubellhop>=0.1.8",
     "matplotlib>=3.10.8",
+    "open3d>=0.19.0",
+    "pandas-stubs~=3.0.0",
 ]

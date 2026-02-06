@@ -2,7 +2,11 @@
 // Created by tko on 2/2/26.
 //
 
+#include "pch.h"
+
 #include "AcousticsBuilder.h"
+
+#include "../../deps/bellhopcuda/src/common.hpp"
 
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
@@ -12,9 +16,12 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
     : params_(params),
       bathymetryConfig_(std::move(bathConfig)),
       sspConfig_(std::move(sspConfig)),
-      agentsConfig_(std::move(agentsConfig)) {};
+      agentsConfig_(std::move(agentsConfig)) {
+
+      };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
+const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; } const;
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
@@ -34,6 +41,22 @@ void AcousticsBuilder::buildBathymetry() {
 
   boundary.NPts[0] = static_cast<int>(bathymetryConfig_.Grid.nx());
   boundary.NPts[1] = static_cast<int>(bathymetryConfig_.Grid.ny());
+  switch (bathymetryConfig_.interpolation) {
+  case BathyInterpolationType::kLinear:
+    CHECK(std::strlen(kBathymetryInterpLinearShort) == 2,
+          "Interpolation type should be two characters");
+    boundary.type[0] = kBathymetryInterpLinearShort[0];
+    boundary.type[1] = kBathymetryInterpLinearShort[1];
+    break;
+  case BathyInterpolationType::kCurveInterp:
+    CHECK(std::strlen(kBathymetryCurveInterpShort) == 2,
+          "Interpolation type should be two characters");
+    boundary.type[0] = kBathymetryCurveInterpShort[0];
+    boundary.type[1] = kBathymetryCurveInterpShort[1];
+    break;
+  default:
+    throw std::invalid_argument("Unknown bathymetry interpolation type");
+  }
 
   for (size_t ix = 0; ix < bathymetryConfig_.Grid.nx(); ++ix) {
     for (size_t iy = 0; iy < bathymetryConfig_.Grid.ny(); ++iy) {
@@ -50,7 +73,7 @@ void AcousticsBuilder::buildBathymetry() {
   bathymetryBuilt_ = true;
 };
 void AcousticsBuilder::buildSSP() {
-  const Grid3D<double> &grid = sspConfig_.Grid;
+  const Grid3D &grid = sspConfig_.Grid;
   bhc::extsetup_ssp_hexahedral(params_, static_cast<int>(grid.nx()),
                                static_cast<int>(grid.ny()),
                                static_cast<int>(grid.nz()));
@@ -62,7 +85,6 @@ void AcousticsBuilder::buildSSP() {
   params_.ssp->rangeInKm = sspConfig_.isKm;
 
   const double kmScaler = sspConfig_.isKm ? 1000.0 : 1.0;
-  params_.ssp->AttenUnit[0] = 'M';
 
   // setup coordinate grid and ssp in single nested MEGA loop
   for (size_t ix = 0; ix < grid.nx(); ++ix) {
@@ -77,7 +99,6 @@ void AcousticsBuilder::buildSSP() {
         params_.ssp->Seg.z[iz] = scaledZ;
         params_.ssp->z[iz] = scaledZ;
         params_.ssp->cMat[idx] = grid.data[idx];
-        // TODO: Comment out this alpha
         CHECK((params_.ssp->cMat[idx] >= 1400.0) &&
                   (params_.ssp->cMat[idx] <= 1600.0),
               "Unrealistic sound speed profile input into grid.");
@@ -86,13 +107,6 @@ void AcousticsBuilder::buildSSP() {
   }
 }
 
-/**
- * @brief Synchronize boundary depth values with SSP depth range
- * @detail The library requires that after writing the SSP, the boundary depths
- * are set to match the SSP depth range:
- * params.Bdry->Top.hs.Depth = ssp->Seg.z[0] and
- * params.Bdry->Bot.hs.Depth = ssp->Seg.z[ssp->NPts-1]
- */
 void AcousticsBuilder::syncBoundaryAndSSP() {
   params_.Bdry->Top.hs.Depth = params_.ssp->Seg.z[0];
   params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[sspConfig_.Grid.nz() - 1];
@@ -101,7 +115,7 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
 void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
-  auto delta = agentsConfig_.receivers - agentsConfig_.source;
+  auto delta = agentsConfig_.receiver - agentsConfig_.source;
   double elevationAngle = std::atan2(delta(2), delta(1));
   if (!beamBuilt_) {
     bhc::extsetup_raybearings(params_, kNumBeams);
@@ -117,7 +131,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
 
   auto beam = params_.Beam;
   double boxScale = 1.10;
-  beam->rangeInKm = agentsConfig_.isKm;
+  beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   beam->deltas = delta.norm() * kBeamStepSizeRatio;
   double deltaX = std::abs(delta(0));
@@ -126,8 +140,9 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
         "Delta's need to be positive in bellhop box");
   beam->Box.x = deltaX * boxScale;
   beam->Box.y = deltaY * boxScale;
-  double max = *std::max_element(bathymetryConfig_.Grid.data.begin(), bathymetryConfig_.Grid.data.end());
-  beam->Box.z = max  * kmScaler+ 10;
+  double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
+                                 bathymetryConfig_.Grid.data.end());
+  beam->Box.z = max * kmScaler + 10;
 }
 
 void AcousticsBuilder::updateAgents() {
@@ -136,31 +151,43 @@ void AcousticsBuilder::updateAgents() {
         "Cannot update agents: Agents have not been built yet.");
   }
   bool isReceiverCountIdentical =
-      params_.Pos->NRr == static_cast<int32_t>(kNumRecievers);
+      params_.Pos->NRr == kNumRecievers;
   if (!isReceiverCountIdentical) {
     std::cout << "Reallocating receiver arrays for updated agents.\n";
-    bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(kNumRecievers));
-    bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(kNumRecievers));
-    bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(kNumRecievers));
-    params_.Pos->NRr = static_cast<int32_t>(kNumRecievers);
-    params_.Pos->NRz = static_cast<int32_t>(kNumRecievers);
-    params_.Pos->Ntheta = static_cast<int32_t>(kNumRecievers);
+    bhc::extsetup_rcvrranges(params_, kNumRecievers);
+    bhc::extsetup_rcvrbearings(params_, kNumRecievers);
+    bhc::extsetup_rcvrdepths(params_, kNumRecievers);
+    params_.Pos->NRr = kNumRecievers;
+    params_.Pos->NRz = kNumRecievers;
+    params_.Pos->Ntheta = kNumRecievers;
   }
 
+  bool isSourceInBounds =
+      utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
+  bool isReceiver=
+      utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
+  if (!isSourceInBounds || !isReceiver) {
+        std::stringstream msg;
+        msg << "Source or Receiver position is out of bounds of the simulation box. "
+                << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
+                << agentsConfig_.receiver.transpose() << ") , Min Box: ("
+                << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
+                << ")";
+        throw std::out_of_range(msg.str());
+
+  }
   // no smart checking, everything is overwritten
-  params_.Pos->RrInKm = agentsConfig_.isKm;
-  const double kmScaler = agentsConfig_.isKm ? 1000.0 : 1.0;
+  params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
-  params_.Pos->Sz[0] = agentsConfig_.source(2) * kmScaler;
+  params_.Pos->Sz[0] = utils::safe_double_to_float(agentsConfig_.source(2));
 
-  auto delta = agentsConfig_.receivers(Eigen::seq(0, 1)) -
+  auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
-  // std::cout << "Eigen Delta: " << delta.norm() << "\n";
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = agentsConfig_.receivers(2) * kmScaler;
+  params_.Pos->Rz[0] = utils::safe_double_to_float(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
 };
@@ -169,20 +196,30 @@ void AcousticsBuilder::buildAgents() {
   // Setup Sources but do not assign yet (assigned in update)
   bhc::extsetup_sxsy(params_, kNumSources, kNumSources);
   bhc::extsetup_sz(params_, kNumSources);
-  params_.Pos->SxSyInKm = agentsConfig_.isKm;
+  params_.Pos->SxSyInKm = false;
 
   // Receivers
-  size_t nReceivers = agentsConfig_.receivers.size();
+  size_t nReceivers = agentsConfig_.receiver.size();
   bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(nReceivers));
   bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(nReceivers));
   bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(nReceivers));
   agentsBuilt_ = true;
   // Assigning receiver ranges for update check to prevent reallocation
-  params_.Pos->RrInKm = agentsConfig_.isKm;
+  params_.Pos->RrInKm = false;
   params_.Pos->NRr = static_cast<int32_t>(nReceivers);
   params_.Pos->NRz = static_cast<int32_t>(nReceivers);
   params_.Pos->Ntheta = static_cast<int32_t>(nReceivers);
   updateAgents();
+}
+
+void AcousticsBuilder::validateSPPandBathymetryBox(
+    const Grid2D &bathGrid, const Grid3D &sspGrid) const {
+  bool isBathInside = bathGrid.checkInside(sspGrid);
+  if (isBathInside) {
+    return;
+  }
+  throw std::runtime_error("SSP grid must completely enclose bathymetry grid "
+                           "to avoid inability to interpolate rays.");
 }
 
 void AcousticsBuilder::build() {
@@ -191,7 +228,19 @@ void AcousticsBuilder::build() {
   if (bathymetryBuilt_) {
     buildSSP();
     syncBoundaryAndSSP();
+    validateSPPandBathymetryBox(bathymetryConfig_.Grid, sspConfig_.Grid);
+    // Here we are assuming bathymetry grid fits within SSP grid
+    // Which is reasonable as we check this later in the build process
+    double kmScalerBath = bathymetryConfig_.isKm ? 1000.0 : 1.0;
+    double kmScalerSSP = sspConfig_.isKm ? 1000.0 : 1.0;
+    minCoords_[0] = bathymetryConfig_.Grid.xCoords.front() * kmScalerBath;
+    minCoords_[1] = bathymetryConfig_.Grid.yCoords.front() * kmScalerBath;
+    minCoords_[2] = sspConfig_.Grid.zCoords.front() * kmScalerSSP;
+    maxCoords_[0] = bathymetryConfig_.Grid.xCoords.back() * kmScalerBath;
+    maxCoords_[1] = bathymetryConfig_.Grid.yCoords.back() * kmScalerBath;
+    maxCoords_[2] = sspConfig_.Grid.zCoords.back() * kmScalerSSP;
   } else {
+    // ReSharper disable once CppDFAUnreachableCode
     throw std::runtime_error(
         "Cannot build simulation: Bathymetry must be built before SSP.");
   }
@@ -205,15 +254,12 @@ void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
   boundary.NPts[0] = kNumAltimetryPts;
   boundary.NPts[1] = kNumAltimetryPts;
 
-  auto [minIt, maxIt] = std::minmax_element(bathConfig.Grid.xCoords.begin(),
-                                            bathConfig.Grid.xCoords.end());
-  double minX = *minIt;
-  double maxX = *maxIt;
+  // Grid's have guaranteed monotonic values in coords
+  double minX = bathConfig.Grid.xCoords.front();
+  double maxX = bathConfig.Grid.xCoords.back();
 
-  std::tie(minIt, maxIt) = std::minmax_element(bathConfig.Grid.yCoords.begin(),
-                                               bathConfig.Grid.yCoords.end());
-  double minY = *minIt;
-  double maxY = *maxIt;
+  double minY = bathConfig.Grid.yCoords.front();
+  double maxY = bathConfig.Grid.yCoords.back();
   std::array<double, kNumAltimetryPts> xVals{minX, maxX};
   std::array<double, kNumAltimetryPts> yVals{minY, maxY};
 
@@ -243,6 +289,19 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
       data[ix * gridY.size() + iy] = currDepth;
     }
   }
+}
+void AcousticsBuilder::updateReceiver(double x, double y, double z) {
+  agentsConfig_.receiver(0) = x;
+  agentsConfig_.receiver(1) = y;
+  agentsConfig_.receiver(2) = z;
+  updateAgents();
+}
+
+void AcousticsBuilder::updateSource(double x, double y, double z) {
+  agentsConfig_.source(0) = x;
+  agentsConfig_.source(1) = y;
+  agentsConfig_.source(2) = z;
+  updateAgents();
 }
 
 } // namespace acoustics

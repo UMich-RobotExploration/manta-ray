@@ -2,8 +2,9 @@
 // Created by tko on 1/26/26.
 //
 
+#include "pch.h"
+
 #include "Arrival.h"
-#include "helpers.h"
 
 namespace acoustics {
 
@@ -117,10 +118,12 @@ std::vector<float> Arrival::extractEarliestArrivals() {
 
                 bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                // std::cout << "Arrival Delay: " << std::setprecision(10) << delay
-                          // << "\n";
+                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
+                // delay
+                // << "\n";
                 // float amplitude_dB = 20.0f * std::log10(arr->a);
-                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB << "\n";
+                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB
+                // << "\n";
                 if (delay < 0) {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");

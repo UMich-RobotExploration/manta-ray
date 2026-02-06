@@ -4,13 +4,16 @@ add_library(${ACOUSTIC_LIB_NAME}
         BhHandler.h
         acousticsConstants.h
         helpers.h
-        Result.h
         SimulationConfig.h
         Grid.h
         AcousticsBuilder.cpp
         AcousticsBuilder.h
         ../checkAssert.h
+        Grid.cpp
+        helpers.cpp
 )
+target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE pch.h)
+
 
 # Link the bellhop library to acoustics
 target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${INCLUDE_BHC})

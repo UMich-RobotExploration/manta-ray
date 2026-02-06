@@ -5,8 +5,6 @@
 #pragma once
 #include <bhc/bhc.hpp>
 
-#ifndef MANTARAY_BHHANDLER_H
-#define MANTARAY_BHHANDLER_H
 
 namespace acoustics {
 /**
@@ -57,5 +55,3 @@ private:
   bhc::bhcOutputs<O3D, R3D> outputs_;
 };
 } // namespace acoustics
-
-#endif

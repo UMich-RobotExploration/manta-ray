@@ -10,7 +10,7 @@
         if (!(condition)) { \
             std::cerr << "File: " << __FILE__ << ":" << __LINE__ << "\n" \
                       << "\t" << "Check failed: " << #condition << "\n" \
-                      << "\t" << "Message: " << message << "\n"; \
+                      << "\t" << "Message: " << (message) << "\n"; \
             std::abort(); \
         } \
     } while (0)
