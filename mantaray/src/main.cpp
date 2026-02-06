@@ -7,13 +7,13 @@
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
-#include "acoustics/BhHandler.h"
-#include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
+#include "acoustics/acousticsConstants.h"
+#include "acoustics/BhHandler.h"
 
-#include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
+#include "acoustics/include/acoustics/AcousticsBuilder.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
 

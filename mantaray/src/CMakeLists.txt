@@ -8,6 +8,8 @@ target_include_directories(${TARGET_NAME} PRIVATE
         ${INCLUDE_BHC})
 target_include_directories(${TARGET_NAME} PRIVATE
         ${INCLUDE_GLM})
+target_include_directories(${TARGET_NAME} PRIVATE
+        ${ACOUSTICS_INCLUDE_DIRS})
 
 add_subdirectory(acoustics/)
 

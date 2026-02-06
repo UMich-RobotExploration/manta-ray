@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "SimulationConfig.h"
+#include "../../SimulationConfig.h"
 #include "checkAssert.h"
 #include "helpers.h"
 #include <algorithm>

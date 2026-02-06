@@ -2,9 +2,9 @@
 // Created by tko on 2/2/26.
 //
 
-#include "pch.h"
+#include "include/acoustics/pch.h"
 
-#include "AcousticsBuilder.h"
+#include "include/acoustics/AcousticsBuilder.h"
 
 #include "../../deps/bellhopcuda/src/common.hpp"
 
