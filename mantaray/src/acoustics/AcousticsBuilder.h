@@ -57,7 +57,7 @@ public:
                                     const std::vector<double> &gridY,
                                     std::vector<double> &data, double depth);
 
-  /** @brief Updates source position (MUST USE SAME UNITS AS CONFIG
+  /** @brief Updates source position (MUST USE SAME UNITS AS CONFIG)
    *
    * @details UNITS WARNING AGAIN
    *
@@ -65,7 +65,7 @@ public:
    * simulation box
    */
   void updateSource(double x, double y, double z);
-  /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG
+  /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG)
    *
    * @details UNITS WARNING AGAIN
    *
@@ -91,9 +91,11 @@ private:
   SSPConfig sspConfig_;
   AgentsConfig agentsConfig_;
 
-  // Stores min box coords. Only valid after the simulation is build
+  // INFO: could use std::optional<> here in the future to protect
+
+  // Stores min box coords. Only valid after the simulation is built
   Eigen::Vector3d minCoords_{};
-  // Stores max box coords. Only valid after the simulation is build
+  // Stores max box coords. Only valid after the simulation is built
   Eigen::Vector3d maxCoords_{};
 
   // // minBoxWidth_ is set during bathymetry build to help ensure box is
@@ -137,7 +139,7 @@ private:
   void buildAgents();
 
   /**
-   * @brief Constructs and aims's ray's between sources and receivers
+   * @brief Constructs and aims ray's between sources and receivers
    *
    * @details For efficiency this functions assumes that sources and receivers
    * have already been built. So be warned! If sources or receivers are updated
