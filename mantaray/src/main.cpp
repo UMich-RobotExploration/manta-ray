@@ -35,14 +35,13 @@ int main() {
   char runName[] = "overhaul";
   std::cout << "Current path is " << std::filesystem::current_path()
             << std::endl;
-  // init.FileRoot = "manual";
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
   // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
-  init.numThreads = static_cast<int32_t>(-1);
+  init.numThreads = -1;
   init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "R");
@@ -62,9 +61,6 @@ int main() {
   double bathDepth = 5.0;
   acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
                                                      bathData, bathDepth);
-  // acoustics::utils::printVector(bathGridX);
-  // acoustics::utils::printVector(bathGridY);
-  // acoustics::utils::printVector(bathData);
   acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
       acoustics::Grid2D(bathGridX, bathGridY, bathData),
       acoustics::BathyInterpolationType::kLinear, true};
@@ -82,7 +78,7 @@ int main() {
       acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
   acoustics::munkProfile(SSPGrid, 1500.0, true);
 
-  acoustics::SSPConfig sspConfig =
+  auto sspConfig =
       acoustics::SSPConfig{std::move(SSPGrid), true};
   std::cout << "SSP at (0,0,z): " << std::endl;
 

@@ -21,7 +21,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
       };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
-const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; };
+const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; } const;
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
@@ -85,7 +85,6 @@ void AcousticsBuilder::buildSSP() {
   params_.ssp->rangeInKm = sspConfig_.isKm;
 
   const double kmScaler = sspConfig_.isKm ? 1000.0 : 1.0;
-  // params_.ssp->AttenUnit[0] = 'M';
 
   // setup coordinate grid and ssp in single nested MEGA loop
   for (size_t ix = 0; ix < grid.nx(); ++ix) {
@@ -154,15 +153,15 @@ void AcousticsBuilder::updateAgents() {
         "Cannot update agents: Agents have not been built yet.");
   }
   bool isReceiverCountIdentical =
-      params_.Pos->NRr == static_cast<int32_t>(kNumRecievers);
+      params_.Pos->NRr == kNumRecievers;
   if (!isReceiverCountIdentical) {
     std::cout << "Reallocating receiver arrays for updated agents.\n";
-    bhc::extsetup_rcvrranges(params_, static_cast<int32_t>(kNumRecievers));
-    bhc::extsetup_rcvrbearings(params_, static_cast<int32_t>(kNumRecievers));
-    bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(kNumRecievers));
-    params_.Pos->NRr = static_cast<int32_t>(kNumRecievers);
-    params_.Pos->NRz = static_cast<int32_t>(kNumRecievers);
-    params_.Pos->Ntheta = static_cast<int32_t>(kNumRecievers);
+    bhc::extsetup_rcvrranges(params_, kNumRecievers);
+    bhc::extsetup_rcvrbearings(params_, kNumRecievers);
+    bhc::extsetup_rcvrdepths(params_, kNumRecievers);
+    params_.Pos->NRr = kNumRecievers;
+    params_.Pos->NRz = kNumRecievers;
+    params_.Pos->Ntheta = kNumRecievers;
   }
 
   bool isSourceInBounds =
@@ -183,15 +182,14 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
-  params_.Pos->Sz[0] = agentsConfig_.source(2);
+  params_.Pos->Sz[0] = utils::safe_double_to_float(agentsConfig_.source(2));
 
   auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
-  // std::cout << "Eigen Delta: " << delta.norm() << "\n";
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = agentsConfig_.receiver(2);
+  params_.Pos->Rz[0] = utils::safe_double_to_float(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
 };

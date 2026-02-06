@@ -56,7 +56,7 @@ template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
  */
 template <typename T> void unsafeSetupVector(T *arr, T low, T high, int size) {
   for (int i = 0; i < size; ++i) {
-    arr[i] = low + double(i) / double(size - 1) * (high - low);
+    arr[i] = low + static_cast<double>(i) / static_cast<double>(size - 1) * (high - low);
   }
 }
 

@@ -82,7 +82,7 @@ public:
                                    const Grid3D &sspGrid) const;
 
   AgentsConfig &getAgentsConfig();
-  const SSPConfig &getSSPConfig();
+  const SSPConfig &getSSPConfig() const;
 
 private:
   bhc::bhcParams<true> &params_;
