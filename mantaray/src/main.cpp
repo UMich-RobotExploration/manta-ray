@@ -96,7 +96,7 @@ int main() {
   receiverPos(2) = 1000.0;
 
   acoustics::AgentsConfig agents =
-      acoustics::AgentsConfig{sourcePos, receiverPos, false};
+      acoustics::AgentsConfig{sourcePos, receiverPos};
 
   acoustics::AcousticsBuilder simBuilder = acoustics::AcousticsBuilder(
       context.params(), bathConfig, sspConfig, agents);

@@ -8,20 +8,6 @@
 
 namespace acoustics {
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-namespace {
-constexpr double kBoundaryEpsilon =
-    std::numeric_limits<double>::epsilon() * 100;
-
-// Helper to check if value is approximately equal OR satisfies comparison
-template <typename Vec1, typename Vec2, typename CompOp>
-bool checkBoundaryCondition(const Vec1 &vec1, const Vec2 &vec2, CompOp comp) {
-  return vec1.isApprox(vec2, kBoundaryEpsilon) || comp(vec1, vec2);
-}
-}
 
 // ============================================================================
 // Grid2D Implementations
@@ -117,11 +103,11 @@ bool Grid2D::checkInside(const Grid3D &other) const {
   auto minOther2D = minOther.head<2>();
   auto maxOther2D = maxOther.head<2>();
 
-  bool isMinValid = checkBoundaryCondition(
+  bool isMinValid = utils::eigenFloatSafeComparison(
       minOther2D, minThis, [](const auto &a, const auto &b) {
         return (a.array() <= b.array()).all();
       });
-  bool isMaxValid = checkBoundaryCondition(
+  bool isMaxValid = utils::eigenFloatSafeComparison(
       maxOther2D, maxThis, [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
       });
@@ -137,11 +123,11 @@ bool Grid2D::checkContain(const Grid3D &other) const {
   auto minOther2D = minOther.head<2>();
   auto maxOther2D = maxOther.head<2>();
 
-  bool isMinValid = checkBoundaryCondition(
+  bool isMinValid = utils::eigenFloatSafeComparison(
       minOther2D, minThis, [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
       });
-  bool isMaxValid = checkBoundaryCondition(
+  bool isMaxValid = utils::eigenFloatSafeComparison(
       maxOther2D, maxThis, [](const auto &a, const auto &b) {
         return (a.array() <= b.array()).all();
       });
@@ -242,11 +228,11 @@ bool Grid3D::checkInside(const Grid3D &other) const {
   auto [minOther, maxOther] = other.boundingBox();
   auto [minThis, maxThis] = boundingBox();
 
-  bool isMinValid = checkBoundaryCondition(
+  bool isMinValid = utils::eigenFloatSafeComparison(
       minOther, minThis, [](const auto &a, const auto &b) {
         return (a.array() <= b.array()).all();
       });
-  bool isMaxValid = checkBoundaryCondition(
+  bool isMaxValid = utils::eigenFloatSafeComparison(
       maxOther, maxThis, [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
       });

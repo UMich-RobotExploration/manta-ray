@@ -12,7 +12,8 @@
 
 namespace acoustics {
 
-enum class RectangleCorners { kTopRight, kTopLeft, kBottomRight, kBottomLeft };
+constexpr double kBoundaryEpsilonDouble =
+    std::numeric_limits<double>::epsilon() * 100;
 
 /**
  * @brief Generate linearly spaced values between start and end
@@ -79,6 +80,24 @@ template <typename T> void printVector(const std::vector<T> &vec) {
   }
   std::cout << "]" << std::endl;
 }
+
+
+/* @brief Helper to check if value is approximately equal OR satisfies comparison
+ * @tparam Vec1, Vec2 Vector types (e.g., Eigen::Vector2d or Eigen::Vector3d)
+*/
+template <typename Vec1, typename Vec2, typename CompOp>
+bool eigenFloatSafeComparison(const Vec1 &vec1, const Vec2 &vec2, CompOp comp) {
+  return vec1.isApprox(vec2, kBoundaryEpsilonDouble) || comp(vec1, vec2);
+}
+
+/**
+ * @brief Safely compare two Eigen vectors with a custom comparator.
+ * @details Uses minimum bounding box check
+ *
+ * @returns true if in bounds, false otherwise
+ */
+bool positionInBounds(const Eigen::Vector3d &position, const Eigen::Vector3d &min,
+                      const Eigen::Vector3d &max);
 
 /**
  * @brief Check if a vector of doubles is monotonically increasing

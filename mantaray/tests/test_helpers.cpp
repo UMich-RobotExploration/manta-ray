@@ -123,3 +123,26 @@ TEST_CASE_METHOD(GridTestsFixture, "Grid's Monotonic", "[grid]") {
       (acoustics::Grid2D(grid2D.xCoords, grid2D.yCoords, grid2D.data)),
       std::invalid_argument);
 }
+
+TEST_CASE("Bounds checking on position", "[position]") {
+  Eigen::Vector3d minBounds(0.0, 0.0, 0.0);
+  Eigen::Vector3d maxBounds(100.0, 100.0, 100.0);
+
+  // Test position within bounds
+  Eigen::Vector3d position1(50.0, 50.0, 50.0);
+  REQUIRE(acoustics::utils::positionInBounds(position1, minBounds, maxBounds) == true);
+
+  // Test position on the edge of bounds
+  Eigen::Vector3d position2(0.0, 0.0, 0.0);
+  REQUIRE(acoustics::utils::positionInBounds(position2, minBounds, maxBounds) == true);
+
+  Eigen::Vector3d position3(100.0, 100.0, 100.0);
+  REQUIRE(acoustics::utils::positionInBounds(position3, minBounds, maxBounds) == true);
+
+  // Test position outside bounds
+  Eigen::Vector3d position4(-1.0, -1.0, -1.0);
+  REQUIRE(acoustics::utils::positionInBounds(position4, minBounds, maxBounds) == false);
+
+  Eigen::Vector3d position5(101.0, 101.0, 101.0);
+  REQUIRE(acoustics::utils::positionInBounds(position5, minBounds, maxBounds) == false);
+}

@@ -59,11 +59,17 @@ public:
   /** @brief Updates source position (MUST USE SAME UNITS AS CONFIG
    *
    * @details UNITS WARNING AGAIN
+   *
+   * @throw std::out_of_range if new positions are out of bounds of the
+   * simulation box
    */
   void updateSource(double x, double y, double z);
   /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG
    *
    * @details UNITS WARNING AGAIN
+   *
+   * @throw std::out_of_range if new positions are out of bounds of the
+   * simulation box
    */
   void updateReceiver(double x, double y, double z);
 
@@ -84,6 +90,11 @@ private:
   SSPConfig sspConfig_;
   AgentsConfig agentsConfig_;
 
+  // Stores min box coords. Only valid after the simulation is build
+  Eigen::Vector3d minCoords_{};
+  // Stores max box coords. Only valid after the simulation is build
+  Eigen::Vector3d maxCoords_{};
+
   // // minBoxWidth_ is set during bathymetry build to help ensure box is
   // // not too small
   // double minBoxWidth_{-1.0};
@@ -102,6 +113,13 @@ private:
    */
   void autogenerateAltimetry();
   void buildSSP();
+
+  /** @brief Updates source and receiver positions in Bellhop based on input
+   * parameters
+   * @throw std::runtime_error if agents have not been built yet
+   * @throw std::out_of_range if new positions are out of bounds of the
+   * simulation box
+   */
   void updateAgents();
 
   /** @brief Synchronize boundary depth values with SSP depth range

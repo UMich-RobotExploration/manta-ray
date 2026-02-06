@@ -6,6 +6,8 @@
 
 #include "AcousticsBuilder.h"
 
+#include "../../deps/bellhopcuda/src/common.hpp"
+
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
                                    BathymetryConfig &bathConfig,
@@ -14,7 +16,9 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
     : params_(params),
       bathymetryConfig_(std::move(bathConfig)),
       sspConfig_(std::move(sspConfig)),
-      agentsConfig_(std::move(agentsConfig)) {};
+      agentsConfig_(std::move(agentsConfig)) {
+
+      };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
 const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; };
@@ -128,7 +132,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
 
   auto beam = params_.Beam;
   double boxScale = 1.10;
-  beam->rangeInKm = agentsConfig_.isKm;
+  beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   beam->deltas = delta.norm() * kBeamStepSizeRatio;
   double deltaX = std::abs(delta(0));
@@ -161,12 +165,25 @@ void AcousticsBuilder::updateAgents() {
     params_.Pos->Ntheta = static_cast<int32_t>(kNumRecievers);
   }
 
+  bool isSourceInBounds =
+      utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
+  bool isReceiver=
+      utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
+  if (!isSourceInBounds || !isReceiver) {
+        std::stringstream msg;
+        msg << "Source or Receiver position is out of bounds of the simulation box. "
+                << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
+                << agentsConfig_.receiver.transpose() << ") , Min Box: ("
+                << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
+                << ")";
+        throw std::out_of_range(msg.str());
+
+  }
   // no smart checking, everything is overwritten
-  params_.Pos->RrInKm = agentsConfig_.isKm;
-  const double kmScaler = agentsConfig_.isKm ? 1000.0 : 1.0;
+  params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
-  params_.Pos->Sz[0] = agentsConfig_.source(2) * kmScaler;
+  params_.Pos->Sz[0] = agentsConfig_.source(2);
 
   auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
@@ -174,7 +191,7 @@ void AcousticsBuilder::updateAgents() {
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = agentsConfig_.receiver(2) * kmScaler;
+  params_.Pos->Rz[0] = agentsConfig_.receiver(2);
 
   constructBeam(bearingAngle);
 };
@@ -183,7 +200,7 @@ void AcousticsBuilder::buildAgents() {
   // Setup Sources but do not assign yet (assigned in update)
   bhc::extsetup_sxsy(params_, kNumSources, kNumSources);
   bhc::extsetup_sz(params_, kNumSources);
-  params_.Pos->SxSyInKm = agentsConfig_.isKm;
+  params_.Pos->SxSyInKm = false;
 
   // Receivers
   size_t nReceivers = agentsConfig_.receiver.size();
@@ -192,7 +209,7 @@ void AcousticsBuilder::buildAgents() {
   bhc::extsetup_rcvrdepths(params_, static_cast<int32_t>(nReceivers));
   agentsBuilt_ = true;
   // Assigning receiver ranges for update check to prevent reallocation
-  params_.Pos->RrInKm = agentsConfig_.isKm;
+  params_.Pos->RrInKm = false;
   params_.Pos->NRr = static_cast<int32_t>(nReceivers);
   params_.Pos->NRz = static_cast<int32_t>(nReceivers);
   params_.Pos->Ntheta = static_cast<int32_t>(nReceivers);
@@ -216,6 +233,16 @@ void AcousticsBuilder::build() {
     buildSSP();
     syncBoundaryAndSSP();
     validateSPPandBathymetryBox(bathymetryConfig_.Grid, sspConfig_.Grid);
+    // Here we are assuming bathymetry grid fits within SSP grid
+    // Which is reasonable as we check this later in the build process
+    double kmScalerBath = bathymetryConfig_.isKm ? 1000.0 : 1.0;
+    double kmScalerSSP = sspConfig_.isKm ? 1000.0 : 1.0;
+    minCoords_[0] = bathymetryConfig_.Grid.xCoords.front() * kmScalerBath;
+    minCoords_[1] = bathymetryConfig_.Grid.yCoords.front() * kmScalerBath;
+    minCoords_[2] = sspConfig_.Grid.zCoords.front() * kmScalerSSP;
+    maxCoords_[0] = bathymetryConfig_.Grid.xCoords.back() * kmScalerBath;
+    maxCoords_[1] = bathymetryConfig_.Grid.yCoords.back() * kmScalerBath;
+    maxCoords_[2] = sspConfig_.Grid.zCoords.back() * kmScalerSSP;
   } else {
     // ReSharper disable once CppDFAUnreachableCode
     throw std::runtime_error(

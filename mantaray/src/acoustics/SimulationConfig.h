@@ -31,7 +31,6 @@ struct AgentsConfig {
   Eigen::Vector3d source;
   // Receivers (required)
   Eigen::Vector3d receiver;
-  bool isKm = false;
 };
 
 }; // namespace acoustics

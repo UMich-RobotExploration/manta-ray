@@ -8,11 +8,6 @@
 
 namespace acoustics {
 namespace utils {
-namespace {
-constexpr double kBoundaryEpsilon =
-    std::numeric_limits<double>::epsilon() * 100;
-}
-
 bool isMonotonicallyIncreasing(const std::vector<double> &vec) {
   size_t size = vec.size();
   if (size == 1) {
@@ -24,9 +19,26 @@ bool isMonotonicallyIncreasing(const std::vector<double> &vec) {
   // iterations start at 1
   for (size_t i = 1; i < size; ++i) {
     double delta = std::abs(vec[i] - vec[i - 1]);
-    if (delta <= kBoundaryEpsilon || vec[i] <= vec[i - 1]) {
+    if (delta <= kBoundaryEpsilonDouble || vec[i] <= vec[i - 1]) {
       return false;
     }
+  }
+  return true;
+}
+
+bool positionInBounds(const Eigen::Vector3d &position, const Eigen::Vector3d &min,
+                      const Eigen::Vector3d &max) {
+  bool isMinValid = utils::eigenFloatSafeComparison(
+      position, min, [](const auto &a, const auto &b) {
+        return (a.array() >= b.array()).all();
+      });
+  bool isMaxValid = utils::eigenFloatSafeComparison(
+      position, max, [](const auto &a, const auto &b) {
+        return (a.array() <= b.array()).all();
+      });
+
+  if (!isMinValid || !isMaxValid) {
+    return false;
   }
   return true;
 }
