@@ -9,6 +9,8 @@ add_library(${ACOUSTIC_LIB_NAME}
         AcousticsBuilder.cpp
         AcousticsBuilder.h
         ../checkAssert.h
+        Grid.cpp
+        helpers.cpp
 )
 target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE pch.h)
 

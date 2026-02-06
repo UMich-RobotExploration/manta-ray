@@ -19,6 +19,7 @@ message(STATUS "Build type: '${CMAKE_BUILD_TYPE}'")
 message(STATUS "Config: '$<CONFIG>'")
 
 option(MANTA_CUDA "Enable CUDA" ON)
+
 # Compiler options split by build type
 # Debug: Include debugging symbols, no optimizations, all warnings
 set(DEBUG_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-g;-O0")

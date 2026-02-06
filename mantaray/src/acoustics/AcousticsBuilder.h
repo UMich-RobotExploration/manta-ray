@@ -72,8 +72,8 @@ public:
    * @param bathGrid
    * @param sspGrid
    */
-  void validateSPPandBathymetryBox(const Grid2D<double> &bathGrid,
-                                   const Grid3D<double> &sspGrid) const;
+  void validateSPPandBathymetryBox(const Grid2D &bathGrid,
+                                   const Grid3D &sspGrid) const;
 
   AgentsConfig &getAgentsConfig();
   const SSPConfig &getSSPConfig();

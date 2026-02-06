@@ -2,12 +2,13 @@
 // Created by tko on 1/28/26.
 //
 #pragma once
-#include <iostream>
-#include <vector>
+
 #include <algorithm>
-#include <limits>
 #include <cmath>
+#include <iostream>
+#include <limits>
 #include <stdexcept>
+#include <vector>
 
 namespace acoustics {
 
@@ -21,7 +22,7 @@ enum class RectangleCorners { kTopRight, kTopLeft, kBottomRight, kBottomLeft };
  * @param num Number of points to generate
  * @return Vector of linearly spaced values
  */
-namespace utils{
+namespace utils {
 template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
   std::vector<T> result;
   result.reserve(num);
@@ -59,8 +60,10 @@ template <typename T> void unsafeSetupVector(T *arr, T low, T high, int size) {
 
 // @brief Helper to setup vectors from ranges. Operates on copying output buffer
 // size
-template <class T> void unsafeSetupVector(T *arr, const std::vector<T> &vec, size_t size) {
-  static_assert(std::is_copy_constructible_v<T>, "Template type T must be copyable");
+template <class T>
+void unsafeSetupVector(T *arr, const std::vector<T> &vec, size_t size) {
+  static_assert(std::is_copy_constructible_v<T>,
+                "Template type T must be copyable");
   std::copy_n(vec.begin(), size, arr);
 }
 
@@ -77,40 +80,21 @@ template <typename T> void printVector(const std::vector<T> &vec) {
   std::cout << "]" << std::endl;
 }
 
+/**
+ * @brief Check if a vector of doubles is monotonically increasing
+ * @details Uses an epsilon threshold to account for floating-point precision
+ * issues.
+ * @param vec Vector to check
+ * @return true if vec is monotonically increasing, false otherwise
+ */
+bool isMonotonicallyIncreasing(const std::vector<double> &vec);
 
 /**
  * @brief Safely cast double to float with range and precision checks
  * @throws std::overflow_error if value exceeds float range
  * @throws std::runtime_error if significant precision loss occurs
  */
-inline float safe_double_to_float(double value, bool strict = false) {
-  // Check for infinity and NaN
-  if (std::isinf(value) || std::isnan(value)) {
-    return static_cast<float>(value); // Preserves special values
-  }
+float safe_double_to_float(double value, bool strict = false);
 
-  // Check range
-  constexpr double max_float = std::numeric_limits<float>::max();
-  constexpr double min_float = std::numeric_limits<float>::lowest();
-
-  if (value > max_float || value < min_float) {
-    throw std::overflow_error("Double value exceeds float range");
-  }
-
-  auto result = static_cast<float>(value);
-
-  // Optional: check for significant precision loss
-  if (strict) {
-    double reconstructed = static_cast<double>(result);
-    double relative_error = std::abs((value - reconstructed) / value);
-
-    if (relative_error > 1e-6) { // ~float precision threshold
-      throw std::runtime_error("Significant precision loss in double->float conversion");
-    }
-  }
-
-  return result;
-}
-
-}  // namespace utils
-}// namespace acoustics
+} // namespace utils
+} // namespace acoustics

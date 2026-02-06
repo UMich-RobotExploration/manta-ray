@@ -69,7 +69,7 @@ void AcousticsBuilder::buildBathymetry() {
   bathymetryBuilt_ = true;
 };
 void AcousticsBuilder::buildSSP() {
-  const Grid3D<double> &grid = sspConfig_.Grid;
+  const Grid3D &grid = sspConfig_.Grid;
   bhc::extsetup_ssp_hexahedral(params_, static_cast<int>(grid.nx()),
                                static_cast<int>(grid.ny()),
                                static_cast<int>(grid.nz()));
@@ -200,7 +200,7 @@ void AcousticsBuilder::buildAgents() {
 }
 
 void AcousticsBuilder::validateSPPandBathymetryBox(
-    const Grid2D<double> &bathGrid, const Grid3D<double> &sspGrid) const {
+    const Grid2D &bathGrid, const Grid3D &sspGrid) const {
   bool isBathInside = bathGrid.checkInside(sspGrid);
   if (isBathInside) {
     return;

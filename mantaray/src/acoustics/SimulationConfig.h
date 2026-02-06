@@ -15,13 +15,13 @@ namespace acoustics {
  * @param isKm applies to all dimensions of grid (unlike bellhop)
  */
 struct BathymetryConfig {
-  Grid2D<double> Grid;
+  Grid2D Grid;
   BathyInterpolationType interpolation = BathyInterpolationType::kLinear;
   bool isKm{false};
 };
 
 struct SSPConfig {
-  Grid3D<double> Grid;
+  Grid3D Grid;
   bool isKm{false};
 };
 

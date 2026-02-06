@@ -80,7 +80,7 @@ int main() {
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
   auto SSPGrid =
       acoustics::Grid3D<double>(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
-  acoustics::munkProfile(SSPGrid, 1750.0 / 1000.0, 1500.0, true);
+  acoustics::munkProfile(SSPGrid, 1500.0, true);
 
   acoustics::SSPConfig sspConfig =
       acoustics::SSPConfig{std::move(SSPGrid), true};
