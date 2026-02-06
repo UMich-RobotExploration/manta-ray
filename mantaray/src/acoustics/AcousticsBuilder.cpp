@@ -21,7 +21,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
       };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
-const SSPConfig &AcousticsBuilder::getSSPConfig() { return sspConfig_; } const;
+const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; } ;
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
