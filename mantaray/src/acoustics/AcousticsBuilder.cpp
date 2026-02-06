@@ -140,8 +140,6 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
         "Delta's need to be positive in bellhop box");
   beam->Box.x = deltaX * boxScale;
   beam->Box.y = deltaY * boxScale;
-  // TODO: Fix this override
-  beam->Box.y = 10000.0;
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   beam->Box.z = max * kmScaler + 10;
@@ -281,8 +279,7 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     // setting to -1.0 to indicate uninitialized for easier debugging
     data.resize(gridX.size() * gridY.size(), -1.0);
   }
-  // TODO: Set back to 100.0 after testing
-  double scalerReduction = 1.0 / 1000.0;
+  double scalerReduction = 1.0 / 100.0;
   for (size_t iy = 0; iy < gridY.size(); ++iy) {
     for (size_t ix = 0; ix < gridX.size(); ++ix) {
       auto currDepth =

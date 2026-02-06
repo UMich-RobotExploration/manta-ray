@@ -15,8 +15,9 @@ constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;
 
 // TODO: Need to implement validation checks
-// - Increasing bearing
-// - Increasing range always
+// - Beam box is within bounds of sim
+// - Beam box has some minimum reasonable size to prevent rays from ending
+//  immediately after being launched
 
 class AcousticsBuilder {
 public:
@@ -145,7 +146,7 @@ private:
    *   * @param bearingAngle The angle in radians between source and receiver in
    * x-y plane.
    *
-   * TODO: In the future could fix this and add checks.
+   * TODO: Ensure beam box actually is within bounds of SSP.
    */
   void constructBeam(double bearingAngle);
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
