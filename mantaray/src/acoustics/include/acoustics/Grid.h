@@ -11,8 +11,6 @@
 
 namespace acoustics {
 
-enum GridDimension { kGrid2D, kGrid3D };
-
 // Forward declaration
 class Grid3D;
 
