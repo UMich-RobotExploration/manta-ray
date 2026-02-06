@@ -13,7 +13,7 @@
 
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "acoustics/include/acoustics/AcousticsBuilder.h"
+#include "acoustics/AcousticsBuilder.h"
 #include <bhc/bhc.hpp>
 #include <filesystem>
 

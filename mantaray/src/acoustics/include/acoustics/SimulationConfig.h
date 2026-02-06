@@ -2,8 +2,8 @@
 // Created by tko on 2/2/26.
 //
 #pragma once
-#include "include/acoustics/Grid.h"
-#include "include/acoustics/acousticsConstants.h"
+#include "Grid.h"
+#include "acousticsConstants.h"
 #include <Eigen/Dense>
 #include <vector>
 

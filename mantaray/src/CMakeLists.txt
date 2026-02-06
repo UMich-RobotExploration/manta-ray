@@ -3,6 +3,7 @@ add_executable(${TARGET_NAME}
         main.cpp
         checkAssert.h)
 
+
 # Add the bellhopcuda include directory to the project
 target_include_directories(${TARGET_NAME} PRIVATE
         ${INCLUDE_BHC})

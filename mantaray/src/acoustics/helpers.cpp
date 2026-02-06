@@ -2,9 +2,9 @@
 // Created by tko on 2/6/26.
 //
 
-#include "include/acoustics/pch.h"
+#include "acoustics/pch.h"
 
-#include "include/acoustics/helpers.h"
+#include "acoustics/helpers.h"
 
 namespace acoustics {
 namespace utils {
