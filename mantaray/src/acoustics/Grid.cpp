@@ -99,10 +99,13 @@ std::pair<Eigen::Vector2d, Eigen::Vector2d> Grid2D::boundingBox() const {
   if (!isValid()) {
     throw std::runtime_error("Cannot compute bounding box of invalid grid");
   }
-  auto [xMin, xMax] = std::minmax_element(xCoords.begin(), xCoords.end());
-  auto [yMin, yMax] = std::minmax_element(yCoords.begin(), yCoords.end());
-  auto minVec = Eigen::Vector2d(*xMin, *yMin);
-  auto maxVec = Eigen::Vector2d(*xMax, *yMax);
+  // grids are monotonically increasing
+  auto xMin = xCoords.front();
+  auto xMax = xCoords.back();
+  auto yMin = yCoords.front();
+  auto yMax = yCoords.back();
+  auto minVec = Eigen::Vector2d(xMin, yMin);
+  auto maxVec = Eigen::Vector2d(xMax, yMax);
   return {minVec, maxVec};
 }
 
@@ -223,11 +226,15 @@ std::pair<Eigen::Vector3d, Eigen::Vector3d> Grid3D::boundingBox() const {
   if (!isValid()) {
     throw std::runtime_error("Cannot compute bounding box of invalid grid");
   }
-  auto [xMin, xMax] = std::minmax_element(xCoords.begin(), xCoords.end());
-  auto [yMin, yMax] = std::minmax_element(yCoords.begin(), yCoords.end());
-  auto [zMin, zMax] = std::minmax_element(zCoords.begin(), zCoords.end());
-  auto minVec = Eigen::Vector3d(*xMin, *yMin, *zMin);
-  auto maxVec = Eigen::Vector3d(*xMax, *yMax, *zMax);
+  // grids are monotonically increasing
+  auto xMin = xCoords.front();
+  auto xMax = xCoords.back();
+  auto yMin = yCoords.front();
+  auto yMax = yCoords.back();
+  auto zMin = zCoords.front();
+  auto zMax = zCoords.back();
+  auto minVec = Eigen::Vector3d(xMin, yMin, zMin);
+  auto maxVec = Eigen::Vector3d(xMax, yMax, zMax);
   return {minVec, maxVec};
 }
 

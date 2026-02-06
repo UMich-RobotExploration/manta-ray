@@ -231,15 +231,12 @@ void AcousticsBuilder::flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
   boundary.NPts[0] = kNumAltimetryPts;
   boundary.NPts[1] = kNumAltimetryPts;
 
-  auto [minIt, maxIt] = std::minmax_element(bathConfig.Grid.xCoords.begin(),
-                                            bathConfig.Grid.xCoords.end());
-  double minX = *minIt;
-  double maxX = *maxIt;
+  // Grid's have guaranteed monotonic values in coords
+  double minX = bathConfig.Grid.xCoords.front();
+  double maxX = bathConfig.Grid.xCoords.back();
 
-  std::tie(minIt, maxIt) = std::minmax_element(bathConfig.Grid.yCoords.begin(),
-                                               bathConfig.Grid.yCoords.end());
-  double minY = *minIt;
-  double maxY = *maxIt;
+  double minY = bathConfig.Grid.yCoords.front();
+  double maxY = bathConfig.Grid.yCoords.back();
   std::array<double, kNumAltimetryPts> xVals{minX, maxX};
   std::array<double, kNumAltimetryPts> yVals{minY, maxY};
 
