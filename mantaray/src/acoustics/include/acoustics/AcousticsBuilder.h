@@ -4,8 +4,8 @@
 
 #pragma once
 #include "acoustics/SimulationConfig.h"
-#include "checkAssert.h"
 #include "acoustics/helpers.h"
+#include "checkAssert.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>
@@ -19,6 +19,27 @@ constexpr int kNumProvince = 1;
 // - Beam box has some minimum reasonable size to prevent rays from ending
 //  immediately after being launched
 
+// ============================================================================
+// Acoustics Builder -
+// ============================================================================
+/**
+ * @brief Builder class for constructing Bellhop acoustic simulations
+ * @note All positions and dimensions must use consistent units as specified
+ * in the configuration structs (e.g., meters vs kilometers).
+ * @par Details:
+ * Constructs bathymetry, altimetry, SSP, and agents based on input
+ * configurations. Provides methods to update source and receiver positions
+ * after initial construction.
+ *
+ * @par Bellhop integration:
+ * Although not my preferred design, I attempt to minimize the potential
+ * foot guns we could run into with the bellhop coupling and construction order
+ *
+ * @par Invariants:
+ * -Bathymetry must be completely enclosed by SSP grid
+ * -The build order is important and needs to be followed. See the current build
+ * class
+ */
 class AcousticsBuilder {
 public:
   AcousticsBuilder() = delete;
@@ -65,6 +86,12 @@ public:
    * simulation box
    */
   void updateSource(double x, double y, double z);
+
+  /* @brief Updates sources
+   * @see updateSources(double x, double y, double z)
+ */
+  void updateSource(const Eigen::Vector3d &position);
+
   /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG)
    *
    * @details UNITS WARNING AGAIN
@@ -73,6 +100,11 @@ public:
    * simulation box
    */
   void updateReceiver(double x, double y, double z);
+
+  /* @brief Updates receivers
+   * @see updateReceiver(double x, double y, double z)
+ */
+  void updateReceiver(const Eigen::Vector3d &position);
 
   /** @brief Validates that bathymetry is completely enclosed by ssp grid.
    *

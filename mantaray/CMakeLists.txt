@@ -6,13 +6,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(TARGET_NAME mantaray_core)
+
+# Acoustics
 set(ACOUSTIC_LIB_NAME acoustics)
+set(ACOUSTICS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/acoustics/include)
 
+# RB
+set(RB_LIB_NAME rb)
+set(RB_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/rb/include)
+
+# Libraries
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/deps)
+set(EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
 
+# BHC dependencies
 set(INCLUDE_BHC ${LIBS_DIR}/bellhopcuda/include/)
 set(INCLUDE_GLM ${LIBS_DIR}/bellhopcuda/glm/)
-set(INCLUDE_ACOUSTICS ${CMAKE_SOURCE_DIR}/src/acoustics/)
 
 # Debug Printing
 message(STATUS "Build type: '${CMAKE_BUILD_TYPE}'")
@@ -22,11 +31,22 @@ option(MANTA_CUDA "Enable CUDA" ON)
 
 # Compiler options split by build type
 # Debug: Include debugging symbols, no optimizations, all warnings
-set(DEBUG_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-g;-O0")
+set(DEBUG_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-Wswitch-enum;-g;-O0")
 # For sanitizing builds add: -fsanitize=undefined
 
 # Release: Optimizations enabled, no debug symbols, all warnings
-set(RELEASE_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-O3;-DNDEBUG")
+set(RELEASE_COMPILER_OPTIONS "-Wall;-Wextra;-Wpedantic;-Wswitch-enum;-O3;-DNDEBUG")
+
+# BUILD CONFIGURATIONS
+# Enable faster instruction sets (SIMD/AVX)
+set(ENABLE_VECTORIZATION ON CACHE BOOL "Enable vectorized instruction sets (SIMD/AVX)? [enabled by default]")
+
+if(${ENABLE_VECTORIZATION})
+    message(STATUS "Enabling SIMD/AVX instruction sets")
+    add_definitions(-march=native)
+endif()
+
+
 
 # Here I'm selecting if we should use the CUDA or CXX version of the Bellhop library
 if(MANTA_CUDA)
@@ -47,8 +67,6 @@ else()
 endif()
 
 
-set(EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
-set(ACOUSTICS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/acoustics/include)
 
 add_subdirectory(src)
 

@@ -14,9 +14,26 @@ namespace acoustics {
 // Forward declaration
 class Grid3D;
 
+// ============================================================================
+// Grid2D - 2D Regular Grid Storage
+// ============================================================================
 /**
- * @brief Grid class for 2D grids for Bellhop
- * @detail The index structure MUST align with Bellhop's internal storage order
+ * @brief 2D grid with contiguous memory layout matching Bellhop's internal
+ * order
+ *
+ * @par Memory layout:
+ * - Coordinates: SoA (separate xCoords, yCoords arrays)
+ * - Values: Single flat array, row-major order
+ * - data[ix * ny + iy] = value at (ix, iy)
+ *
+ * @par Index order:
+ * - index(ix, iy) = ix * ny + iy  (row-major)
+ * - Must match Bellhop's Fortran layout when interfacing
+ *
+ * @par Invariants:
+ * - xCoords.size() > 0 && yCoords.size() > 0
+ * - data.size() == nx() * ny()
+ * - Coordinates must be monotonically increasing (strictly)
  */
 class Grid2D {
 public:
@@ -30,8 +47,10 @@ public:
   Grid2D(Grid2D &&) noexcept = default;
   Grid2D &operator=(Grid2D &&) = default;
 
-  Grid2D(std::vector<double> x, std::vector<double> y, double defaultValue = double{});
-  Grid2D(std::vector<double> x, std::vector<double> y, std::vector<double> initData);
+  Grid2D(std::vector<double> x, std::vector<double> y,
+         double defaultValue = double{});
+  Grid2D(std::vector<double> x, std::vector<double> y,
+         std::vector<double> initData);
 
   void clear();
 
@@ -65,8 +84,17 @@ private:
 };
 
 /**
- * @brief Grid class for 3D grids for Bellhop
- * @detail The index structure MUST align with Bellhop's internal storage order
+ * @brief 3D grid - same design principles as Grid2D
+ *
+ * @sa Grid2D
+ * @see Grid2D
+ *
+ * @note Must match Bellhop's Fortran layout when interfacing
+ *
+ * @par INDEX ORDER:
+ * - index(ix, iy, iz) = (ix * ny + iy) * nz + iz  (row-major)
+ * - See Grid2D documentation for memory layout rationale
+ *
  */
 class Grid3D {
 public:
