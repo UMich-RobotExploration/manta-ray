@@ -24,19 +24,21 @@ constexpr int kNumProvince = 1;
 // ============================================================================
 /**
  * @brief Builder class for constructing Bellhop acoustic simulations
- *
- * @details Constructs bathymetry, altimetry, SSP, and agents based on input
- * configurations. Provides methods to update source and receiver positions
- * after initial construction.
- * * @par Invariants:
- * - Bathymetry must be completely enclosed by SSP grid
- * - The build order is important and needs to be followed. See the current
- * build class
- *
- * @see Grid2D, Grid3D
- *
  * @note All positions and dimensions must use consistent units as specified
  * in the configuration structs (e.g., meters vs kilometers).
+ * @par Details:
+ * Constructs bathymetry, altimetry, SSP, and agents based on input
+ * configurations. Provides methods to update source and receiver positions
+ * after initial construction.
+ *
+ * @par Bellhop integration:
+ * Although not my preferred design, I attempt to minimize the potential
+ * foot guns we could run into with the bellhop coupling and construction order
+ *
+ * @par Invariants:
+ * -Bathymetry must be completely enclosed by SSP grid
+ * -The build order is important and needs to be followed. See the current build
+ * class
  */
 class AcousticsBuilder {
 public:

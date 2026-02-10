@@ -15,12 +15,13 @@
 #include <limits>
 #include <string>
 #include <iostream>
-#include <fstream>
-#include <sstream>
 
 // Eigen (if used in your project)
 #include <Eigen/Core>
 #include <Eigen/Dense>
+
+// Manif
+#include <manif/manif.h>
 
 // Common system headers
 #include <cstddef>

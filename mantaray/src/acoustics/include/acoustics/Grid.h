@@ -21,16 +21,16 @@ class Grid3D;
  * @brief 2D grid with contiguous memory layout matching Bellhop's internal
  * order
  *
- * @par MEMORY LAYOUT:
+ * @par Memory layout:
  * - Coordinates: SoA (separate xCoords, yCoords arrays)
  * - Values: Single flat array, row-major order
  * - data[ix * ny + iy] = value at (ix, iy)
  *
- * @par INDEX ORDER:
+ * @par Index order:
  * - index(ix, iy) = ix * ny + iy  (row-major)
  * - Must match Bellhop's Fortran layout when interfacing
  *
- * @par INVARIANTS:
+ * @par Invariants:
  * - xCoords.size() > 0 && yCoords.size() > 0
  * - data.size() == nx() * ny()
  * - Coordinates must be monotonically increasing (strictly)
