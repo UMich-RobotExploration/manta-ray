@@ -73,13 +73,16 @@ TEST_CASE("Angular Integration of pose", "[integrator]") {
 }
 
 TEST_CASE("Local vs Global Integration of pose check", "[integrator]") {
+  /* Here I want to test the following:
+  * - Rotation around z axis of 0.5 radians
+  * - Local rotation around x-axis then using twist of 0.8 rad/s for 1 second
+  */
   auto twist = manif::SE3Tangentd().setZero();
   auto poseOutput = manif::SE3d().setIdentity();
 
   auto pose = manif::SE3d(Eigen::Vector3d(0.0, 0.0, 0.0),
                           Eigen::AngleAxisd(0.5, Eigen::Vector3d::UnitZ()));
 
-  // Angular velocity in BODY frame (1 rad/s around body X-axis)
   Eigen::Vector3d angVel(0.8, 0, 0);
   twist.ang() = angVel;
   double dt = 1.0;
