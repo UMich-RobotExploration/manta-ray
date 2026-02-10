@@ -4,6 +4,8 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <bhc/bhc.hpp>
+#include <filesystem>
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
@@ -11,11 +13,11 @@
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/BhHandler.h"
 
+#include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "acoustics/AcousticsBuilder.h"
-#include <bhc/bhc.hpp>
-#include <filesystem>
+#include "rb/Body.h"
+#include "rb/include/rb/Body.h"
 
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
@@ -30,6 +32,11 @@ void OutputCallback(const char *message) {
 }
 
 int main() {
+  // RB Testing
+  auto body = rb::PhysicsBody(rb::BodyType::k3DOF, rb::IntegratorType::kRK4);
+
+
+
   auto init = bhc::bhcInit();
 
   char runName[] = "overhaul";

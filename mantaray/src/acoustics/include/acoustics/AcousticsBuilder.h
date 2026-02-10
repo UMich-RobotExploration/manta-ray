@@ -4,8 +4,8 @@
 
 #pragma once
 #include "acoustics/SimulationConfig.h"
-#include "checkAssert.h"
 #include "acoustics/helpers.h"
+#include "checkAssert.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>
@@ -19,6 +19,25 @@ constexpr int kNumProvince = 1;
 // - Beam box has some minimum reasonable size to prevent rays from ending
 //  immediately after being launched
 
+// ============================================================================
+// Acoustics Builder -
+// ============================================================================
+/**
+ * @brief Builder class for constructing Bellhop acoustic simulations
+ *
+ * @details Constructs bathymetry, altimetry, SSP, and agents based on input
+ * configurations. Provides methods to update source and receiver positions
+ * after initial construction.
+ * * @par Invariants:
+ * - Bathymetry must be completely enclosed by SSP grid
+ * - The build order is important and needs to be followed. See the current
+ * build class
+ *
+ * @see Grid2D, Grid3D
+ *
+ * @note All positions and dimensions must use consistent units as specified
+ * in the configuration structs (e.g., meters vs kilometers).
+ */
 class AcousticsBuilder {
 public:
   AcousticsBuilder() = delete;

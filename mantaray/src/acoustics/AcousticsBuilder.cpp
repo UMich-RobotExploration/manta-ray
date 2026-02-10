@@ -6,7 +6,6 @@
 
 #include "acoustics/AcousticsBuilder.h"
 
-
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
                                    BathymetryConfig &bathConfig,
@@ -20,7 +19,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
       };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
-const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; } ;
+const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; };
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
@@ -149,8 +148,7 @@ void AcousticsBuilder::updateAgents() {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
   }
-  bool isReceiverCountIdentical =
-      params_.Pos->NRr == kNumRecievers;
+  bool isReceiverCountIdentical = params_.Pos->NRr == kNumRecievers;
   if (!isReceiverCountIdentical) {
     std::cout << "Reallocating receiver arrays for updated agents.\n";
     bhc::extsetup_rcvrranges(params_, kNumRecievers);
@@ -163,17 +161,17 @@ void AcousticsBuilder::updateAgents() {
 
   bool isSourceInBounds =
       utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
-  bool isReceiver=
+  bool isReceiver =
       utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
   if (!isSourceInBounds || !isReceiver) {
-        std::stringstream msg;
-        msg << "Source or Receiver position is out of bounds of the simulation box. "
-                << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
-                << agentsConfig_.receiver.transpose() << ") , Min Box: ("
-                << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
-                << ")";
-        throw std::out_of_range(msg.str());
-
+    std::stringstream msg;
+    msg << "Source or Receiver position is out of bounds of the simulation "
+           "box. "
+        << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
+        << agentsConfig_.receiver.transpose() << ") , Min Box: ("
+        << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
+        << ")";
+    throw std::out_of_range(msg.str());
   }
   // no smart checking, everything is overwritten
   params_.Pos->RrInKm = false;
@@ -240,6 +238,8 @@ void AcousticsBuilder::build() {
     maxCoords_[2] = sspConfig_.Grid.zCoords.back() * kmScalerSSP;
   } else {
     // ReSharper disable once CppDFAUnreachableCode
+    // This code is here even though unreachable, to protect future refactorers
+    // on build order of the sim.
     throw std::runtime_error(
         "Cannot build simulation: Bathymetry must be built before SSP.");
   }
