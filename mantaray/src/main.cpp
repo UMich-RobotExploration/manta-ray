@@ -32,8 +32,6 @@ void OutputCallback(const char *message) {
 }
 
 int main() {
-  // RB Testing
-  auto body = rb::PhysicsBody(rb::BodyType::k3DOF, rb::IntegratorType::kRK4);
 
 
 
