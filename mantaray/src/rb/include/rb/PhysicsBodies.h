@@ -23,6 +23,10 @@ struct DynamicsBodies {
 
 void reserveBodies(DynamicsBodies &bodies, size_t count);
 
-KinematicData& getKinematicData(DynamicsBodies &bodies, BodyIdx index);
+KinematicData &getKinematicData(DynamicsBodies &bodies, BodyIdx index);
+/* @brief Details namespace is for private internal use of the rb library
+ */
+namespace detail {
 BodyIdx addDynamicsBody(DynamicsBodies &bodies);
 }
+} // namespace rb

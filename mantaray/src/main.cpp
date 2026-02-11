@@ -35,9 +35,13 @@ int main() {
 
   rb::RbWorld world{};
   rb::reserveRobots(world, 1);
+  rb::reserveLandmarks(world, 2);
   auto robotIdx = rb::addRobot<rb::ConstantVelRobot>(world, Eigen::Vector3d(0.1, 0.0, 0.0));
+  auto robotIdx2 = rb::addRobot<rb::ConstantVelRobot>(world, Eigen::Vector3d(0.0, 0.0, 5.0));
+  rb::addLandmark(world, Eigen::Vector3d(10.0, 0.0, 0.0));
   rb::stepWorld(world, 1);
   std::cout << world.dynamicsBodies.kinematics[robotIdx].poseGlobal << std::endl;
+  std::cout << world.dynamicsBodies.kinematics[robotIdx2].poseGlobal << std::endl;
 
   auto init = bhc::bhcInit();
 

@@ -28,14 +28,13 @@ struct RbWorld {
 template<typename RobotType, typename... Args>
 RobotIdx addRobot(RbWorld &world, Args&&... args) {
   // First, add a body to get the index
-  BodyIdx newIdx = addDynamicsBody(world.dynamicsBodies);
+  BodyIdx newIdx = detail::addDynamicsBody(world.dynamicsBodies);
 
   // Create robot and immediately set its index
   auto robot = std::make_unique<RobotType>(std::forward<Args>(args)...);
   robot->setDynamicsIndex(newIdx);
 
   // Store and return reference
-  RobotType* ptr = robot.get();
   world.robots.push_back(std::move(robot));
   return static_cast<RobotIdx>(newIdx);
 }
