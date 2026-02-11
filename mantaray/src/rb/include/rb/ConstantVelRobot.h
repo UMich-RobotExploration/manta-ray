@@ -9,11 +9,11 @@
 
 namespace rb {
 
-class ConstantVelRobot : RobotI {
+class ConstantVelRobot : public RobotI {
 public:
   const Eigen::Vector3d constantVel_;
-  explicit ConstantVelRobot(DynamicsBodies &bodies, Eigen::Vector3d constantVel)
-      : RobotI(bodies), constantVel_(constantVel) {};
+  explicit ConstantVelRobot(Eigen::Vector3d constantVel)
+      : constantVel_(constantVel) {};
   manif::SE3Tangentd computeLocalTwist(DynamicsBodies &bodies) override;
 };
 

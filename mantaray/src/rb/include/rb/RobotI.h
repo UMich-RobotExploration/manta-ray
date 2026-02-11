@@ -10,10 +10,15 @@
 namespace rb {
 class RobotI {
 public:
-  explicit RobotI(DynamicsBodies& bodies);
+  virtual ~RobotI();  // Add virtual destructor to ensure proper cleanup
+
+  void setDynamicsIndex(BodyIdx idx);
+  BodyIdx getBodyIdx() const { return bodyIdx_; }
+
+  virtual manif::SE3Tangentd computeLocalTwist(DynamicsBodies &bodies) = 0;  // Make pure virtual
+
   BodyIdx bodyIdx_{0};
   bool isValid_{false};
-  virtual manif::SE3Tangentd computeLocalTwist(DynamicsBodies &bodies);
 };
 
 }

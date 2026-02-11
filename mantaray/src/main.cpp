@@ -1,23 +1,23 @@
 
 #include <atomic>
+#include <bhc/bhc.hpp>
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <vector>
-#include <bhc/bhc.hpp>
-#include <filesystem>
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
-#include "acoustics/helpers.h"
-#include "acoustics/acousticsConstants.h"
 #include "acoustics/BhHandler.h"
+#include "acoustics/acousticsConstants.h"
+#include "acoustics/helpers.h"
 
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "rb/PhysicsBodies.h"
-#include "rb/include/rb/PhysicsBodies.h"
+#include "rb/ConstantVelRobot.h"
+#include "rb/RbWorld.h"
 
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
@@ -33,7 +33,11 @@ void OutputCallback(const char *message) {
 
 int main() {
 
-
+  rb::RbWorld world{};
+  rb::reserveRobots(world, 1);
+  auto robotIdx = rb::addRobot<rb::ConstantVelRobot>(world, Eigen::Vector3d(0.1, 0.0, 0.0));
+  rb::stepWorld(world, 1);
+  std::cout << world.dynamicsBodies.kinematics[robotIdx].poseGlobal << std::endl;
 
   auto init = bhc::bhcInit();
 
@@ -79,12 +83,10 @@ int main() {
   auto SSPgridX = acoustics::utils::linspace(-1.0, 55.0, nX);
   auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
-  auto SSPGrid =
-      acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
+  auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
   acoustics::munkProfile(SSPGrid, 1500.0, true);
 
-  auto sspConfig =
-      acoustics::SSPConfig{std::move(SSPGrid), true};
+  auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
   std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////

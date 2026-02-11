@@ -2,5 +2,9 @@
 #include "rb/RobotI.h"
 
 namespace rb {
-RobotI::RobotI(DynamicsBodies &bodies) : bodyIdx_(addDynamicsBody(bodies)) {};
+RobotI::~RobotI() = default;  // Add destructor definition
+
+void RobotI::setDynamicsIndex(BodyIdx idx) {
+  bodyIdx_ = idx;
 }
+} // namespace rb
