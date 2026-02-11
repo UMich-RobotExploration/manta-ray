@@ -77,36 +77,37 @@ TEST_CASE("Local vs Global Integration of pose check", "[integrator]") {
   * - Rotation around z axis of 0.5 radians
   * - Local rotation around x-axis then using twist of 0.8 rad/s for 1 second
   */
-  auto twist = manif::SE3Tangentd().setZero();
-  auto poseOutput = manif::SE3d().setIdentity();
+  auto twistLocal = manif::SE3Tangentd().setZero();
+  auto outputPose = manif::SE3d().setIdentity();
 
-  auto pose = manif::SE3d(Eigen::Vector3d(0.0, 0.0, 0.0),
+  auto poseSpatial = manif::SE3d(Eigen::Vector3d(0.0, 0.0, 0.0),
                           Eigen::AngleAxisd(0.5, Eigen::Vector3d::UnitZ()));
 
   Eigen::Vector3d angVel(0.8, 0, 0);
-  twist.ang() = angVel;
+  twistLocal.ang() = angVel;
   double dt = 1.0;
 
-  rb::integratePose(pose, twist, dt, poseOutput);
+  rb::integratePose(poseSpatial, twistLocal, dt, outputPose);
 
-  auto R_initial = pose.rotation();
-  auto R_bodyFrame =
+  auto rInitial = poseSpatial.rotation();
+  auto rBodyFrame =
       Eigen::AngleAxisd(0.8, Eigen::Vector3d::UnitX()).toRotationMatrix();
-  REQUIRE(R_initial.isApprox(pose.rotation(), 1e-6));
-  auto expected = (R_bodyFrame * R_initial);
-
+  REQUIRE(rInitial.isApprox(poseSpatial.rotation(), 1e-6));
+  // this is an intrinsic rotation, we rotate around the new axes so
+  // we post multiply the body frame
+  auto expected = (rInitial * rBodyFrame);
   CAPTURE(static_cast<Eigen::AngleAxisd>(expected).angle());
   CAPTURE(static_cast<Eigen::AngleAxisd>(expected).axis().transpose());
-  CAPTURE(static_cast<Eigen::AngleAxisd>(poseOutput.rotation()).angle());
+  CAPTURE(static_cast<Eigen::AngleAxisd>(outputPose.rotation()).angle());
   CAPTURE(
-      static_cast<Eigen::AngleAxisd>(poseOutput.rotation()).axis().transpose());
+      static_cast<Eigen::AngleAxisd>(outputPose.rotation()).axis().transpose());
   Eigen::Quaterniond quat(expected);
   CAPTURE(quat);
-  CAPTURE(poseOutput);
-  CHECK(poseOutput.rotation().isApprox(expected, 1e-6));
+  CAPTURE(outputPose);
+  CHECK(outputPose.rotation().isApprox(expected, 1e-6));
 
   // Translation should be unchanged (no linear velocity)
-  CAPTURE(poseOutput.translation().transpose());
-  CHECK(poseOutput.translation().isApprox(Eigen::Vector3d(0.0, 0.0, 0.0),
+  CAPTURE(outputPose.translation().transpose());
+  CHECK(outputPose.translation().isApprox(Eigen::Vector3d(0.0, 0.0, 0.0),
                                           1e-6));
 }
