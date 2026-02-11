@@ -16,8 +16,8 @@
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "rb/Body.h"
-#include "rb/include/rb/Body.h"
+#include "rb/PhysicsBodies.h"
+#include "rb/include/rb/PhysicsBodies.h"
 
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y

@@ -35,7 +35,7 @@ inline void integrateVel(const massMatrix &massMatrixLocal,
                          const Vector6d &wrenchLocal,
                          const manif::SE3Tangentd &twistLocalInput, double dt,
                          manif::SE3Tangentd &twistLocalOutput,
-                         Vector6d &accelerationLocal) {
+                         Vector6d &accelerationLocalOutput) {
   // RK4 integration for twist (velocity in body frame)
   Vector6d k1, k2, k3, k4;
 
@@ -55,10 +55,10 @@ inline void integrateVel(const massMatrix &massMatrixLocal,
   computeAccel(v4, massMatrixLocal, wrenchLocal, k4);
 
   // Output the RK4-weighted average acceleration
-  accelerationLocal = (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0;
+  accelerationLocalOutput = (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0;
 
   // Final integration: v_{n+1} = v_n + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
   twistLocalOutput =
-      manif::SE3Tangentd(twistLocalInput.coeffs() + (dt)*accelerationLocal);
+      manif::SE3Tangentd(twistLocalInput.coeffs() + (dt)*accelerationLocalOutput);
 }
 } // namespace rb
