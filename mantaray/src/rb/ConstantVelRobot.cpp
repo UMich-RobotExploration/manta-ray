@@ -8,11 +8,11 @@
 
 namespace rb {
 
-manif::SE3Tangentd
-ConstantVelRobot::computeLocalTwist(DynamicsBodies &bodies,
-                                    Eigen::Vector3d constantVel) {
+manif::SE3Tangentd ConstantVelRobot::computeLocalTwist(DynamicsBodies &bodies) {
   // For this simple float, I test just constant velocity right now
-  return manif::SE3Tangentd(constantVel_, Eigen::Vector3d(0.0, 0.0, 0.0));
+  auto twist = manif::SE3Tangentd().setZero();
+  twist.lin() = constantVel_;
+  return twist;
 }
 
 } // namespace rb

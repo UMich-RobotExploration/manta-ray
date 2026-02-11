@@ -4,6 +4,7 @@
 
 #pragma once
 #include "Eigen/Dense"
+#include "manif/manif.h"
 #include "RobotI.h"
 
 namespace rb {
