@@ -113,8 +113,10 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
 void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
-  auto delta = agentsConfig_.receiver - agentsConfig_.source;
-  double elevationAngle = std::atan2(delta(2), delta(1));
+  Eigen::Vector3d delta = agentsConfig_.receiver - agentsConfig_.source;
+  double horizontalDistance =
+      std::sqrt((delta(0) * delta(0)) + (delta(1) * delta(1)));
+  double elevationAngle = std::atan2(delta(2), horizontalDistance);
   if (!beamBuilt_) {
     bhc::extsetup_raybearings(params_, kNumBeams);
     bhc::extsetup_rayelevations(params_, kNumBeams);
@@ -128,16 +130,17 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
                            elevationAngle + kBeamSpreadRadians, kNumBeams);
 
   auto beam = params_.Beam;
-  double boxScale = 1.10;
+  constexpr double boxScale = 1.50;
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  delta = boxScale * delta;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),
         "Delta's need to be positive in bellhop box");
-  beam->Box.x = deltaX * boxScale;
-  beam->Box.y = deltaY * boxScale;
+  beam->Box.x = deltaX;
+  beam->Box.y = deltaY;
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   beam->Box.z = max * kmScaler + 10;
@@ -278,7 +281,7 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     // setting to -1.0 to indicate uninitialized for easier debugging
     data.resize(gridX.size() * gridY.size(), -1.0);
   }
-  double scalerReduction = 1.0 / 100.0;
+  double scalerReduction = 1.0 / 1000.0;
   for (size_t iy = 0; iy < gridY.size(); ++iy) {
     for (size_t ix = 0; ix < gridX.size(); ++ix) {
       auto currDepth =

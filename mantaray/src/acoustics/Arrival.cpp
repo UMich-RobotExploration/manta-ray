@@ -88,11 +88,11 @@ std::vector<float> Arrival::extractEarliestArrivals() {
 
   std::vector<float> arrivalDelays;
   arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
-  std::cout << "Number of receivers: "
-            << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
-  std::cout << "Number of receiver ranges: " << Pos->NRr
-            << ", Number of Rz per range: " << Pos->NRz_per_range
-            << ", Number Theta: " << Pos->Ntheta << "\n";
+  // std::cout << "Number of receivers: "
+  //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
+  // std::cout << "Number of receiver ranges: " << Pos->NRr
+  //           << ", Number of Rz per range: " << Pos->NRz_per_range
+  //           << ", Number Theta: " << Pos->Ntheta << "\n";
 
   CHECK(Pos->NRz_per_range == 1,
         "Z values should be singular per range. A potential issue is that "
@@ -111,8 +111,8 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               // Iterating over Individual Ray arrival times
               float minDelay = std::numeric_limits<float>::max();
 
-              // std::cout << "Found " << narr << " arrivals for:" << "\n\t";
-              // printReceiverInfo(Pos, ir, iz, itheta);
+              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              printReceiverInfo(Pos, ir, iz, itheta);
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
