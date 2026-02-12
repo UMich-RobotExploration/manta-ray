@@ -34,14 +34,24 @@ void OutputCallback(const char *message) {
 int main() {
 
   rb::RbWorld world{};
-  rb::reserveRobots(world, 1);
-  rb::reserveLandmarks(world, 2);
-  auto robotIdx = rb::addRobot<rb::ConstantVelRobot>(world, Eigen::Vector3d(0.1, 0.0, 0.0));
-  auto robotIdx2 = rb::addRobot<rb::ConstantVelRobot>(world, Eigen::Vector3d(0.0, 0.0, 5.0));
-  rb::addLandmark(world, Eigen::Vector3d(10.0, 0.0, 0.0));
-  rb::stepWorld(world, 1);
-  std::cout << world.dynamicsBodies.kinematics[robotIdx].poseGlobal << std::endl;
-  std::cout << world.dynamicsBodies.kinematics[robotIdx2].poseGlobal << std::endl;
+  world.reserveRobots(1);
+  world.reserveLandmarks(2);
+  auto robotIdx =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 0.0));
+  auto robotIdx2 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
+  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
+  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+  world.addLandmark(Eigen::Vector3d(10.0, 0.0, 0.0));
+  auto startTime = 0.0;
+  while (startTime < 10000.0) {
+        startTime += 1.0;
+        world.advanceWorld(startTime);
+  }
+  std::cout << world.dynamicsBodies.kinematics[robotIdx].poseGlobal
+            << std::endl;
+  std::cout << world.dynamicsBodies.kinematics[robotIdx2].poseGlobal
+            << std::endl;
 
   auto init = bhc::bhcInit();
 
@@ -53,7 +63,7 @@ int main() {
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
+  init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
   init.numThreads = -1;
   init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);

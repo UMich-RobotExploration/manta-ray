@@ -10,15 +10,19 @@
 
 namespace rb {
 
-void reserveBodies(DynamicsBodies &bodies, size_t count) {
-  bodies.kinematics.reserve(count);
+void DynamicsBodies::reserveBodies(size_t count) { kinematics.reserve(count); }
+
+KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) {
+  CHECK(index < kinematics.size(),
+        "Index out of bounds for dynamics properties");
+  return kinematics[index];
 }
 
-KinematicData &getKinematicData(DynamicsBodies &bodies, BodyIdx index) {
-  CHECK(index < bodies.kinematics.size(),
-        "Index out of bounds for dynamics properties");
-  return bodies.kinematics[index];
+void relativeTransform(manif::SE3d &pose, manif::SE3d &refPose,
+                       manif::SE3d &outputPose) {
+  outputPose = pose * refPose.inverse();
 }
+
 namespace detail {
 BodyIdx addDynamicsBody(DynamicsBodies &bodies) {
   BodyIdx newIndex = bodies.kinematics.size();

@@ -8,6 +8,12 @@
 
 namespace rb {
 typedef Eigen::Vector<double, 6> Vector6d;
+
+struct SimData {
+  double time{0.0};
+  double dt{0.1};
+};
+
 /*
  * @brief Integrates the pose of rigid body given twist in body frame
  */
