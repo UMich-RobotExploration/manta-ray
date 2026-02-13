@@ -17,6 +17,11 @@ KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) {
         "Index out of bounds for dynamics properties");
   return kinematics[index];
 }
+Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) {
+  CHECK(index < kinematics.size(),
+                "Index out of bounds for dynamics properties");
+        return kinematics[index].poseGlobal.translation();
+}
 
 void relativeTransform(manif::SE3d &pose, manif::SE3d &refPose,
                        manif::SE3d &outputPose) {

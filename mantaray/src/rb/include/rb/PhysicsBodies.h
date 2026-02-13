@@ -27,6 +27,7 @@ struct DynamicsBodies {
   std::vector<KinematicData> kinematics;
 
   KinematicData &getKinematicData(BodyIdx index);
+  Eigen::Vector3d getPosition(BodyIdx index);
   void reserveBodies(size_t count);
 };
 
@@ -35,13 +36,14 @@ struct DynamicsBodies {
  * Poses must be relative to the same frame otherwise this is meaningless.
  *
  * @par Math:
- * Normall we are given the equation as follows:
+ * Reference: Modern Robotics, Section 3.3.1.2, "Changing the reference frame"
+ * Normally we are given the equation as follows:
  * \f[
  *   T_{ac} = T_{ab} \cdot T_{bc}
  * \f]
  * Where b is canceled, and we get T_ac as the result. However, we want the
  * relative transform. If we treat pose as T_ac and refPose as T_bc, we can see
- * we want to solve for T_ab. We can do this by :
+ * we want to solve for T_ab. We can do this by:
  * \f[
  *   T_{ac} * T_{bc}^{-1} = T_{ab}
  * \f]

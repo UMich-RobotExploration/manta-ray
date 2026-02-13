@@ -133,7 +133,9 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   constexpr double boxScale = 1.50;
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // TODO: Adjust this and decide what to do for step size
+  beam->deltas = 1.0;
   delta = boxScale * delta;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
@@ -292,11 +294,20 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     }
   }
 }
+
+void AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
+  updateReceiver(position(0), position(1), position(2));
+}
+
 void AcousticsBuilder::updateReceiver(double x, double y, double z) {
   agentsConfig_.receiver(0) = x;
   agentsConfig_.receiver(1) = y;
   agentsConfig_.receiver(2) = z;
   updateAgents();
+}
+
+void AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
+  updateSource(position(0), position(1), position(2));
 }
 
 void AcousticsBuilder::updateSource(double x, double y, double z) {

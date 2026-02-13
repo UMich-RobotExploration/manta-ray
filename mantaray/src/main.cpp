@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "fmt/format.h"
+
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
 #include "acoustics/BhHandler.h"
@@ -78,7 +80,7 @@ int main() {
   auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
   auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
-  acoustics::munkProfile(SSPGrid, 1500.0, true);
+  // acoustics::munkProfile(SSPGrid, 1500.0, true);
 
   auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
   std::cout << "SSP at (0,0,z): " << std::endl;
@@ -111,31 +113,41 @@ int main() {
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
-  world.addLandmark(Eigen::Vector3d(10.0, 100.0, 10.0));
-  simBuilder.updateSource(world.landmarks[0](0), world.landmarks[0](1),
-                          world.landmarks[0](2));
+  world.addLandmark(Eigen::Vector3d(400.0, 100.0, 10.0));
+  simBuilder.updateSource(world.landmarks[0]);
+
   auto startTime = 0.0;
   while (startTime < 100.0) {
     startTime += 1.0;
     world.advanceWorld(startTime);
     if (std::remainder(startTime, 10.0) < 1e-6) {
       for (auto &robot : world.robots) {
-        auto &kinematicData =
-            world.dynamicsBodies.getKinematicData(robot->getBodyIdx());
-        simBuilder.updateReceiver(kinematicData.poseGlobal.translation()(0),
-                                  kinematicData.poseGlobal.translation()(1),
-                                  kinematicData.poseGlobal.translation()(2));
+        auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
+        simBuilder.updateReceiver(position);
         std::stringstream msg;
-        msg << "\n/////////////////////////////////\n" ;
-        msg << "Robot (" + std::to_string(robot->bodyIdx_) + ") at time " + std::to_string(startTime);
-        msg << ", position [meters]: "
-            << kinematicData.poseGlobal.translation().transpose() << "\n";
+        msg << "\n/////////////////////////////////\n";
+        msg << "Robot (" + std::to_string(robot->bodyIdx_) + ") at time " +
+                   std::to_string(startTime);
+        msg << ", position [meters]: " << position.transpose() << "\n";
         std::cout << msg.str();
         msg.str("");
         bhc::run(context.params(), context.outputs());
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto arrivalVec = arrival.extractEarliestArrivals();
+        auto arrivalVec = arrival.getEarliestArrivals();
+        auto arrivalAmp = arrival.getLargestAmpArrivals()[0];
         acoustics::utils::printVector(arrivalVec);
+        float currSsp = 0;
+        bhc::VEC23<true> pos = {
+            acoustics::utils::safe_double_to_float(position(0)),
+            acoustics::utils::safe_double_to_float(position(1)),
+            acoustics::utils::safe_double_to_float(position(2))};
+
+        fmt::print("SSP a receiver: {} m/s\n",currSsp);
+        bhc::get_ssp<true,true>(context.params(), pos, currSsp);
+        std::cout << "SSP at receiver: " << currSsp << " m/s\n";
+        std::cout << "SSP based range (earliest) : " << arrivalVec[0] * currSsp << " m\n";
+        std::cout << "SSP based range (largest amp) : " << arrivalAmp * currSsp << " m\n";
+        std::cout << "Actual Range : " << (world.landmarks[0] - position).norm() << " m\n";
       }
     }
   }
