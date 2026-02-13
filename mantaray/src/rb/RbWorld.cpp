@@ -4,6 +4,7 @@
 
 #include "rb/pch.h"
 
+#include "rb/RbInterfaces.h"
 #include "rb/RbWorld.h"
 
 namespace rb {
@@ -33,6 +34,68 @@ void gatherTwists(RbWorld &world) {
   }
 }
 
+void updateSensors(RbWorld &world) {
+  for (auto &robot : world.robots) {
+    if (robot->isAlive_) {
+      for (auto &sensor : robot->sensors_) {
+        sensor->updateSensor(world.dynamicsBodies, world.simData.time);
+      }
+    }
+  }
+}
+
+void RbWorld::validateWorld() {
+  const double simDataHz = 1.0 / simData.dt;
+  for (const auto &robot : robots) {
+    if (robot->bodyIdx_ >= dynamicsBodies.kinematics.size()) {
+      std::string msg = "Robot with body index " +
+                        std::to_string(robot->bodyIdx_) +
+                        " has an invalid index that exceeds the number of "
+                        "bodies in the world.";
+      throw std::runtime_error(msg);
+    }
+    for (const auto &sensor : robot->sensors_) {
+      if (!sensor->checkUpdate()) {
+        std::string msg = "Sensor attached to robot with body index " +
+                          std::to_string(robot->bodyIdx_) +
+                          " has a mismatch between data and timesteps size.";
+        throw std::runtime_error(msg);
+      }
+      double sensorFreqHz = sensor->getFreqHz();
+      if (sensorFreqHz > simDataHz) {
+        std::string msg =
+            "Sensor attached to robot with body index " +
+            std::to_string(robot->bodyIdx_) +
+            " has an update frequency that is too high for the "
+            "simulation timestep." +
+            " Sim Frequency is: " + std::to_string(simDataHz) +
+            ", Sensor Frequency is: " + std::to_string(sensorFreqHz) +
+            " This likely means you did not provide a value upon construction "
+            "to the inteface class or you need to change the simulation dt.";
+        throw std::invalid_argument(msg);
+      }
+      if (std::remainder(simDataHz, sensorFreqHz) >
+          std::numeric_limits<double>::epsilon() * 100) {
+        std::string msg =
+            "Sensor attached to robot with body index " +
+            std::to_string(robot->bodyIdx_) +
+            " has an update frequency that is not an integer multiple of the "
+            "simulation timestep." +
+            " Sim Frequency is: " + std::to_string(simDataHz) +
+            ", Sensor Frequency is: " + std::to_string(sensorFreqHz) +
+            " This may lead to missed updates or updates that are not aligned "
+            "with the sim time. Consider adjusting the sensor frequency or "
+            "simulation dt to be integer multiples.";
+        throw std::invalid_argument(msg);
+      }
+    }
+  }
+}
+
+/*
+ * @brief Advances the world dt seconds
+ * @details *UPDATES* Sim time. It is the sole updated of sim time.
+ */
 void RbWorld::stepWorld(double dt) {
   gatherTwists(*this);
   for (auto &kinematicData : dynamicsBodies.kinematics) {
@@ -50,6 +113,9 @@ void RbWorld::stepWorld(double dt) {
  * @throws runtime_error if request is backwards in time
  */
 void RbWorld::advanceWorld(double time) {
+  if (detail::isEqual(simData.time, 0.0)) {
+    validateWorld();
+  }
   if (detail::isEqual(time, simData.time)) {
     return; // No advancement needed
   } else if (time < simData.time) {
@@ -58,11 +124,20 @@ void RbWorld::advanceWorld(double time) {
                       std::to_string(simData.time) +
                       ", requested time: " + std::to_string(time);
     throw std::runtime_error(msg);
+  }
+  if (std::remainder(simData.time, simData.dt) >
+      std::numeric_limits<double>::epsilon()) {
+    // TODO: We need to make sure that we get back to standard dt timesteps
+    // if start time or time input is not an integer multiple of dt.
+    std::string msg = "Current simulation does not allow non dt aligned "
+                      "timesteps. It is a TODO";
+    throw std::invalid_argument(msg);
   } else {
     double timeToAdvance = time - simData.time;
     while (timeToAdvance > 0) {
       double dt = std::min(simData.dt, timeToAdvance);
       stepWorld(dt);
+      updateSensors(*this);
       timeToAdvance -= dt;
     }
     return;

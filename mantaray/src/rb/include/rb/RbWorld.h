@@ -5,7 +5,7 @@
 #pragma once
 #include "Integrator.h"
 #include "PhysicsBodies.h"
-#include "RobotI.h"
+#include "rb/RbInterfaces.h"
 
 namespace rb {
 
@@ -30,6 +30,7 @@ struct RbWorld {
   void reserveRobots(size_t count);
   void reserveLandmarks(size_t count);
   void addLandmark(const Eigen::Vector3d &landmark);
+  void validateWorld();
 
   /*
    * @brief Gathers twists and the integrates them
@@ -54,6 +55,7 @@ struct RbWorld {
     return static_cast<RobotIdx>(newIdx);
   }
 };
+
 
 namespace detail {
 bool isEqual(double x, double y);

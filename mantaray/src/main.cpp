@@ -18,8 +18,10 @@
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "rb/ConstantVelRobot.h"
 #include "rb/RbWorld.h"
+#include "rb/RobotsAndSensors.h"
+
+#include <random>
 
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
@@ -34,6 +36,9 @@ void OutputCallback(const char *message) {
 }
 
 int main() {
+  // TODO: Figure out how this random generator works
+  std::random_device rd;
+  std::mt19937 e{rd()}; // or std::default_random_engine e{rd()};
 
   auto init = bhc::bhcInit();
 
@@ -105,10 +110,14 @@ int main() {
   // Simulation Setup
   //////////////////////////////////////////////////////////////////////////////
   rb::RbWorld world{};
+  double endTime = 100.0;
   world.reserveRobots(1);
   world.reserveLandmarks(2);
-  auto robotIdx =
+  auto odomRobotIdx =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
+  world.robots[odomRobotIdx]->addSensor(
+      std::make_unique<rb::PositionalOdomoetry>(
+          10.0, static_cast<size_t>(100.0 * endTime)));
   auto robotIdx2 =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
@@ -116,8 +125,8 @@ int main() {
   world.addLandmark(Eigen::Vector3d(400.0, 100.0, 10.0));
   simBuilder.updateSource(world.landmarks[0]);
 
-  auto startTime = 0.0;
-  while (startTime < 100.0) {
+  auto startTime = world.simData.time;
+  while (startTime < endTime) {
     startTime += 1.0;
     world.advanceWorld(startTime);
     if (std::remainder(startTime, 10.0) < 1e-6) {
@@ -133,24 +142,29 @@ int main() {
         msg.str("");
         bhc::run(context.params(), context.outputs());
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto arrivalVec = arrival.getEarliestArrivals();
-        auto arrivalAmp = arrival.getLargestAmpArrivals()[0];
-        acoustics::utils::printVector(arrivalVec);
+        auto earliestArrival = arrival.getEarliestArrivals();
+        auto largestArrival = arrival.getLargestAmpArrivals();
         float currSsp = 0;
         bhc::VEC23<true> pos = {
             acoustics::utils::safe_double_to_float(position(0)),
             acoustics::utils::safe_double_to_float(position(1)),
             acoustics::utils::safe_double_to_float(position(2))};
 
-        fmt::print("SSP a receiver: {} m/s\n",currSsp);
-        bhc::get_ssp<true,true>(context.params(), pos, currSsp);
+        fmt::print("SSP a receiver: {} m/s\n", currSsp);
+        bhc::get_ssp<true, true>(context.params(), pos, currSsp);
         std::cout << "SSP at receiver: " << currSsp << " m/s\n";
-        std::cout << "SSP based range (earliest) : " << arrivalVec[0] * currSsp << " m\n";
-        std::cout << "SSP based range (largest amp) : " << arrivalAmp * currSsp << " m\n";
-        std::cout << "Actual Range : " << (world.landmarks[0] - position).norm() << " m\n";
+        std::cout << "SSP based range (earliest) : " << earliestArrival * currSsp
+                  << " m\n";
+        std::cout << "SSP based range (largest amp) : " << largestArrival * currSsp
+                  << " m\n";
+        std::cout << "Actual Range : " << (world.landmarks[0] - position).norm()
+                  << " m\n";
       }
     }
   }
+  auto timesteps =
+      world.robots[odomRobotIdx]->sensors_[0]->getSensorTimesteps();
+  acoustics::utils::printVector(timesteps);
 
   try {
     bhc::echo(context.params());

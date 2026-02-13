@@ -1,7 +1,7 @@
 add_library(${RB_LIB_NAME}
         PhysicsBodies.cpp
-        ConstantVelRobot.cpp
-        RobotI.cpp
+        RobotsAndSensors.cpp
+        RbInterfaces.cpp
         RbWorld.cpp
 )
 target_precompile_headers(${RB_LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/rb/pch.h)

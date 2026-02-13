@@ -26,8 +26,9 @@ struct KinematicData {
 struct DynamicsBodies {
   std::vector<KinematicData> kinematics;
 
+  const KinematicData &getKinematicData(BodyIdx index) const;
   KinematicData &getKinematicData(BodyIdx index);
-  Eigen::Vector3d getPosition(BodyIdx index);
+  const Eigen::Vector3d getPosition(BodyIdx index) const;
   void reserveBodies(size_t count);
 };
 
@@ -63,5 +64,5 @@ namespace detail {
  * understand how the robots and world are actually built together!
  */
 BodyIdx addDynamicsBody(DynamicsBodies &bodies);
-}
+} // namespace detail
 } // namespace rb

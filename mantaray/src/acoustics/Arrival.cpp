@@ -83,11 +83,10 @@ size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
  * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
  * arrivals
  */
-std::vector<float> Arrival::getEarliestArrivals() {
+float Arrival::getEarliestArrivals() {
   const bhc::Position *Pos = inputs.Pos;
 
-  std::vector<float> arrivalDelays;
-  arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
+  float arrivalDelay = -1;
   // std::cout << "Number of receivers: "
   //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
   // std::cout << "Number of receiver ranges: " << Pos->NRr
@@ -131,7 +130,7 @@ std::vector<float> Arrival::getEarliestArrivals() {
                 minDelay = std::min(delay, minDelay);
               }
               if (narr != 0) {
-                arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
+                arrivalDelay = minDelay;
               }
             }
           }
@@ -140,7 +139,7 @@ std::vector<float> Arrival::getEarliestArrivals() {
     }
   }
 
-  return arrivalDelays;
+  return arrivalDelay;
   /*
    * ArrInfo data structure layout:
    *
@@ -167,11 +166,10 @@ std::vector<float> Arrival::getEarliestArrivals() {
    */
 }
 
-std::vector<float> Arrival::getLargestAmpArrivals() {
+float Arrival::getLargestAmpArrivals() {
   const bhc::Position *Pos = inputs.Pos;
 
-  std::vector<float> arrivalDelays;
-  arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
+  float arrivalDelay = -1;
   // std::cout << "Number of receivers: "
   //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
   // std::cout << "Number of receiver ranges: " << Pos->NRr
@@ -220,7 +218,7 @@ std::vector<float> Arrival::getLargestAmpArrivals() {
                 }
               }
               if (narr != 0) {
-                arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
+                arrivalDelay = minDelay;
               }
             }
           }
@@ -228,7 +226,7 @@ std::vector<float> Arrival::getLargestAmpArrivals() {
       }
     }
   }
-  return arrivalDelays;
+  return arrivalDelay;
 }
 
 } // namespace acoustics

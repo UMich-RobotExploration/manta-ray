@@ -12,15 +12,20 @@ namespace rb {
 
 void DynamicsBodies::reserveBodies(size_t count) { kinematics.reserve(count); }
 
-KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) {
+const KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) const {
   CHECK(index < kinematics.size(),
         "Index out of bounds for dynamics properties");
   return kinematics[index];
 }
-Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) {
+KinematicData &DynamicsBodies::getKinematicData(BodyIdx index){
   CHECK(index < kinematics.size(),
-                "Index out of bounds for dynamics properties");
-        return kinematics[index].poseGlobal.translation();
+        "Index out of bounds for dynamics properties");
+  return kinematics[index];
+}
+const Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) const {
+  CHECK(index < kinematics.size(),
+        "Index out of bounds for dynamics properties");
+  return kinematics[index].poseGlobal.translation();
 }
 
 void relativeTransform(manif::SE3d &pose, manif::SE3d &refPose,

@@ -16,8 +16,8 @@ class Arrival {
 public:
   Arrival(bhc::bhcParams<true> &in_params,
           bhc::bhcOutputs<true, true> &outputs);
-  std::vector<float> getEarliestArrivals();
-  std::vector<float> getLargestAmpArrivals();
+  float getEarliestArrivals();
+  float getLargestAmpArrivals();
   size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
 
 private:
