@@ -12,12 +12,24 @@
 
 namespace acoustics {
 constexpr float kNoArrival = -1.0f;
+
+struct ArrivalInfoDebug {
+  std::vector<float> arrivalTimes;
+  std::vector<float> arrivalTimesImaginary;
+  std::vector<float> amplitude;
+  double groundTruthArrivalTime{-1.0};
+  double range{-1.0};
+  double soundSpeed{-1.0};
+  void logArrivalInfo(const std::string &filename);
+};
+
 class Arrival {
 public:
   Arrival(bhc::bhcParams<true> &in_params,
           bhc::bhcOutputs<true, true> &outputs);
   float getEarliestArrivals();
   float getLargestAmpArrivals();
+  void getAllArrivals(ArrivalInfoDebug &arrivalInfo);
   size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
 
 private:
