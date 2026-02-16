@@ -81,11 +81,12 @@ int main() {
   int nX = 10;
   int nY = 10;
   int nZ = 100;
+  const double refSoundSpeed = 1500.0;
   auto SSPgridX = acoustics::utils::linspace(-10.0, 55.0, nX);
   auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
-  auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
-  // acoustics::munkProfile(SSPGrid, 1500.0, true);
+  auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, refSoundSpeed);
+  // acoustics::munkProfile(SSPGrid, refSoundSpeed, true);
 
   auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
   std::cout << "SSP at (0,0,z): " << std::endl;
@@ -129,7 +130,7 @@ int main() {
   while (startTime < endTime) {
     startTime += 1.0;
     world.advanceWorld(startTime);
-    if (std::remainder(startTime, 10.0) < 1e-6) {
+    if (std::remainder(startTime, 2.0) < 1e-6) {
       for (auto &robot : world.robots) {
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
         simBuilder.updateReceiver(position);
@@ -144,21 +145,26 @@ int main() {
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getEarliestArrivals();
         auto largestArrival = arrival.getLargestAmpArrivals();
+        auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
+        arrival.getAllArrivals(arrivalDebugInfo);
+        arrivalDebugInfo.range = (world.landmarks[0] - position).norm();
+        arrivalDebugInfo.groundTruthArrivalTime =
+            arrivalDebugInfo.range / refSoundSpeed;
+        arrivalDebugInfo.soundSpeed = refSoundSpeed;
+
+        auto fileOutput = fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
+        arrivalDebugInfo.logArrivalInfo(fileOutput);
         float currSsp = 0;
         bhc::VEC23<true> pos = {
             acoustics::utils::safe_double_to_float(position(0)),
             acoustics::utils::safe_double_to_float(position(1)),
             acoustics::utils::safe_double_to_float(position(2))};
 
-        fmt::print("SSP a receiver: {} m/s\n", currSsp);
         bhc::get_ssp<true, true>(context.params(), pos, currSsp);
-        std::cout << "SSP at receiver: " << currSsp << " m/s\n";
-        std::cout << "SSP based range (earliest) : " << earliestArrival * currSsp
-                  << " m\n";
-        std::cout << "SSP based range (largest amp) : " << largestArrival * currSsp
-                  << " m\n";
-        std::cout << "Actual Range : " << (world.landmarks[0] - position).norm()
-                  << " m\n";
+        fmt::print("SSP at receiver: {} m/s\n", currSsp);
+        fmt::print("SSP based range (earliest): {} m\n", earliestArrival * currSsp);
+        fmt::print("SSP based range (largest amp): {} m\n", largestArrival * currSsp);
+        fmt::print("Actual Range: {} m\n", (world.landmarks[0] - position).norm());
       }
     }
   }
