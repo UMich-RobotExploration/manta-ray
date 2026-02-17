@@ -7,6 +7,8 @@
 #include "rb/RbInterfaces.h"
 #include "rb/RbWorld.h"
 
+#include <iomanip>
+
 namespace rb {
 void RbWorld::reserveRobots(size_t count) {
   robots.reserve(count);
@@ -84,7 +86,7 @@ void RbWorld::validateWorld() {
             "to the inteface class or you need to change the simulation dt.";
         throw std::invalid_argument(msg);
       }
-      if (std::remainder(simDataHz, sensorFreqHz) >
+      if (std::fmod(simDataHz, sensorFreqHz) >
           std::numeric_limits<double>::epsilon() * 100) {
         std::string msg =
             "Sensor attached to robot with body index " +
@@ -145,9 +147,9 @@ void RbWorld::advanceWorld(double time) {
     // This if statement covers not dt divisible time steps before we start a
     // uniform stepping loop. This helps line everything up immediately.
     // Allows non-dt multiple timesteps if the acoustics simulation needs them
-    const double timeStepRemainder = std::remainder(simData.time, simData.dt);
-    if ((simData.time > 0) &&
-        (timeStepRemainder > std::numeric_limits<double>::epsilon() * 100)) {
+    double timeStepRemainder = std::fmod(simData.time, simData.dt);
+    std::cout << "Timestep remainder: " << timeStepRemainder << "\n";
+    if ((simData.time > 0) && (timeStepRemainder > 0.0)) {
 
       // Explanation of how this math works:
       // We have a timestep t1, and we want timestep t2 to be a multiple of dt
@@ -156,17 +158,31 @@ void RbWorld::advanceWorld(double time) {
       // = dt - remainder + t1. So that means a step of dt - remainder
       stepWorld(simData.dt - timeStepRemainder);
       updateSensors(*this);
-      CHECK(std::remainder(simData.time, simData.dt) <
-                std::numeric_limits<double>::epsilon() * 10,
+      timeStepRemainder = std::fmod(simData.time, simData.dt);
+      std::cout << "Simulation took: " << std::setprecision(10)
+                << simData.dt - timeStepRemainder
+                << " step, and is now at: " << simData.time << "\n";
+      std::cout << "fmod: " << timeStepRemainder << "\n";
+
+      // Basically two cases with floating points
+      // - Case 1: The remainder is near 0
+      // - Case 2: The remainder is basically dt
+      // True when no remainder, false when remainder
+      bool hasNoRemainder = std::fmod(simData.time, simData.dt) <
+                            std::numeric_limits<double>::epsilon() * 100;
+      // True when dt, false when not dt
+      bool isEqualTodt = detail::isEqual(timeStepRemainder, simData.dt);
+      CHECK(hasNoRemainder || isEqualTodt,
             "A non-uniform step was taken, but the result is still not aligned "
             "with dt. This is maybe a bug.");
     }
 
     // The simple constant dt stepping loop that will run most of the time.
     double timeToAdvance = time - simData.time;
-    while (timeToAdvance > 0) {
+    while (timeToAdvance > 0.0) {
       double dt = std::min(simData.dt, timeToAdvance);
       stepWorld(dt);
+      std::cout << "Simulation time is: " << simData.time << "\n";
       updateSensors(*this);
       timeToAdvance -= dt;
     }
@@ -176,7 +192,7 @@ void RbWorld::advanceWorld(double time) {
 
 namespace detail {
 bool isEqual(double x, double y) {
-  return std::abs(x - y) < kBoundaryEpsilonDouble;
+  return std::fabs(x - y) < kBoundaryEpsilonDouble;
 }
 } // namespace detail
 

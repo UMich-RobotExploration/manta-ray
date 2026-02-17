@@ -34,8 +34,9 @@ std::vector<double> PositionalOdomoetry::getSensorTimesteps() {
 void PositionalOdomoetry::updateSensor(const DynamicsBodies &bodies,
                                        double simTime,
                                        std::mt19937 &rngEngine) {
-  if (std::remainder(simTime, 1.0 / freqHz_) <
-      std::numeric_limits<double>::epsilon() * 100) {
+  // TODO: Need to fix this logic, provide a clean function for this
+  if (std::fmod(simTime, 1.0 / freqHz_) <
+      std::numeric_limits<double>::epsilon() * 100.0) {
     // Get the position of the robot this sensor is attached to
     auto position = bodies.getPosition(bodyIdx_);
     // TODO: Document this assumption about z noise not being included
