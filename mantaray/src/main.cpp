@@ -152,19 +152,20 @@ int main() {
             arrivalDebugInfo.range / refSoundSpeed;
         arrivalDebugInfo.soundSpeed = refSoundSpeed;
 
-        auto fileOutput = fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
+        auto fileOutput =
+            fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
         arrivalDebugInfo.logArrivalInfo(fileOutput);
         float currSsp = 0;
-        bhc::VEC23<true> pos = {
-            acoustics::utils::safe_double_to_float(position(0)),
-            acoustics::utils::safe_double_to_float(position(1)),
-            acoustics::utils::safe_double_to_float(position(2))};
+        auto pos = acoustics::utils::safeEigenToVec23(position);
 
         bhc::get_ssp<true, true>(context.params(), pos, currSsp);
         fmt::print("SSP at receiver: {} m/s\n", currSsp);
-        fmt::print("SSP based range (earliest): {} m\n", earliestArrival * currSsp);
-        fmt::print("SSP based range (largest amp): {} m\n", largestArrival * currSsp);
-        fmt::print("Actual Range: {} m\n", (world.landmarks[0] - position).norm());
+        fmt::print("SSP based range (earliest): {} m\n",
+                   earliestArrival * currSsp);
+        fmt::print("SSP based range (largest amp): {} m\n",
+                   largestArrival * currSsp);
+        fmt::print("Actual Range: {} m\n",
+                   (world.landmarks[0] - position).norm());
       }
     }
   }

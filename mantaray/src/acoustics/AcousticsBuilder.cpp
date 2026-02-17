@@ -182,14 +182,14 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
-  params_.Pos->Sz[0] = utils::safe_double_to_float(agentsConfig_.source(2));
+  params_.Pos->Sz[0] = utils::safeDoubleToFloat(agentsConfig_.source(2));
 
   auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = utils::safe_double_to_float(agentsConfig_.receiver(2));
+  params_.Pos->Rz[0] = utils::safeDoubleToFloat(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
 };
