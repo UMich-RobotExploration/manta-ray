@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <random>
+
 #include "manif/manif.h"
 #include "rb/PhysicsBodies.h"
 
@@ -22,8 +24,11 @@ public:
   // Define pure virtual function for sensor data retrieval
   virtual std::vector<Eigen::VectorXd> getSensorData() = 0;
   virtual std::vector<double> getSensorTimesteps() = 0;
-  // Defining pure virtual function to update sensors
-  virtual void updateSensor(const DynamicsBodies &bodies, double simTime) = 0;
+
+  // @brief Pure virtual function to update sensors for inheritor to implement
+  // @details provides rngEngine for the generation of noise if needed.
+  virtual void updateSensor(const DynamicsBodies &bodies, double simTime,
+                            std::mt19937 &rngEngine) = 0;
   double getFreqHz() const;
 
   void setDynamicsIndex(BodyIdx idx);

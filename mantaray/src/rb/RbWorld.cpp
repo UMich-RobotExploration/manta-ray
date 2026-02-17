@@ -38,13 +38,23 @@ void updateSensors(RbWorld &world) {
   for (auto &robot : world.robots) {
     if (robot->isAlive_) {
       for (auto &sensor : robot->sensors_) {
-        sensor->updateSensor(world.dynamicsBodies, world.simData.time);
+        sensor->updateSensor(world.dynamicsBodies, world.simData.time,
+                             *(world.rngEngine));
       }
     }
   }
 }
 
+void RbWorld::createRngEngine(size_t seed) {
+  rngEngine = std::make_unique<std::mt19937>(seed);
+}
+
 void RbWorld::validateWorld() {
+  if (!rngEngine) {
+    std::string msg = "RNG engine not initialized. Please call createRngEngine "
+                      "with a seed before advancing the world.";
+    throw std::runtime_error(msg);
+  }
   const double simDataHz = 1.0 / simData.dt;
   for (const auto &robot : robots) {
     if (robot->bodyIdx_ >= dynamicsBodies.kinematics.size()) {
@@ -125,13 +135,23 @@ void RbWorld::advanceWorld(double time) {
                       ", requested time: " + std::to_string(time);
     throw std::runtime_error(msg);
   }
-  if ((simData.time > 0) && (std::remainder(simData.time, simData.dt) >
-                             std::numeric_limits<double>::epsilon() * 100)) {
+  const double timeStepRemainder = std::remainder(simData.time, simData.dt);
+  if ((simData.time > 0) &&
+      (timeStepRemainder > std::numeric_limits<double>::epsilon() * 100)) {
+
     // TODO: We need to make sure that we get back to standard dt timesteps
     // if start time or time input is not an integer multiple of dt.
-    std::string msg = "Current simulation does not allow non dt aligned "
-                      "timesteps. It is a TODO";
-    throw std::invalid_argument(msg);
+
+    // We have a timestep t1, and we want timestep t2 to be a multiple of dt
+    // Remainder is defined as numMultiplies * dt + remainder = t2, if t1 is not
+    // divisible by dt. So to get t2, we need to do the following math:
+    // t2 = dt - remainder + t1. So that means a step of dt - remainder
+    stepWorld(simData.dt - timeStepRemainder);
+    updateSensors(*this);
+    CHECK(std::remainder(simData.time, simData.dt) <
+              std::numeric_limits<double>::epsilon() * 10,
+          "A non-uniform step was taken, but the result is still not aligned "
+          "with dt. This is maybe a bug.");
   } else {
     double timeToAdvance = time - simData.time;
     while (timeToAdvance > 0) {

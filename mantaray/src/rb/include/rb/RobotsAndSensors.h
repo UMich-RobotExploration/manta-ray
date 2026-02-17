@@ -4,8 +4,10 @@
 
 #pragma once
 #include "Eigen/Dense"
-#include "RbInterfaces.h"
 #include "manif/manif.h"
+#include <random>
+
+#include "RbInterfaces.h"
 
 namespace rb {
 
@@ -20,11 +22,14 @@ public:
 
 class PositionalOdomoetry : public SensorI {
 public:
-  PositionalOdomoetry(double freqHz, double timeSteps);
+  PositionalOdomoetry(double freqHz, double timeSteps,
+                      std::normal_distribution<double>);
   std::vector<Eigen::VectorXd> getSensorData() override;
   std::vector<double> getSensorTimesteps() override;
-  void updateSensor(const DynamicsBodies &bodies, double simTime) override;
+  void updateSensor(const DynamicsBodies &bodies, double simTime,
+                    std::mt19937 &rngEngine) override;
 
 private:
+  std::normal_distribution<double> noiseDist_;
 };
 } // namespace rb

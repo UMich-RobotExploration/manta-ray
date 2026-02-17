@@ -16,8 +16,9 @@ ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
   return twist;
 }
 
-PositionalOdomoetry::PositionalOdomoetry(double freqHz, double timeSteps)
-    : SensorI(timeSteps, freqHz) {
+PositionalOdomoetry::PositionalOdomoetry(
+    double freqHz, double timeSteps, std::normal_distribution<double> noiseDist)
+    : SensorI(timeSteps, freqHz), noiseDist_(noiseDist) {
   if (freqHz_ < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
   }
@@ -31,11 +32,16 @@ std::vector<double> PositionalOdomoetry::getSensorTimesteps() {
 }
 
 void PositionalOdomoetry::updateSensor(const DynamicsBodies &bodies,
-                                       double simTime) {
+                                       double simTime,
+                                       std::mt19937 &rngEngine) {
   if (std::remainder(simTime, 1.0 / freqHz_) <
       std::numeric_limits<double>::epsilon() * 100) {
     // Get the position of the robot this sensor is attached to
     auto position = bodies.getPosition(bodyIdx_);
+    auto xNoise = noiseDist_(rngEngine);
+    auto yNoise = noiseDist_(rngEngine);
+    position.x() = position.x() * xNoise;
+    position.y() = position.y() * yNoise;
     data_.emplace_back(position);
     timesteps_.emplace_back(simTime);
   }

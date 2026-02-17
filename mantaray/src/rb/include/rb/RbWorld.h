@@ -3,8 +3,11 @@
 //
 
 #pragma once
+#include <random>
+
 #include "Integrator.h"
 #include "PhysicsBodies.h"
+#include "checkAssert.h"
 #include "rb/RbInterfaces.h"
 
 namespace rb {
@@ -20,12 +23,18 @@ typedef size_t RobotIdx;
  * there are no null references,and we can manage the lifecycle of the dynamics
  * bodies and robots together
  *
+ * @par Construction
+ * To construct RbWorld, initialize use default construction
+ * and then add robots and landmarks as you see fit.
+ * The only requirement is createRngEngine must be called before advancing the
+ * world to ensure the rng engine is initialized.
  */
 struct RbWorld {
   DynamicsBodies dynamicsBodies;
   SimData simData{0.0, 0.1};
   std::vector<Eigen::Vector3d> landmarks;
   std::vector<std::unique_ptr<RobotI>> robots;
+  std::unique_ptr<std::mt19937> rngEngine;
 
   void reserveRobots(size_t count);
   void reserveLandmarks(size_t count);
@@ -38,6 +47,9 @@ struct RbWorld {
   void stepWorld(double dt);
 
   void advanceWorld(double time);
+
+  // @brief Create a random generator that works for entirety of sim
+  void createRngEngine(size_t seed);
 
   // Factory that constructs robots, but I return no dangling pointers
   // Access them through the index
