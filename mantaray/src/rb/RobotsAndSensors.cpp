@@ -34,7 +34,7 @@ std::vector<double> PositionalOdomoetry::getSensorTimesteps() {
 void PositionalOdomoetry::updateSensor(const DynamicsBodies &bodies,
                                        double simTime,
                                        std::mt19937 &rngEngine) {
-  // TODO: Need to fix this logic, provide a clean function for this
+  // TODO: Remove this frequency checking logic here
   if (std::fmod(simTime, 1.0 / freqHz_) <
       std::numeric_limits<double>::epsilon() * 100.0) {
     // Get the position of the robot this sensor is attached to

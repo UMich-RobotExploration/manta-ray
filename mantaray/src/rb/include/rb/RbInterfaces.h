@@ -33,12 +33,12 @@ public:
 
   void setDynamicsIndex(BodyIdx idx);
   bool checkUpdate();
+  const double freqHz_{0.0};
 
 protected:
   std::vector<double> timesteps_{};
   std::vector<Eigen::VectorXd> data_{};
   // Frequency at which the sensor updates, used to check sim dt
-  const double freqHz_{0.0};
 };
 
 class RobotI {

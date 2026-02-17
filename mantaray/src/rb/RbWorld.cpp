@@ -40,6 +40,8 @@ void updateSensors(RbWorld &world) {
   for (auto &robot : world.robots) {
     if (robot->isAlive_) {
       for (auto &sensor : robot->sensors_) {
+        // TODO: Need to only call this function if its the correct time to
+        // sample for this particular sensor
         sensor->updateSensor(world.dynamicsBodies, world.simData.time,
                              *(world.rngEngine));
       }
@@ -164,6 +166,7 @@ void RbWorld::advanceWorld(double time) {
                 << " step, and is now at: " << simData.time << "\n";
       std::cout << "fmod: " << timeStepRemainder << "\n";
 
+      // TODO: Extract this into a function
       // Basically two cases with floating points
       // - Case 1: The remainder is near 0
       // - Case 2: The remainder is basically dt
