@@ -17,7 +17,7 @@ ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
 }
 
 PositionalOdomoetry::PositionalOdomoetry(
-    double freqHz, double timeSteps, std::normal_distribution<double> noiseDist)
+    double freqHz, int timeSteps, std::normal_distribution<double> noiseDist)
     : SensorI(timeSteps, freqHz), noiseDist_(noiseDist) {
   if (freqHz_ < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
@@ -38,6 +38,7 @@ void PositionalOdomoetry::updateSensor(const DynamicsBodies &bodies,
       std::numeric_limits<double>::epsilon() * 100) {
     // Get the position of the robot this sensor is attached to
     auto position = bodies.getPosition(bodyIdx_);
+    // TODO: Document this assumption about z noise not being included
     auto xNoise = noiseDist_(rngEngine);
     auto yNoise = noiseDist_(rngEngine);
     position.x() = position.x() * xNoise;

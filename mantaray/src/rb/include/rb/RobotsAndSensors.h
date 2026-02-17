@@ -22,7 +22,7 @@ public:
 
 class PositionalOdomoetry : public SensorI {
 public:
-  PositionalOdomoetry(double freqHz, double timeSteps,
+  PositionalOdomoetry(double freqHz, int timeSteps,
                       std::normal_distribution<double>);
   std::vector<Eigen::VectorXd> getSensorData() override;
   std::vector<double> getSensorTimesteps() override;

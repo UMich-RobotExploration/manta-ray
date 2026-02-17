@@ -15,7 +15,7 @@ public:
   /* @brief Constructs a sensor interface with preallocated vectors
    * @param freqHz: sensor update, set EXTREMELY high to fail if not overwritten
    */
-  SensorI(size_t numTimesteps, double freqHz = 100000.0);
+  SensorI(int numTimesteps, double freqHz = 100000.0);
   virtual ~SensorI() =
       default; // Add virtual destructor to ensure proper cleanup
 

@@ -121,6 +121,12 @@ void RbWorld::stepWorld(double dt) {
  * @brief Advances the world to the specified absolute time
  * @param time desired time to advance to (absolute)
  * @throws runtime_error if request is backwards in time
+ *
+ * @par Important Items:
+ * When the time requested is not an integer multiple of dt, the advance world
+ * function allows for and corrects for this non-uniform step.
+ * The *reason* this is done, is to enable specific advancements requested
+ * by the acoustic sim if needed.
  */
 void RbWorld::advanceWorld(double time) {
   if (detail::isEqual(simData.time, 0.0)) {
@@ -134,25 +140,29 @@ void RbWorld::advanceWorld(double time) {
                       std::to_string(simData.time) +
                       ", requested time: " + std::to_string(time);
     throw std::runtime_error(msg);
-  }
-  const double timeStepRemainder = std::remainder(simData.time, simData.dt);
-  if ((simData.time > 0) &&
-      (timeStepRemainder > std::numeric_limits<double>::epsilon() * 100)) {
-
-    // TODO: We need to make sure that we get back to standard dt timesteps
-    // if start time or time input is not an integer multiple of dt.
-
-    // We have a timestep t1, and we want timestep t2 to be a multiple of dt
-    // Remainder is defined as numMultiplies * dt + remainder = t2, if t1 is not
-    // divisible by dt. So to get t2, we need to do the following math:
-    // t2 = dt - remainder + t1. So that means a step of dt - remainder
-    stepWorld(simData.dt - timeStepRemainder);
-    updateSensors(*this);
-    CHECK(std::remainder(simData.time, simData.dt) <
-              std::numeric_limits<double>::epsilon() * 10,
-          "A non-uniform step was taken, but the result is still not aligned "
-          "with dt. This is maybe a bug.");
   } else {
+
+    // This if statement covers not dt divisible time steps before we start a
+    // uniform stepping loop. This helps line everything up immediately.
+    // Allows non-dt multiple timesteps if the acoustics simulation needs them
+    const double timeStepRemainder = std::remainder(simData.time, simData.dt);
+    if ((simData.time > 0) &&
+        (timeStepRemainder > std::numeric_limits<double>::epsilon() * 100)) {
+
+      // Explanation of how this math works:
+      // We have a timestep t1, and we want timestep t2 to be a multiple of dt
+      // Remainder is defined as numMultiplies * dt + remainder = t2, if t1 is
+      // not divisible by dt. So to get t2, we need to do the following math: t2
+      // = dt - remainder + t1. So that means a step of dt - remainder
+      stepWorld(simData.dt - timeStepRemainder);
+      updateSensors(*this);
+      CHECK(std::remainder(simData.time, simData.dt) <
+                std::numeric_limits<double>::epsilon() * 10,
+            "A non-uniform step was taken, but the result is still not aligned "
+            "with dt. This is maybe a bug.");
+    }
+
+    // The simple constant dt stepping loop that will run most of the time.
     double timeToAdvance = time - simData.time;
     while (timeToAdvance > 0) {
       double dt = std::min(simData.dt, timeToAdvance);
