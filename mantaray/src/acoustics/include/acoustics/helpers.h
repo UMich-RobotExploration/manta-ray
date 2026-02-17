@@ -3,13 +3,14 @@
 //
 #pragma once
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <bhc/bhc.hpp>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <vector>
-#include <Eigen/Core>
 
 namespace acoustics {
 
@@ -56,7 +57,8 @@ template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
  */
 template <typename T> void unsafeSetupVector(T *arr, T low, T high, int size) {
   for (int i = 0; i < size; ++i) {
-    arr[i] = low + static_cast<double>(i) / static_cast<double>(size - 1) * (high - low);
+    arr[i] = low + static_cast<double>(i) / static_cast<double>(size - 1) *
+                       (high - low);
   }
 }
 
@@ -82,10 +84,10 @@ template <typename T> void printVector(const std::vector<T> &vec) {
   std::cout << "]" << std::endl;
 }
 
-
-/* @brief Helper to check if value is approximately equal OR satisfies comparison
+/* @brief Helper to check if value is approximately equal OR satisfies
+ * comparison
  * @tparam Vec1, Vec2 Vector types (e.g., Eigen::Vector2d or Eigen::Vector3d)
-*/
+ */
 template <typename Vec1, typename Vec2, typename CompOp>
 bool eigenFloatSafeComparison(const Vec1 &vec1, const Vec2 &vec2, CompOp comp) {
   return vec1.isApprox(vec2, kBoundaryEpsilonDouble) || comp(vec1, vec2);
@@ -97,8 +99,8 @@ bool eigenFloatSafeComparison(const Vec1 &vec1, const Vec2 &vec2, CompOp comp) {
  *
  * @returns true if in bounds, false otherwise
  */
-bool positionInBounds(const Eigen::Vector3d &position, const Eigen::Vector3d &min,
-                      const Eigen::Vector3d &max);
+bool positionInBounds(const Eigen::Vector3d &position,
+                      const Eigen::Vector3d &min, const Eigen::Vector3d &max);
 
 /**
  * @brief Check if a vector of doubles is monotonically increasing
@@ -114,7 +116,10 @@ bool isMonotonicallyIncreasing(const std::vector<double> &vec);
  * @throws std::overflow_error if value exceeds float range
  * @throws std::runtime_error if significant precision loss occurs
  */
-float safe_double_to_float(double value, bool strict = false);
+float safeDoubleToFloat(double value, bool strict = false);
+
+bhc::VEC23<true> safeEigenToVec23(const Eigen::Vector3d &vec,
+                                  bool strict = false);
 
 } // namespace utils
 } // namespace acoustics

@@ -4,7 +4,7 @@ add_library(${ACOUSTIC_LIB_NAME}
         Grid.cpp
         helpers.cpp
 )
-target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE include/acoustics/pch.h)
+target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/acoustics/pch.h)
 
 
 # Link the bellhop library to acoustics
@@ -16,7 +16,7 @@ target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${ACOUSTICS_INCLUDE_DIRS}
 
 # Apply compiler options based on build type
 target_compile_options(${ACOUSTIC_LIB_NAME} PUBLIC
-    "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
-    "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
+        "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
+        "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
 )
 

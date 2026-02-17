@@ -13,11 +13,11 @@ constexpr char kBathymetryInterpLinearShort[] = "LS";
 constexpr char kBathymetryCurveInterpShort[] = "CS";
 constexpr int kNumSources = 1;
 constexpr int kNumRecievers = 1;
-constexpr int kNumBeams = 10;
+constexpr int kNumBeams = 100;
 constexpr double kDegree2Radians = M_PI / 180.0;
 constexpr double kRadians2Degree = 1.0 / kDegree2Radians;
-constexpr double kBeamSpreadRadians = 12.0 * kDegree2Radians;
-constexpr double kBeamStepSizeRatio = 1.0 / 50.0;
+constexpr double kBeamSpreadRadians = 20.0 * kDegree2Radians;
+constexpr double kBeamStepSizeRatio = 1.0 / 300.0;
 
 enum class BathyInterpolationType {
   kLinear,

@@ -83,16 +83,15 @@ size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
  * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
  * arrivals
  */
-std::vector<float> Arrival::extractEarliestArrivals() {
+float Arrival::getEarliestArrivals() {
   const bhc::Position *Pos = inputs.Pos;
 
-  std::vector<float> arrivalDelays;
-  arrivalDelays.assign(Pos->NRr * Pos->NRz_per_range * Pos->Ntheta, kNoArrival);
-  std::cout << "Number of receivers: "
-            << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
-  std::cout << "Number of receiver ranges: " << Pos->NRr
-            << ", Number of Rz per range: " << Pos->NRz_per_range
-            << ", Number Theta: " << Pos->Ntheta << "\n";
+  float arrivalDelay = -1;
+  // std::cout << "Number of receivers: "
+  //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
+  // std::cout << "Number of receiver ranges: " << Pos->NRr
+  //           << ", Number of Rz per range: " << Pos->NRz_per_range
+  //           << ", Number Theta: " << Pos->Ntheta << "\n";
 
   CHECK(Pos->NRz_per_range == 1,
         "Z values should be singular per range. A potential issue is that "
@@ -109,21 +108,16 @@ std::vector<float> Arrival::extractEarliestArrivals() {
               // gives us number of rays we can iterate over
               int32_t narr = arrInfo->NArr[base];
               // Iterating over Individual Ray arrival times
+
               float minDelay = std::numeric_limits<float>::max();
 
-              // std::cout << "Found " << narr << " arrivals for:" << "\n\t";
-              // printReceiverInfo(Pos, ir, iz, itheta);
+              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              printReceiverInfo(Pos, ir, iz, itheta);
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
-                bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
+                const bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
-                // delay
-                // << "\n";
-                // float amplitude_dB = 20.0f * std::log10(arr->a);
-                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB
-                // << "\n";
                 if (delay < 0) {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
@@ -131,7 +125,7 @@ std::vector<float> Arrival::extractEarliestArrivals() {
                 minDelay = std::min(delay, minDelay);
               }
               if (narr != 0) {
-                arrivalDelays[getIdx(ir, iz, itheta)] = minDelay;
+                arrivalDelay = minDelay;
               }
             }
           }
@@ -140,7 +134,7 @@ std::vector<float> Arrival::extractEarliestArrivals() {
     }
   }
 
-  return arrivalDelays;
+  return arrivalDelay;
   /*
    * ArrInfo data structure layout:
    *
@@ -165,6 +159,131 @@ std::vector<float> Arrival::extractEarliestArrivals() {
    * Memory layout uses a flattened 1D array where MaxNArr is the maximum
    * arrivals per location.
    */
+}
+
+float Arrival::getLargestAmpArrivals() {
+  const bhc::Position *Pos = inputs.Pos;
+
+  float arrivalDelay = -1;
+  // std::cout << "Number of receivers: "
+  //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
+  // std::cout << "Number of receiver ranges: " << Pos->NRr
+  //           << ", Number of Rz per range: " << Pos->NRz_per_range
+  //           << ", Number Theta: " << Pos->Ntheta << "\n";
+
+  CHECK(Pos->NRz_per_range == 1,
+        "Z values should be singular per range. A potential issue is that "
+        "regular grids ('I') were not used in the Runtype[4]");
+
+  for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
+    for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
+      for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
+        // Now iterating through receiver points
+        for (int32_t itheta = 0; itheta < Pos->Ntheta; ++itheta) {
+          for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
+            for (int32_t ir = 0; ir < Pos->NRr; ++ir) {
+              size_t base = GetFieldAddr(isx, isy, isz, itheta, iz, ir, Pos);
+              // gives us number of rays we can iterate over
+              int32_t narr = arrInfo->NArr[base];
+              // Iterating over Individual Ray arrival times
+              float maxAmp = std::numeric_limits<float>::min();
+              float minDelay = -1.0;
+
+              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              printReceiverInfo(Pos, ir, iz, itheta);
+              for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
+                const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
+
+                bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
+                auto delay = arr->delay.real();
+                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
+                // delay
+                // << "\n";
+                // float amplitude_dB = 20.0f * std::log10(arr->a);
+                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB
+                // << "\n";
+                if (delay < 0) {
+                  throw std::runtime_error(
+                      "Negative delay encountered in arrival data");
+                }
+                if ((arr->a - maxAmp) >
+                    std::numeric_limits<float>::epsilon() * 100) {
+                  maxAmp = arr->a;
+                  minDelay = delay;
+                }
+              }
+              if (narr != 0) {
+                arrivalDelay = minDelay;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return arrivalDelay;
+}
+void Arrival::getAllArrivals(ArrivalInfoDebug &arrivalInfo) {
+  const bhc::Position *Pos = inputs.Pos;
+
+  CHECK(Pos->NRz_per_range == 1,
+        "Z values should be singular per range. A potential issue is that "
+        "regular grids ('I') were not used in the Runtype[4]");
+
+  for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
+    for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
+      for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
+        // Now iterating through receiver points
+        for (int32_t itheta = 0; itheta < Pos->Ntheta; ++itheta) {
+          for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
+            for (int32_t ir = 0; ir < Pos->NRr; ++ir) {
+              size_t base = GetFieldAddr(isx, isy, isz, itheta, iz, ir, Pos);
+              // gives us number of rays we can iterate over
+              int32_t narr = arrInfo->NArr[base];
+              // Iterating over Individual Ray arrival times
+
+              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              printReceiverInfo(Pos, ir, iz, itheta);
+              arrivalInfo.arrivalTimes.resize(narr, kNoArrival);
+              arrivalInfo.arrivalTimesImaginary.resize(narr, kNoArrival);
+              arrivalInfo.amplitude.resize(narr, kNoArrival);
+              for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
+                const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
+
+                const bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
+                auto delay = arr->delay.real();
+                if (delay < 0) {
+                  throw std::runtime_error(
+                      "Negative delay encountered in arrival data");
+                }
+                arrivalInfo.arrivalTimes[iArr] = delay;
+                arrivalInfo.arrivalTimesImaginary[iArr] = arr->delay.imag();
+                arrivalInfo.amplitude[iArr] = arr->a;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return;
+}
+void ArrivalInfoDebug::logArrivalInfo(const std::string &filename) {
+  std::ofstream outFile(filename);
+  if (!outFile.is_open()) {
+    throw std::runtime_error("Failed to open file for writing: " +
+                             std::string(filename));
+  }
+
+  outFile << "ArrivalTime(s),Amplitude,Imaginary,Range(m)\n";
+  outFile << std::setprecision(10) << groundTruthArrivalTime << "," << 1.0
+          << "," << 0.0 << "," << range << "\n";
+  for (size_t i = 0; i < arrivalTimes.size(); ++i) {
+    outFile << std::setprecision(20) << arrivalTimes[i] << "," << amplitude[i]
+            << "," << arrivalTimesImaginary[i] << ","
+            << arrivalTimes[i] * soundSpeed << "\n";
+  }
+  outFile.close();
 }
 
 } // namespace acoustics

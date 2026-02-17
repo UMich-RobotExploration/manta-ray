@@ -26,8 +26,8 @@ bool isMonotonicallyIncreasing(const std::vector<double> &vec) {
   return true;
 }
 
-bool positionInBounds(const Eigen::Vector3d &position, const Eigen::Vector3d &min,
-                      const Eigen::Vector3d &max) {
+bool positionInBounds(const Eigen::Vector3d &position,
+                      const Eigen::Vector3d &min, const Eigen::Vector3d &max) {
   bool isMinValid = utils::eigenFloatSafeComparison(
       position, min, [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
@@ -48,7 +48,7 @@ bool positionInBounds(const Eigen::Vector3d &position, const Eigen::Vector3d &mi
  * @throws std::overflow_error if value exceeds float range
  * @throws std::runtime_error if significant precision loss occurs
  */
-float safe_double_to_float(double value, bool strict) {
+float safeDoubleToFloat(double value, bool strict) {
   // Check for infinity and NaN
   if (std::isinf(value) || std::isnan(value)) {
     return static_cast<float>(value); // Preserves special values
@@ -76,6 +76,12 @@ float safe_double_to_float(double value, bool strict) {
   }
 
   return result;
+}
+bhc::VEC23<true> safeEigenToVec23(const Eigen::Vector3d &vec, bool strict) {
+  bhc::VEC23<true> outputVec = {safeDoubleToFloat(vec(0), strict),
+                                safeDoubleToFloat(vec(1), strict),
+                                safeDoubleToFloat(vec(2), strict)};
+  return outputVec;
 }
 } // namespace utils
 } // namespace acoustics

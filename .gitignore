@@ -267,3 +267,5 @@ mantaray/deps/lib/libbellhopcxxlib.so
 
 */.idea
 mantaray/.idea
+pymantaray/arrivalDataDebug
+pymantaray/arrivalDataDebugHigherPrecision

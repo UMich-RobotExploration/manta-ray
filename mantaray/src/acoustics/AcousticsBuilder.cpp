@@ -6,7 +6,6 @@
 
 #include "acoustics/AcousticsBuilder.h"
 
-
 namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
                                    BathymetryConfig &bathConfig,
@@ -20,7 +19,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
       };
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
-const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; } ;
+const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; };
 
 void AcousticsBuilder::autogenerateAltimetry() {
   const bhc::IORI2<true> grid = {kNumAltimetryPts, kNumAltimetryPts};
@@ -114,8 +113,10 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
 void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
-  auto delta = agentsConfig_.receiver - agentsConfig_.source;
-  double elevationAngle = std::atan2(delta(2), delta(1));
+  Eigen::Vector3d delta = agentsConfig_.receiver - agentsConfig_.source;
+  double horizontalDistance =
+      std::sqrt((delta(0) * delta(0)) + (delta(1) * delta(1)));
+  double elevationAngle = std::atan2(delta(2), horizontalDistance);
   if (!beamBuilt_) {
     bhc::extsetup_raybearings(params_, kNumBeams);
     bhc::extsetup_rayelevations(params_, kNumBeams);
@@ -129,16 +130,19 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
                            elevationAngle + kBeamSpreadRadians, kNumBeams);
 
   auto beam = params_.Beam;
-  double boxScale = 1.10;
+  constexpr double boxScale = 1.50;
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // TODO: Adjust this and decide what to do for step size
+  beam->deltas = 1.0;
+  delta = boxScale * delta;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),
         "Delta's need to be positive in bellhop box");
-  beam->Box.x = deltaX * boxScale;
-  beam->Box.y = deltaY * boxScale;
+  beam->Box.x = deltaX;
+  beam->Box.y = deltaY;
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   beam->Box.z = max * kmScaler + 10;
@@ -149,8 +153,7 @@ void AcousticsBuilder::updateAgents() {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
   }
-  bool isReceiverCountIdentical =
-      params_.Pos->NRr == kNumRecievers;
+  bool isReceiverCountIdentical = params_.Pos->NRr == kNumRecievers;
   if (!isReceiverCountIdentical) {
     std::cout << "Reallocating receiver arrays for updated agents.\n";
     bhc::extsetup_rcvrranges(params_, kNumRecievers);
@@ -163,30 +166,30 @@ void AcousticsBuilder::updateAgents() {
 
   bool isSourceInBounds =
       utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
-  bool isReceiver=
+  bool isReceiver =
       utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
   if (!isSourceInBounds || !isReceiver) {
-        std::stringstream msg;
-        msg << "Source or Receiver position is out of bounds of the simulation box. "
-                << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
-                << agentsConfig_.receiver.transpose() << ") , Min Box: ("
-                << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
-                << ")";
-        throw std::out_of_range(msg.str());
-
+    std::stringstream msg;
+    msg << "Source or Receiver position is out of bounds of the simulation "
+           "box. "
+        << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
+        << agentsConfig_.receiver.transpose() << ") , Min Box: ("
+        << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
+        << ")";
+    throw std::out_of_range(msg.str());
   }
   // no smart checking, everything is overwritten
   params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
   params_.Pos->Sy[0] = agentsConfig_.source(1);
-  params_.Pos->Sz[0] = utils::safe_double_to_float(agentsConfig_.source(2));
+  params_.Pos->Sz[0] = utils::safeDoubleToFloat(agentsConfig_.source(2));
 
   auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
                agentsConfig_.source(Eigen::seq(0, 1));
   double bearingAngle = std::atan2(delta(1), delta(0));
   params_.Pos->theta[0] = bearingAngle * kRadians2Degree; // degrees by bellhop!
   params_.Pos->Rr[0] = delta.norm();
-  params_.Pos->Rz[0] = utils::safe_double_to_float(agentsConfig_.receiver(2));
+  params_.Pos->Rz[0] = utils::safeDoubleToFloat(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
 };
@@ -240,6 +243,8 @@ void AcousticsBuilder::build() {
     maxCoords_[2] = sspConfig_.Grid.zCoords.back() * kmScalerSSP;
   } else {
     // ReSharper disable once CppDFAUnreachableCode
+    // This code is here even though unreachable, to protect future refactorers
+    // on build order of the sim.
     throw std::runtime_error(
         "Cannot build simulation: Bathymetry must be built before SSP.");
   }
@@ -278,7 +283,7 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     // setting to -1.0 to indicate uninitialized for easier debugging
     data.resize(gridX.size() * gridY.size(), -1.0);
   }
-  double scalerReduction = 1.0 / 100.0;
+  double scalerReduction = 1.0 / 1000.0;
   for (size_t iy = 0; iy < gridY.size(); ++iy) {
     for (size_t ix = 0; ix < gridX.size(); ++ix) {
       auto currDepth =
@@ -289,11 +294,20 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
     }
   }
 }
+
+void AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
+  updateReceiver(position(0), position(1), position(2));
+}
+
 void AcousticsBuilder::updateReceiver(double x, double y, double z) {
   agentsConfig_.receiver(0) = x;
   agentsConfig_.receiver(1) = y;
   agentsConfig_.receiver(2) = z;
   updateAgents();
+}
+
+void AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
+  updateSource(position(0), position(1), position(2));
 }
 
 void AcousticsBuilder::updateSource(double x, double y, double z) {

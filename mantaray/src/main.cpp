@@ -1,21 +1,27 @@
 
 #include <atomic>
+#include <bhc/bhc.hpp>
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <vector>
 
+#include "fmt/format.h"
+
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
-#include "acoustics/helpers.h"
-#include "acoustics/acousticsConstants.h"
 #include "acoustics/BhHandler.h"
+#include "acoustics/acousticsConstants.h"
+#include "acoustics/helpers.h"
 
+#include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
-#include "acoustics/AcousticsBuilder.h"
-#include <bhc/bhc.hpp>
-#include <filesystem>
+#include "rb/RbWorld.h"
+#include "rb/RobotsAndSensors.h"
+
+#include <random>
 
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
@@ -30,6 +36,10 @@ void OutputCallback(const char *message) {
 }
 
 int main() {
+  // TODO: Figure out how this random generator works
+  std::random_device rd;
+  std::mt19937 e{rd()}; // or std::default_random_engine e{rd()};
+
   auto init = bhc::bhcInit();
 
   char runName[] = "overhaul";
@@ -40,11 +50,11 @@ int main() {
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  // init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
+  init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
   init.numThreads = -1;
-  init.useRayCopyMode = true;
+  // init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "R");
+  strcpy(context.params().Beam->RunType, "A");
   // Important to set to I for irregular grid tracking
   context.params().Beam->RunType[4] = 'I';
   strcpy(context.params().Title, runName);
@@ -54,7 +64,7 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
 
   std::vector<double> bathGridX =
-      acoustics::utils::linspace<double>(-1, 55, 10);
+      acoustics::utils::linspace<double>(-10, 55, 10);
   std::vector<double> bathGridY =
       acoustics::utils::linspace<double>(-11, 30, 9);
   std::vector<double> bathData;
@@ -71,15 +81,14 @@ int main() {
   int nX = 10;
   int nY = 10;
   int nZ = 100;
-  auto SSPgridX = acoustics::utils::linspace(-1.0, 55.0, nX);
+  const double refSoundSpeed = 1500.0;
+  auto SSPgridX = acoustics::utils::linspace(-10.0, 55.0, nX);
   auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
   auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
-  auto SSPGrid =
-      acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, 1500.0);
-  acoustics::munkProfile(SSPGrid, 1500.0, true);
+  auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, refSoundSpeed);
+  // acoustics::munkProfile(SSPGrid, refSoundSpeed, true);
 
-  auto sspConfig =
-      acoustics::SSPConfig{std::move(SSPGrid), true};
+  auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
   std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -98,67 +107,77 @@ int main() {
       context.params(), bathConfig, sspConfig, agents);
   simBuilder.build();
 
-  for (size_t i = 0; i < acoustics::kNumRecievers; ++i) {
-    float sspVal = 0;
-    bhc::VEC23<true> vec = {receiverPos(0), receiverPos(1), receiverPos(2)};
-    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
-    std::cout << "Receiver " << i << ": " << context.params().Pos->Rr[i] << ", "
-              << context.params().Pos->theta[i] << " ,"
-              << "Estimate TOF: " << (receiverPos - sourcePos).norm() / sspVal
-              << "\n";
-  }
-  const acoustics::SSPConfig &sspConfigBuilt = simBuilder.getSSPConfig();
-  for (size_t iz = 0; iz < sspConfigBuilt.Grid.nz(); ++iz) {
-    float sspVal = 0;
-    bhc::VEC23<true> vec = {0.0, 0.0,
-                            sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0};
-    bhc::get_ssp<true, true>(context.params(), vec, sspVal);
-    std::cout << "Z height (meters) "
-              << sspConfigBuilt.Grid.zCoords.at(iz) * 1000.0
-              << ", Bellhop vs Build in Data structure: (" << sspVal << ", "
-              << sspConfigBuilt.Grid.at(0, 0, iz) << ")"
-              << "\n";
-  }
+  //////////////////////////////////////////////////////////////////////////////
+  // Simulation Setup
+  //////////////////////////////////////////////////////////////////////////////
+  rb::RbWorld world{};
+  double endTime = 100.0;
+  world.reserveRobots(1);
+  world.reserveLandmarks(2);
+  auto odomRobotIdx =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
+  world.robots[odomRobotIdx]->addSensor(
+      std::make_unique<rb::PositionalOdomoetry>(
+          10.0, static_cast<size_t>(100.0 * endTime)));
+  auto robotIdx2 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
+  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
+  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+  world.addLandmark(Eigen::Vector3d(400.0, 100.0, 10.0));
+  simBuilder.updateSource(world.landmarks[0]);
 
-  std::cout << "Run type: " << context.params().Beam->RunType << "\n";
-  std::cout << "Box x: " << context.params().Beam->Box.x << "\n";
-  std::cout << "Box y: " << context.params().Beam->Box.y << "\n";
-  std::cout << "Box z: " << context.params().Beam->Box.z << "\n";
-  std::cout << "Boundary: " << context.params().bdinfo->bot.NPts.x << "\n";
-  std::cout << "Boundary: " << context.params().bdinfo->top.NPts.y << "\n";
+  auto startTime = world.simData.time;
+  while (startTime < endTime) {
+    startTime += 1.0;
+    world.advanceWorld(startTime);
+    if (std::remainder(startTime, 2.0) < 1e-6) {
+      for (auto &robot : world.robots) {
+        auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
+        simBuilder.updateReceiver(position);
+        std::stringstream msg;
+        msg << "\n/////////////////////////////////\n";
+        msg << "Robot (" + std::to_string(robot->bodyIdx_) + ") at time " +
+                   std::to_string(startTime);
+        msg << ", position [meters]: " << position.transpose() << "\n";
+        std::cout << msg.str();
+        msg.str("");
+        bhc::run(context.params(), context.outputs());
+        auto arrival = acoustics::Arrival(context.params(), context.outputs());
+        auto earliestArrival = arrival.getEarliestArrivals();
+        auto largestArrival = arrival.getLargestAmpArrivals();
+        auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
+        arrival.getAllArrivals(arrivalDebugInfo);
+        arrivalDebugInfo.range = (world.landmarks[0] - position).norm();
+        arrivalDebugInfo.groundTruthArrivalTime =
+            arrivalDebugInfo.range / refSoundSpeed;
+        arrivalDebugInfo.soundSpeed = refSoundSpeed;
+
+        auto fileOutput =
+            fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
+        arrivalDebugInfo.logArrivalInfo(fileOutput);
+        float currSsp = 0;
+        auto pos = acoustics::utils::safeEigenToVec23(position);
+
+        bhc::get_ssp<true, true>(context.params(), pos, currSsp);
+        fmt::print("SSP at receiver: {} m/s\n", currSsp);
+        fmt::print("SSP based range (earliest): {} m\n",
+                   earliestArrival * currSsp);
+        fmt::print("SSP based range (largest amp): {} m\n",
+                   largestArrival * currSsp);
+        fmt::print("Actual Range: {} m\n",
+                   (world.landmarks[0] - position).norm());
+      }
+    }
+  }
+  auto timesteps =
+      world.robots[odomRobotIdx]->sensors_[0]->getSensorTimesteps();
+  acoustics::utils::printVector(timesteps);
+
   try {
     bhc::echo(context.params());
   } catch (const std::exception &e) {
     std::cerr << "Error during echo: " << e.what() << std::endl;
     return 1;
-  }
-  bhc::writeenv(context.params(), runName);
-  for (int i = 0; i < 1; ++i) {
-    std::chrono::high_resolution_clock::time_point t1 =
-        std::chrono::high_resolution_clock::now();
-
-    bhc::run(context.params(), context.outputs());
-
-    std::chrono::nanoseconds delta =
-        std::chrono::high_resolution_clock::now() - t1;
-
-    auto &agentConfig = simBuilder.getAgentsConfig();
-    std::cout << "Receiver Location: " << agentConfig.receiver << "\n";
-    simBuilder.updateReceiver(agentConfig.receiver(0) += 100,
-                              agentConfig.receiver(1) += 100,
-                              agentConfig.receiver(2) += 25);
-
-    try {
-      auto arrival = acoustics::Arrival(context.params(), context.outputs());
-      auto arrivalVec = arrival.extractEarliestArrivals();
-      acoustics::utils::printVector(arrivalVec);
-    } catch (const std::exception &e) {
-      std::cerr << "Error during arrival extraction: " << e.what() << std::endl;
-    }
-    std ::cout
-        << "Iteration " << i << " took "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
-        << " ms\n";
   }
   bhc::writeout(context.params(), context.outputs(), runName);
   return 0;
