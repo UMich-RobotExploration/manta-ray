@@ -8,7 +8,6 @@
 
 namespace acoustics {
 
-
 // ============================================================================
 // Grid2D Implementations
 // ============================================================================
@@ -262,33 +261,33 @@ void Grid3D::validateInitialization() const {
   return;
 }
 
-  void Grid3D::boundsCheck(size_t ix, size_t iy, size_t iz) const {
-    if (ix >= nx() || iy >= ny() || iz >= nz()) {
-      std::stringstream msg;
-      msg << "Grid index out of bounds: (" << ix << ", " << iy << ", " << iz
-          << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
-      throw std::out_of_range(msg.str());
-    }
+void Grid3D::boundsCheck(size_t ix, size_t iy, size_t iz) const {
+  if (ix >= nx() || iy >= ny() || iz >= nz()) {
+    std::stringstream msg;
+    msg << "Grid index out of bounds: (" << ix << ", " << iy << ", " << iz
+        << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
+    throw std::out_of_range(msg.str());
   }
+}
 
-  // ============================================================================
-  // Utility Functions
-  // ============================================================================
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
-  void munkProfile(Grid3D & grid, double sofarSpeed, bool isKm) {
-    const double kmScaler = isKm ? 1000.0 : 1.0;
-    const double kMunk = 1.0 / 1300.0;
-    const double kEpsilon = 0.00737;
-    for (size_t ix = 0; ix < grid.xCoords.size(); ++ix) {
-      for (size_t iy = 0; iy < grid.yCoords.size(); ++iy) {
-        for (size_t iz = 0; iz < grid.zCoords.size(); ++iz) {
-          double zVal = grid.zCoords[iz] * kmScaler;
-          double zBar = 2 * (zVal - 1300.0) * kMunk;
-          grid.at(ix, iy, iz) =
-              sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
-        }
+void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm) {
+  const double kmScaler = isKm ? 1000.0 : 1.0;
+  const double kMunk = 1.0 / 1300.0;
+  const double kEpsilon = 0.00737;
+  for (size_t ix = 0; ix < grid.xCoords.size(); ++ix) {
+    for (size_t iy = 0; iy < grid.yCoords.size(); ++iy) {
+      for (size_t iz = 0; iz < grid.zCoords.size(); ++iz) {
+        double zVal = grid.zCoords[iz] * kmScaler;
+        double zBar = 2 * (zVal - 1300.0) * kMunk;
+        grid.at(ix, iy, iz) =
+            sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
       }
     }
   }
+}
 
 } // namespace acoustics

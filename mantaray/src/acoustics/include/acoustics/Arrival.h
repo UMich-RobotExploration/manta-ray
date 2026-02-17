@@ -2,8 +2,8 @@
 // Created by tko on 1/26/26.
 //
 #pragma once
-#include "checkAssert.h"
 #include "acoustics/helpers.h"
+#include "checkAssert.h"
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
 #include <iomanip>
@@ -40,4 +40,3 @@ private:
                                 int32_t iz, int32_t itheta);
 };
 } // namespace acoustics
-

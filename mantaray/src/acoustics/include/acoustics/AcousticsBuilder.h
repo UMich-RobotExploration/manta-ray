@@ -89,7 +89,7 @@ public:
 
   /* @brief Updates sources
    * @see updateSources(double x, double y, double z)
- */
+   */
   void updateSource(const Eigen::Vector3d &position);
 
   /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG)
@@ -103,7 +103,7 @@ public:
 
   /* @brief Updates receivers
    * @see updateReceiver(double x, double y, double z)
- */
+   */
   void updateReceiver(const Eigen::Vector3d &position);
 
   /** @brief Validates that bathymetry is completely enclosed by ssp grid.
