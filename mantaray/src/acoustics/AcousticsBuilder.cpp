@@ -14,7 +14,7 @@ AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
     : params_(params),
       bathymetryConfig_(std::move(bathConfig)),
       sspConfig_(std::move(sspConfig)),
-      agentsConfig_(std::move(agentsConfig)) {
+      agentsConfig_(std::move(agentsConfig)){
 
       };
 

@@ -14,7 +14,7 @@ public:
   const Eigen::Vector3d constantVel_;
   // @brief Constructs constant linear velocity
   explicit ConstantVelRobot(Eigen::Vector3d constantVel)
-      : constantVel_(constantVel) {};
+      : constantVel_(constantVel){};
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;
 };
 
@@ -23,8 +23,7 @@ public:
   PositionalOdomoetry(double freqHz, double timeSteps);
   std::vector<Eigen::VectorXd> getSensorData() override;
   std::vector<double> getSensorTimesteps() override;
-  void updateSensor(const DynamicsBodies &bodies,
-                               double simTime) override;
+  void updateSensor(const DynamicsBodies &bodies, double simTime) override;
 
 private:
 };

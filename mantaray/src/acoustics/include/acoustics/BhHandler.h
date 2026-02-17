@@ -5,7 +5,6 @@
 #pragma once
 #include <bhc/bhc.hpp>
 
-
 namespace acoustics {
 /**
  * @brief Class for ensure Bellhop memory gets cleaned up.q

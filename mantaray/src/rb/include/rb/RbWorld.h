@@ -56,7 +56,6 @@ struct RbWorld {
   }
 };
 
-
 namespace detail {
 bool isEqual(double x, double y);
 

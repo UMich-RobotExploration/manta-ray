@@ -17,7 +17,7 @@ ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
 }
 
 PositionalOdomoetry::PositionalOdomoetry(double freqHz, double timeSteps)
-    : SensorI(timeSteps, freqHz)  {
+    : SensorI(timeSteps, freqHz) {
   if (freqHz_ < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
   }

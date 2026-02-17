@@ -17,7 +17,7 @@ const KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) const {
         "Index out of bounds for dynamics properties");
   return kinematics[index];
 }
-KinematicData &DynamicsBodies::getKinematicData(BodyIdx index){
+KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) {
   CHECK(index < kinematics.size(),
         "Index out of bounds for dynamics properties");
   return kinematics[index];

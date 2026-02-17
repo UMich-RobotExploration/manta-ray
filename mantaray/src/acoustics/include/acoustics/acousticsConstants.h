@@ -4,7 +4,6 @@
 #pragma once
 #include <string>
 
-
 namespace acoustics {
 constexpr size_t kBathymetryBuffSize = 2;
 constexpr size_t kMaxTitle = 80;

@@ -126,7 +126,7 @@ void RbWorld::advanceWorld(double time) {
     throw std::runtime_error(msg);
   }
   if ((simData.time > 0) && (std::remainder(simData.time, simData.dt) >
-      std::numeric_limits<double>::epsilon() * 100)) {
+                             std::numeric_limits<double>::epsilon() * 100)) {
     // TODO: We need to make sure that we get back to standard dt timesteps
     // if start time or time input is not an integer multiple of dt.
     std::string msg = "Current simulation does not allow non dt aligned "

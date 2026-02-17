@@ -11,7 +11,7 @@ void RobotI::addSensor(std::unique_ptr<SensorI> sensor) {
       bodyIdx_); // Set the sensor's body index to match the robot's
 }
 
-SensorI::SensorI(size_t numTimesteps, double freqHz): freqHz_(freqHz) {
+SensorI::SensorI(size_t numTimesteps, double freqHz) : freqHz_(freqHz) {
   timesteps_.reserve(numTimesteps);
   data_.reserve(numTimesteps);
 }

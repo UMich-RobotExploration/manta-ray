@@ -4,8 +4,7 @@
 
 #include "acoustics/BhHandler.h"
 
-template<bool O3D, bool R3D>
-class BellhopContext {
+template <bool O3D, bool R3D> class BellhopContext {
 public:
   BellhopContext(const bhc::bhcInit &init) {
     // Call setup
@@ -20,20 +19,20 @@ public:
   }
 
   // No copy (cannot finalize twice)
-  BellhopContext(const BellhopContext&) = delete;
-  BellhopContext& operator=(const BellhopContext&) = delete;
+  BellhopContext(const BellhopContext &) = delete;
+  BellhopContext &operator=(const BellhopContext &) = delete;
 
-  BellhopContext(BellhopContext&& other) noexcept
-      : params_(std::move(other.params_)),
-        outputs_(std::move(other.outputs_)) {
-    // other.params_ / other.outputs_ are now dangling? but we disable copy so only one finalizer runs
+  BellhopContext(BellhopContext &&other) noexcept
+      : params_(std::move(other.params_)), outputs_(std::move(other.outputs_)) {
+    // other.params_ / other.outputs_ are now dangling? but we disable copy so
+    // only one finalizer runs
   }
 
-  BellhopContext& operator=(BellhopContext&&) = delete;
+  BellhopContext &operator=(BellhopContext &&) = delete;
 
   // Provide accessors so library calls can use them
-  bhc::bhcParams<O3D>& params() noexcept { return params_; }
-  bhc::bhcOutputs<O3D, R3D>& outputs() noexcept { return outputs_; }
+  bhc::bhcParams<O3D> &params() noexcept { return params_; }
+  bhc::bhcOutputs<O3D, R3D> &outputs() noexcept { return outputs_; }
 
 private:
   bhc::bhcParams<O3D> params_;
