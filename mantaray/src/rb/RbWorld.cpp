@@ -42,8 +42,13 @@ void updateSensors(RbWorld &world) {
       for (auto &sensor : robot->sensors_) {
         // TODO: Need to only call this function if its the correct time to
         // sample for this particular sensor
-        sensor->updateSensor(world.dynamicsBodies, world.simData.time,
-                             *(world.rngEngine));
+        double dt = sensor->getDt();
+        bool isValidUpdateTick =
+            detail::validDeltaTMultiple(world.simData.time, dt);
+        if (isValidUpdateTick) {
+          sensor->updateSensor(world.dynamicsBodies, world.simData.time,
+                               *(world.rngEngine));
+        }
       }
     }
   }
@@ -165,17 +170,8 @@ void RbWorld::advanceWorld(double time) {
                 << simData.dt - timeStepRemainder
                 << " step, and is now at: " << simData.time << "\n";
       std::cout << "fmod: " << timeStepRemainder << "\n";
-
-      // TODO: Extract this into a function
-      // Basically two cases with floating points
-      // - Case 1: The remainder is near 0
-      // - Case 2: The remainder is basically dt
-      // True when no remainder, false when remainder
-      bool hasNoRemainder = std::fmod(simData.time, simData.dt) <
-                            std::numeric_limits<double>::epsilon() * 100;
-      // True when dt, false when not dt
-      bool isEqualTodt = detail::isEqual(timeStepRemainder, simData.dt);
-      CHECK(hasNoRemainder || isEqualTodt,
+      bool isValid = detail::validDeltaTMultiple(simData.time, simData.dt);
+      CHECK(isValid,
             "A non-uniform step was taken, but the result is still not aligned "
             "with dt. This is maybe a bug.");
     }
@@ -196,6 +192,18 @@ void RbWorld::advanceWorld(double time) {
 namespace detail {
 bool isEqual(double x, double y) {
   return std::fabs(x - y) < kBoundaryEpsilonDouble;
+}
+bool validDeltaTMultiple(double time, double dt) {
+  // Basically two cases with floating points
+  // - Case 1: The remainder is near 0
+  // - Case 2: The remainder is basically dt
+  // True when no remainder, false when remainder
+  double timeStepRemainder = std::fmod(time, dt);
+  bool hasNoRemainder =
+      timeStepRemainder < std::numeric_limits<double>::epsilon() * 100;
+  // True when dt, false when not dt
+  bool isEqualTodt = isEqual(timeStepRemainder, dt);
+  return (hasNoRemainder || isEqualTodt);
 }
 } // namespace detail
 

@@ -30,15 +30,16 @@ public:
   virtual void updateSensor(const DynamicsBodies &bodies, double simTime,
                             std::mt19937 &rngEngine) = 0;
   double getFreqHz() const;
+  double getDt() const;
 
   void setDynamicsIndex(BodyIdx idx);
   bool checkUpdate();
-  const double freqHz_{0.0};
 
 protected:
   std::vector<double> timesteps_{};
   std::vector<Eigen::VectorXd> data_{};
   // Frequency at which the sensor updates, used to check sim dt
+  const double dt_{0.0};
 };
 
 class RobotI {

@@ -71,6 +71,14 @@ struct RbWorld {
 namespace detail {
 bool isEqual(double x, double y);
 
-}
+/* @brief Checks to see if time is a valid frequency = 1/dt multiple.
+ * @details Handles floating point complexity
+ * - Evaluates 2 cases:
+ *  - A remainder near zero,
+ *  - A remainder near dt.
+ */
+bool validDeltaTMultiple(double time, double dt);
+
+} // namespace detail
 
 } // namespace rb

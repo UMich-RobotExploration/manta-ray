@@ -11,11 +11,12 @@ void RobotI::addSensor(std::unique_ptr<SensorI> sensor) {
       bodyIdx_); // Set the sensor's body index to match the robot's
 }
 
-SensorI::SensorI(int numTimesteps, double freqHz) : freqHz_(freqHz) {
+SensorI::SensorI(int numTimesteps, double freqHz) : dt_(1.0 / freqHz) {
   timesteps_.reserve(numTimesteps);
   data_.reserve(numTimesteps);
 }
 void SensorI::setDynamicsIndex(BodyIdx idx) { bodyIdx_ = idx; }
 bool SensorI::checkUpdate() { return (data_.size() == timesteps_.size()); }
-double SensorI::getFreqHz() const { return freqHz_; }
+double SensorI::getFreqHz() const { return 1.0 / dt_; }
+double SensorI::getDt() const { return dt_; }
 } // namespace rb
