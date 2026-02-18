@@ -26,7 +26,6 @@ struct SSPConfig {
 };
 
 struct AgentsConfig {
-
   // Source (required)
   Eigen::Vector3d source;
   // Receivers (required)

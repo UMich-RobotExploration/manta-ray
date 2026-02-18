@@ -7,7 +7,7 @@
 
 namespace acoustics {
 /**
- * @brief Class for ensure Bellhop memory gets cleaned up.q
+ * @brief Class for ensure Bellhop memory gets cleaned up
  * @tparam O3D ocean 3D
  * @tparam R3D rays 3D
  */

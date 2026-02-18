@@ -12,7 +12,7 @@
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
-#include "acoustics/BhHandler.h"
+#include "acoustics/BellhopContext.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -35,9 +35,6 @@ void OutputCallback(const char *message) {
 }
 
 int main() {
-  // TODO: Figure out how this random generator works
-  std::mt19937 e{
-      std::random_device{}()}; // or std::default_random_engine e{rd()};
 
   auto init = bhc::bhcInit();
 
@@ -49,7 +46,7 @@ int main() {
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
+  init.maxMemory = 80ull * 1024ull * 1024ull; // 80 MiB
   init.numThreads = -1;
   // init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
@@ -149,28 +146,11 @@ int main() {
         bhc::run(context.params(), context.outputs());
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getFastestArrival();
-        auto largestArrival = arrival.getLargestAmpArrival();
-        auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
-        arrival.getAllArrivals(arrivalDebugInfo);
-        arrivalDebugInfo.range = (world.landmarks[0] - position).norm();
-        arrivalDebugInfo.groundTruthArrivalTime =
-            arrivalDebugInfo.range / refSoundSpeed;
-        arrivalDebugInfo.soundSpeed = refSoundSpeed;
 
-        auto fileOutput =
-            fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
-        arrivalDebugInfo.logArrivalInfo(fileOutput);
         float currSsp = 0;
         auto pos = acoustics::utils::safeEigenToVec23(position);
 
         bhc::get_ssp<true, true>(context.params(), pos, currSsp);
-        fmt::print("SSP at receiver: {} m/s\n", currSsp);
-        fmt::print("SSP based range (earliest): {} m\n",
-                   earliestArrival * currSsp);
-        fmt::print("SSP based range (largest amp): {} m\n",
-                   largestArrival * currSsp);
-        fmt::print("Actual Range: {} m\n",
-                   (world.landmarks[0] - position).norm());
       }
     }
   }

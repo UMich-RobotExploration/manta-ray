@@ -10,7 +10,7 @@ namespace acoustics {
 
 // Calculate the flattened index for the 6D ArrInfo arrays
 // Code taken directly from Bellhopcuda source common.hpp as they don't expose
-// this WARN: DO NOT CHANGE
+// this WARN: DO NOT CHANGE. BELLHOPCUDA owns this LAYOUT!!
 inline size_t GetFieldAddr(int32_t isx, int32_t isy, int32_t isz,
                            int32_t itheta, int32_t id, int32_t ir,
                            const bhc::Position *Pos) {
