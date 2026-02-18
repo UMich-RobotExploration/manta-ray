@@ -78,6 +78,12 @@ void RbWorld::validateWorld() {
                           " has a mismatch between data and timesteps size.";
         throw std::runtime_error(msg);
       }
+      if (sensor->sensorType_ == SensorType::kUnknown) {
+        std::string msg =
+            "Define sensor type in SensorType enum appropriately. Ensure you "
+            "fill in SensorType logging methods if you want output.";
+        throw std::runtime_error(msg);
+      }
       double sensorFreqHz = sensor->getFreqHz();
       if (sensorFreqHz > simDataHz) {
         std::string msg =

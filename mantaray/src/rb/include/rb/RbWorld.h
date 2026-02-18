@@ -9,6 +9,7 @@
 #include "PhysicsBodies.h"
 #include "checkAssert.h"
 #include "rb/RbInterfaces.h"
+#include "rb/RobotsAndSensors.h"
 #include "rb/helpers.h"
 
 namespace rb {
@@ -62,6 +63,7 @@ struct RbWorld {
 
     // Store and return reference
     robots.push_back(std::move(robot));
+
     return static_cast<RobotIdx>(newIdx);
   }
 };

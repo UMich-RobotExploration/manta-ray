@@ -110,17 +110,20 @@ int main() {
   // Simulation Setup
   //////////////////////////////////////////////////////////////////////////////
   rb::RbWorld world{};
-  double endTime = 10.0;
+  double endTime = 50.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(1);
   world.reserveLandmarks(2);
   auto odomRobotIdx =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
-  world.robots[odomRobotIdx]->addSensor(
+  auto gtIdx = world.robots[odomRobotIdx]->addSensor(
+      std::make_unique<rb::GroundTruthPose>(
+          10.0, static_cast<size_t>(100.0 * endTime)));
+  auto odomIdx = world.robots[odomRobotIdx]->addSensor(
       std::make_unique<rb::PositionalXYOdomoetry>(
           10.0, static_cast<size_t>(100.0 * endTime),
-          std::normal_distribution<double>{0.0, 0.5}));
+          std::normal_distribution<double>{0.0, 0.001}));
   auto robotIdx2 =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
@@ -171,12 +174,7 @@ int main() {
       }
     }
   }
-  auto timesteps =
-      world.robots[odomRobotIdx]->sensors_[0]->getSensorTimesteps();
-  fmt::print("Timestep vector\n");
-  for (auto &val : timesteps) {
-    fmt::print("Value: {}\n", val);
-  }
+  rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
 
   try {
     bhc::echo(context.params());
