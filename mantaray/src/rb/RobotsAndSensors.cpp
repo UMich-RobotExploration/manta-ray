@@ -16,32 +16,42 @@ ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
   return twist;
 }
 
-PositionalOdomoetry::PositionalOdomoetry(
+PositionalXYOdomoetry::PositionalXYOdomoetry(
     double freqHz, int timeSteps, std::normal_distribution<double> noiseDist)
     : SensorI(timeSteps, freqHz), noiseDist_(noiseDist) {
   if (getFreqHz() < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
   }
 }
-std::vector<Eigen::VectorXd> PositionalOdomoetry::getSensorData() {
+std::vector<Eigen::VectorXd> PositionalXYOdomoetry::getSensorData() {
   return data_;
 }
 
-std::vector<double> PositionalOdomoetry::getSensorTimesteps() {
+std::vector<double> PositionalXYOdomoetry::getSensorTimesteps() {
   return timesteps_;
 }
 
-void PositionalOdomoetry::updateSensor(const DynamicsBodies &bodies,
-                                       double simTime,
-                                       std::mt19937 &rngEngine) {
+void PositionalXYOdomoetry::updateSensor(const DynamicsBodies &bodies,
+                                         double simTime,
+                                         std::mt19937 &rngEngine) {
   // Get the position of the robot this sensor is attached to
-  auto position = bodies.getPosition(bodyIdx_);
+  if (detail::isEqual(simTime, 0.0)) {
+    prevPosition_ = bodies.getPosition(bodyIdx_);
+
+    data_.emplace_back(prevPosition_);
+    timesteps_.emplace_back(simTime);
+    return;
+  }
+  auto velocity = bodies.getLinearVelocity(bodyIdx_);
   // TODO: Document this assumption about z noise not being included
   auto xNoise = noiseDist_(rngEngine);
   auto yNoise = noiseDist_(rngEngine);
-  position.x() = position.x() * xNoise;
-  position.y() = position.y() * yNoise;
-  data_.emplace_back(position);
+  // Integrating but reusing vector
+  velocity.x() = velocity.x() * dt_ + prevPosition_.x() + xNoise;
+  velocity.y() = velocity.y() * dt_ + prevPosition_.y() + yNoise;
+  velocity.z() = velocity.z() * dt_ + prevPosition_.z();
+  data_.emplace_back(velocity);
+  prevPosition_ = velocity;
   timesteps_.emplace_back(simTime);
 }
 

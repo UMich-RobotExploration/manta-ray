@@ -118,7 +118,7 @@ int main() {
   auto odomRobotIdx =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
   world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::PositionalOdomoetry>(
+      std::make_unique<rb::PositionalXYOdomoetry>(
           10.0, static_cast<size_t>(100.0 * endTime),
           std::normal_distribution<double>{0.0, 0.5}));
   auto robotIdx2 =

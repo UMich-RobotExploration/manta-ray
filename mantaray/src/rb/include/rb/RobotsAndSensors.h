@@ -8,6 +8,7 @@
 #include <random>
 
 #include "RbInterfaces.h"
+#include "rb/helpers.h"
 
 namespace rb {
 
@@ -20,10 +21,10 @@ public:
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;
 };
 
-class PositionalOdomoetry : public SensorI {
+class PositionalXYOdomoetry : public SensorI {
 public:
-  PositionalOdomoetry(double freqHz, int timeSteps,
-                      std::normal_distribution<double>);
+  PositionalXYOdomoetry(double freqHz, int timeSteps,
+                        std::normal_distribution<double>);
   std::vector<Eigen::VectorXd> getSensorData() override;
   std::vector<double> getSensorTimesteps() override;
   void updateSensor(const DynamicsBodies &bodies, double simTime,
@@ -31,5 +32,6 @@ public:
 
 private:
   std::normal_distribution<double> noiseDist_;
+  Eigen::Vector3d prevPosition_{0.0, 0.0, 0.0};
 };
 } // namespace rb

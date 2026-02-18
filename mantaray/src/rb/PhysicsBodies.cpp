@@ -22,6 +22,11 @@ KinematicData &DynamicsBodies::getKinematicData(BodyIdx index) {
         "Index out of bounds for dynamics properties");
   return kinematics[index];
 }
+Eigen::Vector3d DynamicsBodies::getLinearVelocity(BodyIdx index) const {
+  CHECK(index < kinematics.size(),
+        "Index out of bounds for dynamics properties");
+  return kinematics[index].twistLocal.lin();
+}
 const Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) const {
   CHECK(index < kinematics.size(),
         "Index out of bounds for dynamics properties");

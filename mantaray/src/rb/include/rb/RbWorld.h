@@ -9,11 +9,9 @@
 #include "PhysicsBodies.h"
 #include "checkAssert.h"
 #include "rb/RbInterfaces.h"
+#include "rb/helpers.h"
 
 namespace rb {
-
-constexpr double kBoundaryEpsilonDouble =
-    std::numeric_limits<double>::epsilon() * 100;
 
 typedef size_t RobotIdx;
 /**
@@ -67,18 +65,5 @@ struct RbWorld {
     return static_cast<RobotIdx>(newIdx);
   }
 };
-
-namespace detail {
-bool isEqual(double x, double y);
-
-/* @brief Checks to see if time is a valid frequency = 1/dt multiple.
- * @details Handles floating point complexity
- * - Evaluates 2 cases:
- *  - A remainder near zero,
- *  - A remainder near dt.
- */
-bool validDeltaTMultiple(double time, double dt);
-
-} // namespace detail
 
 } // namespace rb
