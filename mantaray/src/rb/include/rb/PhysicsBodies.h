@@ -28,6 +28,7 @@ struct DynamicsBodies {
 
   const KinematicData &getKinematicData(BodyIdx index) const;
   KinematicData &getKinematicData(BodyIdx index);
+  Eigen::Vector3d getLinearVelocity(BodyIdx index) const;
   const Eigen::Vector3d getPosition(BodyIdx index) const;
   void reserveBodies(size_t count);
 };

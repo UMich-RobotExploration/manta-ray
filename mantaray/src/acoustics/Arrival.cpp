@@ -78,12 +78,11 @@ size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
  * @brief Find the fastest arrival time for each reciever position.
  * @details Iterates through all source and receiver positions, checking the
  * arrival. Utilize getIdx to map 3D receiver indices to flattened vector index.
- * # TODO: Need to evaluate amplitude here still?
  *
  * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
  * arrivals
  */
-float Arrival::getEarliestArrivals() {
+float Arrival::getFastestArrival() {
   const bhc::Position *Pos = inputs.Pos;
 
   float arrivalDelay = -1;
@@ -161,7 +160,9 @@ float Arrival::getEarliestArrivals() {
    */
 }
 
-float Arrival::getLargestAmpArrivals() {
+/* @brief Returns largest amplitude arrival (not the shortest flight time)
+ */
+float Arrival::getLargestAmpArrival() {
   const bhc::Position *Pos = inputs.Pos;
 
   float arrivalDelay = -1;

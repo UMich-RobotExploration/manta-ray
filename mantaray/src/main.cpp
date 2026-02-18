@@ -5,6 +5,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "fmt/format.h"
@@ -21,8 +22,6 @@
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
 
-#include <random>
-
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
       << " " << x.t.x << " " << x.t.y << " " << x.c << " " << x.Amp << " "
@@ -37,8 +36,8 @@ void OutputCallback(const char *message) {
 
 int main() {
   // TODO: Figure out how this random generator works
-  std::random_device rd;
-  std::mt19937 e{rd()}; // or std::default_random_engine e{rd()};
+  std::mt19937 e{
+      std::random_device{}()}; // or std::default_random_engine e{rd()};
 
   auto init = bhc::bhcInit();
 
@@ -111,14 +110,20 @@ int main() {
   // Simulation Setup
   //////////////////////////////////////////////////////////////////////////////
   rb::RbWorld world{};
-  double endTime = 100.0;
+  double endTime = 50.0;
+  world.simData.dt = 0.1;
+  world.createRngEngine(10020);
   world.reserveRobots(1);
   world.reserveLandmarks(2);
   auto odomRobotIdx =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
-  world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::PositionalOdomoetry>(
+  auto gtIdx = world.robots[odomRobotIdx]->addSensor(
+      std::make_unique<rb::GroundTruthPose>(
           10.0, static_cast<size_t>(100.0 * endTime)));
+  auto odomIdx = world.robots[odomRobotIdx]->addSensor(
+      std::make_unique<rb::PositionalXYOdomoetry>(
+          10.0, static_cast<size_t>(100.0 * endTime),
+          std::normal_distribution<double>{0.0, 0.001}));
   auto robotIdx2 =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
@@ -128,7 +133,7 @@ int main() {
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
-    startTime += 1.0;
+    startTime += 1.0 + 1.0 / 3.0;
     world.advanceWorld(startTime);
     if (std::remainder(startTime, 2.0) < 1e-6) {
       for (auto &robot : world.robots) {
@@ -143,8 +148,8 @@ int main() {
         msg.str("");
         bhc::run(context.params(), context.outputs());
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto earliestArrival = arrival.getEarliestArrivals();
-        auto largestArrival = arrival.getLargestAmpArrivals();
+        auto earliestArrival = arrival.getFastestArrival();
+        auto largestArrival = arrival.getLargestAmpArrival();
         auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
         arrival.getAllArrivals(arrivalDebugInfo);
         arrivalDebugInfo.range = (world.landmarks[0] - position).norm();
@@ -169,9 +174,7 @@ int main() {
       }
     }
   }
-  auto timesteps =
-      world.robots[odomRobotIdx]->sensors_[0]->getSensorTimesteps();
-  acoustics::utils::printVector(timesteps);
+  rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
 
   try {
     bhc::echo(context.params());

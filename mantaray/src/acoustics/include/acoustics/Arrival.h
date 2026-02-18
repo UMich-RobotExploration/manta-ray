@@ -27,8 +27,8 @@ class Arrival {
 public:
   Arrival(bhc::bhcParams<true> &in_params,
           bhc::bhcOutputs<true, true> &outputs);
-  float getEarliestArrivals();
-  float getLargestAmpArrivals();
+  float getFastestArrival();
+  float getLargestAmpArrival();
   void getAllArrivals(ArrivalInfoDebug &arrivalInfo);
   size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
 
