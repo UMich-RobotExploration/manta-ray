@@ -173,7 +173,10 @@ int main() {
   }
   auto timesteps =
       world.robots[odomRobotIdx]->sensors_[0]->getSensorTimesteps();
-  acoustics::utils::printVector(timesteps);
+  fmt::print("Timestep vector\n");
+  for (auto &val : timesteps) {
+    fmt::print("Value: {}\n", val);
+  }
 
   try {
     bhc::echo(context.params());

@@ -124,6 +124,7 @@ void RbWorld::stepWorld(double dt) {
     kinematicData.poseGlobal = newPose;
   }
   simData.time += dt;
+  simData.time = std::round(simData.time * 1e7) / 1e7;
 }
 
 /**
@@ -155,8 +156,8 @@ void RbWorld::advanceWorld(double time) {
     // uniform stepping loop. This helps line everything up immediately.
     // Allows non-dt multiple timesteps if the acoustics simulation needs them
     double timeStepRemainder = std::fmod(simData.time, simData.dt);
-    std::cout << "Timestep remainder: " << timeStepRemainder << "\n";
-    if ((simData.time > 0) && (timeStepRemainder > 0.0)) {
+    if ((simData.time > 0) &&
+        (!detail::validDeltaTMultiple(time, simData.time))) {
 
       // Explanation of how this math works:
       // We have a timestep t1, and we want timestep t2 to be a multiple of dt
@@ -164,12 +165,7 @@ void RbWorld::advanceWorld(double time) {
       // not divisible by dt. So to get t2, we need to do the following math: t2
       // = dt - remainder + t1. So that means a step of dt - remainder
       stepWorld(simData.dt - timeStepRemainder);
-      updateSensors(*this);
-      timeStepRemainder = std::fmod(simData.time, simData.dt);
-      std::cout << "Simulation took: " << std::setprecision(10)
-                << simData.dt - timeStepRemainder
-                << " step, and is now at: " << simData.time << "\n";
-      std::cout << "fmod: " << timeStepRemainder << "\n";
+      // Do NOT update sensors as this is a re-alignment timestep
       bool isValid = detail::validDeltaTMultiple(simData.time, simData.dt);
       CHECK(isValid,
             "A non-uniform step was taken, but the result is still not aligned "
@@ -180,9 +176,9 @@ void RbWorld::advanceWorld(double time) {
     double timeToAdvance = time - simData.time;
     while (timeToAdvance > 0.0) {
       double dt = std::min(simData.dt, timeToAdvance);
+      updateSensors(*this);
       stepWorld(dt);
       std::cout << "Simulation time is: " << simData.time << "\n";
-      updateSensors(*this);
       timeToAdvance -= dt;
     }
     return;
@@ -199,8 +195,7 @@ bool validDeltaTMultiple(double time, double dt) {
   // - Case 2: The remainder is basically dt
   // True when no remainder, false when remainder
   double timeStepRemainder = std::fmod(time, dt);
-  bool hasNoRemainder =
-      timeStepRemainder < std::numeric_limits<double>::epsilon() * 100;
+  bool hasNoRemainder = timeStepRemainder < kBoundaryEpsilonDouble;
   // True when dt, false when not dt
   bool isEqualTodt = isEqual(timeStepRemainder, dt);
   return (hasNoRemainder || isEqualTodt);

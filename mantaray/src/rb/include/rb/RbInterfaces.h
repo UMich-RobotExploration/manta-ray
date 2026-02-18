@@ -27,6 +27,7 @@ public:
 
   // @brief Pure virtual function to update sensors for inheritor to implement
   // @details provides rngEngine for the generation of noise if needed.
+  // This function is only called at the correct dt! You do not need to check!
   virtual void updateSensor(const DynamicsBodies &bodies, double simTime,
                             std::mt19937 &rngEngine) = 0;
   double getFreqHz() const;
