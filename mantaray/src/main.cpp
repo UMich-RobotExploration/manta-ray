@@ -145,8 +145,8 @@ int main() {
         msg.str("");
         bhc::run(context.params(), context.outputs());
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto earliestArrival = arrival.getEarliestArrivals();
-        auto largestArrival = arrival.getLargestAmpArrivals();
+        auto earliestArrival = arrival.getFastestArrival();
+        auto largestArrival = arrival.getLargestAmpArrival();
         auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
         arrival.getAllArrivals(arrivalDebugInfo);
         arrivalDebugInfo.range = (world.landmarks[0] - position).norm();

@@ -40,8 +40,6 @@ void updateSensors(RbWorld &world) {
   for (auto &robot : world.robots) {
     if (robot->isAlive_) {
       for (auto &sensor : robot->sensors_) {
-        // TODO: Need to only call this function if its the correct time to
-        // sample for this particular sensor
         double dt = sensor->getDt();
         bool isValidUpdateTick =
             detail::validDeltaTMultiple(world.simData.time, dt);
