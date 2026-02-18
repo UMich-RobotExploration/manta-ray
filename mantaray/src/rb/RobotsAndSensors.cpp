@@ -20,6 +20,8 @@ PositionalXYOdomoetry::PositionalXYOdomoetry(
     double freqHz, int timeSteps, std::normal_distribution<double> noiseDist)
     : SensorI(timeSteps, SensorType::kPosOdomXY, freqHz),
       noiseDist_(noiseDist) {
+  SPDLOG_INFO("Robot idx: {} has PositionXYOdom sensor at frequency {} Hz",
+              bodyIdx_, getFreqHz());
   if (getFreqHz() < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
   }
@@ -57,7 +59,10 @@ void PositionalXYOdomoetry::updateSensor(const DynamicsBodies &bodies,
 }
 
 GroundTruthPose::GroundTruthPose(double freqHz, int timeSteps)
-    : SensorI(timeSteps, SensorType::kGroundTruthPose, freqHz) {}
+    : SensorI(timeSteps, SensorType::kGroundTruthPose, freqHz) {
+  SPDLOG_INFO("Robot idx: {} has ground truth pose sensor at frequency {} Hz",
+              bodyIdx_, getFreqHz());
+}
 
 void GroundTruthPose::updateSensor(const DynamicsBodies &bodies, double simTime,
                                    [[maybe_unused]] std::mt19937 &rngEngine) {
@@ -124,6 +129,8 @@ std::string csvRowForSensor(const SensorType type, const Eigen::VectorXd data) {
 void outputRobotSensorToCsv(const char *baseFilename, const RobotI &robot) {
   BodyIdx idx = robot.getBodyIdx();
   std::string currFilename = baseFilename;
+  SPDLOG_INFO("CSV Output for robot idx {}, with basefile {}", idx,
+              currFilename);
 
   for (auto &sensor : robot.sensors_) {
     auto &data = sensor->getSensorData();

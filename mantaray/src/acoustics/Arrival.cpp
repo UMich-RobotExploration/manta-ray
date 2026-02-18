@@ -8,9 +8,9 @@
 
 namespace acoustics {
 
-// Calculate the flattened index for the 6D ArrInfo arrays
-// Code taken directly from Bellhopcuda source common.hpp as they don't expose
-// this WARN: DO NOT CHANGE. BELLHOPCUDA owns this LAYOUT!!
+// @brief Calculate the flattened index for the 6D ArrInfo arrays
+// @detail Code taken directly from Bellhopcuda source common.hpp as they don't
+// expose this WARN: DO NOT CHANGE. BELLHOPCUDA owns this LAYOUT!!
 inline size_t GetFieldAddr(int32_t isx, int32_t isy, int32_t isz,
                            int32_t itheta, int32_t id, int32_t ir,
                            const bhc::Position *Pos) {
@@ -52,15 +52,16 @@ Arrival::Arrival(bhc::bhcParams<true> &in_params,
   }
 }
 
-void Arrival::printReceiverInfo(const bhc::Position *Pos, int32_t ir,
-                                int32_t iz, int32_t itheta) {
+std::string Arrival::printReceiverInfo(const bhc::Position *Pos, int32_t ir,
+                                       int32_t iz, int32_t itheta) {
 
   auto rRange = Pos->Rr[ir];
   auto rDepth = Pos->Rz[iz];
   auto rTheta = Pos->theta[itheta];
-  std::cout << "Receiver Position - Range: " << rRange
-            << " m, Depth: " << rDepth << " m, Bearing: " << rTheta
-            << " degrees\n";
+  auto output =
+      fmt::format("Reciever Position - Range: {} m, Depth: {} m, Bearing: {}",
+                  rRange, rDepth, rTheta);
+  return output;
 }
 
 /**
@@ -110,14 +111,14 @@ float Arrival::getFastestArrival() {
 
               float minDelay = std::numeric_limits<float>::max();
 
-              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
-              printReceiverInfo(Pos, ir, iz, itheta);
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
                 const bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
                 if (delay < 0) {
+                  SPDLOG_DEBUG("Found {} arrivals for {}", narr,
+                               printReceiverInfo(Pos, ir, iz, itheta));
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
                 }
@@ -190,8 +191,8 @@ float Arrival::getLargestAmpArrival() {
               float maxAmp = std::numeric_limits<float>::min();
               float minDelay = -1.0;
 
-              std::cout << "Found " << narr << " arrivals for:" << "\n\t";
-              printReceiverInfo(Pos, ir, iz, itheta);
+              SPDLOG_DEBUG("Found {} arrivals for {}", narr,
+                           printReceiverInfo(Pos, ir, iz, itheta));
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
 
@@ -244,6 +245,7 @@ void Arrival::getAllArrivals(ArrivalInfoDebug &arrivalInfo) {
               // Iterating over Individual Ray arrival times
 
               std::cout << "Found " << narr << " arrivals for:" << "\n\t";
+              SPDLOG_DEBUG("Found {} arrivals for ", narr);
               printReceiverInfo(Pos, ir, iz, itheta);
               arrivalInfo.arrivalTimes.resize(narr, kNoArrival);
               arrivalInfo.arrivalTimesImaginary.resize(narr, kNoArrival);

@@ -63,6 +63,7 @@ struct RbWorld {
 
     // Store and return reference
     robots.push_back(std::move(robot));
+    spdlog::info("Adding robot to world at index {}", newIdx);
 
     return static_cast<RobotIdx>(newIdx);
   }

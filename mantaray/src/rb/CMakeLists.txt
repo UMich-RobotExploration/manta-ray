@@ -7,6 +7,7 @@ add_library(${RB_LIB_NAME}
 )
 target_precompile_headers(${RB_LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/rb/pch.h)
 
+target_link_libraries(${RB_LIB_NAME} PRIVATE spdlog::spdlog)
 
 # Link the bellhop library to acoustics
 target_include_directories(${RB_LIB_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
@@ -15,6 +16,7 @@ target_include_directories(${RB_LIB_NAME} PUBLIC ${RB_INCLUDE_DIRS}) # Library I
 
 find_package(manif REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})
+
 
 # Apply compiler options based on build type
 target_compile_options(${RB_LIB_NAME} PUBLIC

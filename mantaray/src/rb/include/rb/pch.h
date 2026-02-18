@@ -9,7 +9,6 @@
 #include <array>
 #include <cmath>
 #include <complex>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -23,7 +22,6 @@
 // Manif
 #include <manif/manif.h>
 
-// Common system headers
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
+#include <spdlog/spdlog.h>

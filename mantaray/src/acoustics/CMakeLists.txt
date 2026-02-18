@@ -6,6 +6,7 @@ add_library(${ACOUSTIC_LIB_NAME}
 )
 target_precompile_headers(${ACOUSTIC_LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/acoustics/pch.h)
 
+target_link_libraries(${ACOUSTIC_LIB_NAME} PRIVATE spdlog::spdlog)
 
 # Link the bellhop library to acoustics
 target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${INCLUDE_BHC})

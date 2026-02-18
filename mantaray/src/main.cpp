@@ -1,14 +1,11 @@
 
-#include <atomic>
 #include <bhc/bhc.hpp>
-#include <chrono>
-#include <cstring>
 #include <filesystem>
-#include <iostream>
 #include <random>
 #include <vector>
 
 #include "fmt/format.h"
+#include "spdlog/spdlog.h"
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
@@ -22,6 +19,8 @@
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
 
+#include <Logger.h>
+
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
       << " " << x.t.x << " " << x.t.y << " " << x.c << " " << x.Amp << " "
@@ -29,14 +28,21 @@ std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   return out;
 }
 
-void PrtCallback(const char *message) { std::cout << message << std::flush; }
+void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
-  std::cout << "Out: " << message << std::endl << std::flush;
+  bellhop_logger->debug("{}", message);
 }
 
 int main() {
 
+  init_logger();
   auto init = bhc::bhcInit();
+  // Set the global logger as the default logger
+  // Create the global logger
+  spdlog::set_default_logger(global_logger);
+  spdlog::set_level(spdlog::level::debug);
+  SPDLOG_INFO("Welcome to spdlog!");
+  SPDLOG_ERROR("Some error message with arg: {}", 1);
 
   char runName[] = "overhaul";
   std::cout << "Current path is " << std::filesystem::current_path()
@@ -136,17 +142,17 @@ int main() {
       for (auto &robot : world.robots) {
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
         simBuilder.updateReceiver(position);
-        std::stringstream msg;
-        msg << "\n/////////////////////////////////\n";
-        msg << "Robot (" + std::to_string(robot->bodyIdx_) + ") at time " +
-                   std::to_string(startTime);
-        msg << ", position [meters]: " << position.transpose() << "\n";
-        std::cout << msg.str();
-        msg.str("");
+
+        bellhop_logger->debug("\n===Start Bellhop Run===\n");
+
+        if (bellhop_logger->level() == spdlog::level::trace) {
+          bhc::echo(context.params());
+        }
         bhc::run(context.params(), context.outputs());
+        bellhop_logger->debug("\n===End Bellhop Run===\n");
+
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getFastestArrival();
-
         float currSsp = 0;
         auto pos = acoustics::utils::safeEigenToVec23(position);
 
@@ -156,12 +162,6 @@ int main() {
   }
   rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
 
-  try {
-    bhc::echo(context.params());
-  } catch (const std::exception &e) {
-    std::cerr << "Error during echo: " << e.what() << std::endl;
-    return 1;
-  }
   bhc::writeout(context.params(), context.outputs(), runName);
   return 0;
 }
