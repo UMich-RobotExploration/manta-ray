@@ -54,7 +54,12 @@ public:
   SensorType sensorType_{SensorType::kUnknown};
 
   // Define pure virtual function for sensor data retrieval
+  // Choosing to return references to avoid large data copies
+
+  // @brief Returns all sensor data time series
   virtual const std::vector<Eigen::VectorXd> &getSensorData() = 0;
+
+  // @brief Returns associated timesteps with sensor data
   virtual const std::vector<double> &getSensorTimesteps() = 0;
 
   // @brief Pure virtual function to update sensors for inheritor to implement
@@ -71,7 +76,7 @@ public:
 protected:
   std::vector<double> timesteps_{};
   std::vector<Eigen::VectorXd> data_{};
-  // Frequency at which the sensor updates, used to check sim dt
+  // Delta time at which the sensor updates, used to check sim dt
   const double dt_{0.0};
 };
 
@@ -84,11 +89,14 @@ public:
 
   virtual manif::SE3Tangentd
   computeLocalTwist(const DynamicsBodies &bodies) = 0; // Make pure virtual
+
+  // @brief Adds a sensor and provides the index to the sensor
   size_t addSensor(std::unique_ptr<SensorI> sensor);
 
   // bodyIdx_ is provided by the RbWorld builder and gives access into dynamics
   // bodies
   BodyIdx bodyIdx_{0};
+
   // isAlive_ is a flag that determines if the robot is still within bounds
   bool isAlive_{true};
   std::vector<std::unique_ptr<SensorI>> sensors_;
