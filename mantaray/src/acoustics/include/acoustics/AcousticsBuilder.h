@@ -185,7 +185,10 @@ private:
    */
   void constructBeam(double bearingAngle);
 
-  /** @brief
+  /** @brief A function for adjusting the beam box size to fit within the
+   * terrain
+   *  @details Not the right usage if you can't ensure the reciever stays
+   *  in this zone.
    */
   static void adjustBeamBox(const Eigen::Vector3d &sourcePos,
                             const BathymetryConfig &bathymetry, double &beamX,
