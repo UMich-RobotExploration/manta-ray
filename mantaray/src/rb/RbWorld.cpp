@@ -143,7 +143,7 @@ void RbWorld::stepWorld(double dt) {
  * by the acoustic sim if needed.
  */
 void RbWorld::advanceWorld(double time) {
-  SPDLOG_INFO("Requested advancement to: {:4f}", time);
+  SPDLOG_INFO("Requested advancement from {:4f} to: {:4f}", simData.time, time);
   if (detail::isEqual(simData.time, 0.0)) {
     validateWorld();
     SPDLOG_INFO("Validated Rigid Body World");
@@ -171,7 +171,7 @@ void RbWorld::advanceWorld(double time) {
       // Remainder is defined as numMultiplies * dt + remainder = t2, if t1 is
       // not divisible by dt. So to get t2, we need to do the following math: t2
       // = dt - remainder + t1. So that means a step of dt - remainder
-      SPDLOG_DEBUG("Stepping world to re-align dt {}",
+      SPDLOG_DEBUG("Sub dt stepping world to re-align dt {}",
                    simData.dt - timeStepRemainder);
       stepWorld(simData.dt - timeStepRemainder);
       // Do NOT update sensors as this is a re-alignment timestep

@@ -12,7 +12,8 @@ void init_logger() {
   auto file_sink =
       std::make_shared<spdlog::sinks::basic_file_sink_mt>("sim_log.txt", true);
   console_sink->set_level(spdlog::level::debug);
-  console_sink->set_pattern("%^[%=7l]%$ %v");
+  // [7 width centered warning level][filename:line number] log message
+  console_sink->set_pattern("%^[%=7l][%s:%#]%$ %v");
   file_sink->set_pattern("[%=7l] %v");
 
   // Create the global logger

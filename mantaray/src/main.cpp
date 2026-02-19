@@ -38,15 +38,14 @@ int main() {
   init_logger();
   auto init = bhc::bhcInit();
   // Set the global logger as the default logger
-  // Create the global logger
   spdlog::set_default_logger(global_logger);
   spdlog::set_level(spdlog::level::debug);
-  SPDLOG_INFO("Welcome to spdlog!");
-  SPDLOG_ERROR("Some error message with arg: {}", 1);
+  SPDLOG_INFO("Beginning Bellhop Robotics Sim");
 
   char runName[] = "overhaul";
-  std::cout << "Current path is " << std::filesystem::current_path()
-            << std::endl;
+  SPDLOG_INFO("Run name: {}", runName);
+  SPDLOG_INFO("Current run path is: {}",
+              std::filesystem::current_path().c_str());
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
@@ -91,7 +90,6 @@ int main() {
   // acoustics::munkProfile(SSPGrid, refSoundSpeed, true);
 
   auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
-  std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup

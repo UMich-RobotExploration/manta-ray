@@ -54,7 +54,7 @@ struct DynamicsBodies {
  * @param refPose "Fixed" pose we are computing relative to
  * @param outputPose Output pose expressed in refPose frame
  */
-void relativeTransform(manif::SE3d &pose, manif::SE3d &refPose,
+void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,
                        manif::SE3d &outputPose);
 
 /* @brief Details namespace is for private internal use of the rb library
