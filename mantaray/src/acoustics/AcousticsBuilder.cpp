@@ -110,6 +110,70 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
   params_.Bdry->Bot.hs.Depth = params_.ssp->Seg.z[sspConfig_.Grid.nz() - 1];
 }
 
+void AcousticsBuilder::adjustBeamBox(const Eigen::Vector3d &sourcePos,
+                                     const BathymetryConfig &bathymetry,
+                                     double &beamX, double &beamY) {
+  auto [minValue, maxValue] = bathymetry.Grid.boundingBox();
+  double kmScaler = bathymetry.isKm ? 1000.0 : 1.0;
+  minValue = minValue * kmScaler;
+  maxValue = maxValue * kmScaler;
+  // construct the 2 main corners
+  auto beamBox = utils::boxFromMidpoint(sourcePos, beamX, beamY);
+  bool isMaxValid = utils::eigenFloatSafeComparison(
+      maxValue, beamBox.topRight, [](const auto &a, const auto &b) {
+        return (a.array() >= b.array()).all();
+      });
+  bool isMinValid = utils::eigenFloatSafeComparison(
+      beamBox.bottomLeft, minValue, [](const auto &a, const auto &b) {
+        return (a.array() >= b.array()).all();
+      });
+  // If we are already within the bounding box, we can just skip
+  if (isMaxValid && isMinValid) {
+    SPDLOG_TRACE("Beam bounding box is valid and within acoustics sim");
+    return;
+  }
+  // This means one of the conditions is evaluated as outside the range.
+  // Instead of checking which, we can just compute both offsets and take the
+  // bigger of the two needed.
+
+  // Will only be negative if beam box is larger;
+  //  (2,2) - (3,1) = (-1, 1)
+  auto deltaMax = maxValue - beamBox.topRight;
+  // Will only be negative if beam box is smaller
+  //  (-2,0) - (-1,-1) = (-1, 1)
+  auto deltaMin = beamBox.bottomLeft - minValue;
+  double xAdjust = std::min(deltaMax(0), deltaMin(0));
+  double yAdjust = std::min(deltaMax(1), deltaMin(1));
+  // Making sure we only take negative adjustments
+  xAdjust = std::min(xAdjust, 0.0);
+  yAdjust = std::min(yAdjust, 0.0);
+  SPDLOG_DEBUG("Adjusting beam X size or beam Y size based on invalid box. "
+               "Shift is occuring in X: {}, Y: {}",
+               xAdjust, yAdjust);
+  beamX = beamX + xAdjust;
+  beamY = beamY + yAdjust;
+  return;
+}
+
+void AcousticsBuilder::checkReceiverInBox(const Eigen::Vector3d &sourcePos,
+                                          const Eigen::Vector3d &receiverPos,
+                                          double beamX, double beamY) {
+  auto beamBox = utils::boxFromMidpoint(sourcePos, beamX, beamY);
+
+  bool isMaxValid = utils::eigenFloatSafeComparison(
+      beamBox.topRight, receiverPos.head(2), [](const auto &a, const auto &b) {
+        return (a.array() >= b.array()).all();
+      });
+  bool isMinValid =
+      utils::eigenFloatSafeComparison(receiverPos.head(2), beamBox.bottomLeft,
+                                      [](const auto &a, const auto &b) {
+                                        return (a.array() >= b.array()).all();
+                                      });
+  if (!isMaxValid || !isMinValid) {
+    SPDLOG_ERROR("Reciever is outside the beam box, no rays will get to it.");
+  }
+}
+
 void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
@@ -133,27 +197,47 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   constexpr double boxScale = 1.50;
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  // beam->deltas = delta.norm() * kBeamStepSizeRatio;
-  // TODO: Adjust this and decide what to do for step size
-  beam->deltas = 1.0;
+  beam->deltas = delta.norm() * kBeamStepSizeRatio;
   delta = boxScale * delta;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
-  CHECK((deltaX > 0.0) && (deltaY > 0.0),
-        "Delta's need to be positive in bellhop box");
-  // TODO: Add check for bounding box
+  // setting a minimum of 10 meter box
+  deltaX = (deltaX >= 0.0 && deltaX <= 1.0) ? 10.0 : deltaX;
+  deltaY = (deltaY >= 0.0 && deltaY <= 1.0) ? 10.0 : deltaY;
+  CHECK(
+      (deltaX > 0.0) || (deltaY > 0.0),
+      fmt::format("Beam Box Size needs to be positive in bellhop box. Size is "
+                  "deltaX: {}, deltaY: {}",
+                  deltaX, deltaY));
+
+  // Beam box is centered around source coord sys. Reference bellhop docs
+  // if needed
+  // adjustBeamBox(agentsConfig_.source, bathymetryConfig_, deltaX, deltaY);
+  checkReceiverInBox(agentsConfig_.source, agentsConfig_.receiver, deltaX,
+                     deltaY);
   beam->Box.x = deltaX;
   beam->Box.y = deltaY;
   SPDLOG_DEBUG("Beam box set to: x: {}, y: {}", deltaX, deltaY);
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
+  // Adding a 10 meter buffer to the beam box to ensure that values can rebound
+  // off the bottom
   beam->Box.z = max * kmScaler + 10;
 }
-void AcousticsBuilder::adjustBeamBox(const Eigen::Vector3d &sourcePos,
-                                     Grid2D &bathymetry, double &beamX,
-                                     double &beamY) {}
+std::pair<double, bool>
+AcousticsBuilder::isWithinBathymetry(Eigen::Vector3d &position) const {
+  double kmScalerBath = bathymetryConfig_.isKm ? 1.0 / 1000.0 : 1.0;
+  double bathymetryHeight =
+      bathymetryConfig_.Grid.interpolateDataValue(position.x() * kmScalerBath,
+                                                  position.y() * kmScalerBath) *
+      1 / kmScalerBath;
+  if (bathymetryHeight > position.z()) {
+    return {bathymetryHeight, true};
+  }
+  return {bathymetryHeight, false};
+}
 
-void AcousticsBuilder::updateAgents() {
+BoundaryCheck AcousticsBuilder::updateAgents() {
   if (!agentsBuilt_) {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
@@ -173,16 +257,40 @@ void AcousticsBuilder::updateAgents() {
       utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
   bool isReceiver =
       utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
+
   if (!isSourceInBounds || !isReceiver) {
-    std::stringstream msg;
-    msg << "Source or Receiver position is out of bounds of the simulation "
-           "box. "
-        << "Source: (" << agentsConfig_.source.transpose() << ") , Receiver: ("
-        << agentsConfig_.receiver.transpose() << ") , Min Box: ("
-        << minCoords_.transpose() << ") , Max Box: (" << maxCoords_.transpose()
-        << ")";
-    throw std::out_of_range(msg.str());
+    auto msg = fmt::format(
+        "Source or Receiver position is out of bounds of the simulation box. "
+        "Source: ({}) , Receiver: ({}) , Min Box: ({}) , Max Box: ({})",
+        agentsConfig_.source.transpose(), agentsConfig_.receiver.transpose(),
+        minCoords_.transpose(), maxCoords_.transpose());
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kEitherOrOutOfBounds;
   }
+  auto [bathymetryHeight, isReceiverWithinBath] =
+      isWithinBathymetry(agentsConfig_.receiver);
+  if (!isReceiverWithinBath) {
+    auto msg =
+        fmt::format("Current receiver position is below the bathymetry "
+                    "and therefore should be marked as dead. Receiver z-height "
+                    "is {:4f}, while bathymetry interpolated value is {:4f}",
+                    agentsConfig_.receiver.z(), bathymetryHeight);
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kReceiverOutofBounds;
+  }
+  auto result = isWithinBathymetry(agentsConfig_.source);
+  bool isSourceWithinBath = result.second;
+  bathymetryHeight = result.first;
+  if (!isSourceWithinBath) {
+    auto msg =
+        fmt::format("Current receiver position is below the bathymetry "
+                    "and therefore should be marked as dead. Receiver z-height "
+                    "is {:4f}, while bathymetry interpolated value is {:4f}",
+                    agentsConfig_.source.z(), bathymetryHeight);
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kSourceOutofBounds;
+  }
+
   // no smart checking, everything is overwritten
   params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
@@ -197,6 +305,7 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->Rz[0] = utils::safeDoubleToFloat(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
+  return BoundaryCheck::kInBounds;
 };
 
 void AcousticsBuilder::buildAgents() {
@@ -248,8 +357,8 @@ void AcousticsBuilder::build() {
     maxCoords_[2] = sspConfig_.Grid.zCoords.back() * kmScalerSSP;
   } else {
     // ReSharper disable once CppDFAUnreachableCode
-    // This code is here even though unreachable, to protect future refactorers
-    // on build order of the sim.
+    // This code is here even though unreachable, to protect future
+    // refactorers on build order of the sim.
     throw std::runtime_error(
         "Cannot build simulation: Bathymetry must be built before SSP.");
   }
@@ -300,26 +409,27 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
   }
 }
 
-void AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
-  updateReceiver(position(0), position(1), position(2));
+BoundaryCheck
+AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
+  return updateReceiver(position(0), position(1), position(2));
 }
 
-void AcousticsBuilder::updateReceiver(double x, double y, double z) {
+BoundaryCheck AcousticsBuilder::updateReceiver(double x, double y, double z) {
   agentsConfig_.receiver(0) = x;
   agentsConfig_.receiver(1) = y;
   agentsConfig_.receiver(2) = z;
-  updateAgents();
+  return updateAgents();
 }
 
-void AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
-  updateSource(position(0), position(1), position(2));
+BoundaryCheck AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
+  return updateSource(position(0), position(1), position(2));
 }
 
-void AcousticsBuilder::updateSource(double x, double y, double z) {
+BoundaryCheck AcousticsBuilder::updateSource(double x, double y, double z) {
   agentsConfig_.source(0) = x;
   agentsConfig_.source(1) = y;
   agentsConfig_.source(2) = z;
-  updateAgents();
+  return updateAgents();
 }
 
 } // namespace acoustics

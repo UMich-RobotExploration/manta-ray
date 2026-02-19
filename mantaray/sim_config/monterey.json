@@ -1,0 +1,17 @@
+{
+  "source_dir": "../../data/monterey",
+  "bathymetry": {
+    "x": "bathymetry/x_coords.npy",
+    "y": "bathymetry/y_coords.npy",
+    "data": "bathymetry/bathymetry.npy"
+  },
+  "ssp": {
+    "x": "ssp/x_coords.npy",
+    "y": "ssp/y_coords.npy",
+    "z": "ssp/depth_coords.npy",
+    "data": "ssp/ssp.npy"
+  },
+  "current": {
+    "data": "current.npy"
+  }
+}

@@ -83,5 +83,18 @@ bhc::VEC23<true> safeEigenToVec23(const Eigen::Vector3d &vec, bool strict) {
                                 safeDoubleToFloat(vec(2), strict)};
   return outputVec;
 }
+AxisAlignedBox::AxisAlignedBox(const Eigen::Vector3d &center)
+    : bottomLeft{center[0], center[1]}, topRight{center[0], center[1]} {}
+
+AxisAlignedBox boxFromMidpoint(const Eigen::Vector3d &center, double deltaX,
+                               double deltaY) {
+  auto output = AxisAlignedBox(center);
+  output.topRight(0) += deltaX;
+  output.topRight(1) += deltaY;
+  output.bottomLeft(0) -= deltaX;
+  output.bottomLeft(1) -= deltaY;
+
+  return output;
+}
 } // namespace utils
 } // namespace acoustics

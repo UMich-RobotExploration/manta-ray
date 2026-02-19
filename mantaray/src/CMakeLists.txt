@@ -4,6 +4,8 @@ add_executable(${TARGET_NAME}
         checkAssert.h
         Logger.cpp
         Logger.h
+        ConfigReader.cpp
+        ConfigReader.h
 )
 
 

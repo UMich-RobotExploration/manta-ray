@@ -4,6 +4,7 @@
 
 #pragma once
 #include "acoustics/SimulationConfig.h"
+#include "acoustics/fmt_eigen.h"
 #include "acoustics/helpers.h"
 #include "checkAssert.h"
 #include <algorithm>
@@ -14,10 +15,19 @@ namespace acoustics {
 constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;
 
-// TODO: Need to implement validation checks
-// - Beam box is within bounds of sim
-// - Beam box has some minimum reasonable size to prevent rays from ending
-//  immediately after being launched
+enum class BoundaryCheck {
+  kReceiverOutofBounds,
+  kSourceOutofBounds,
+  kEitherOrOutOfBounds,
+  kInBounds
+};
+
+/* TODO: Need to implement validation checks
+ * - [*] Beam box is within bounds of sim
+ *  - This ends up not working due to symmetrical requirements of the beam box
+ * - [ ] Beam box has some minimum reasonable size to prevent rays from ending
+ *  immediately after being launched
+ */
 
 // ============================================================================
 // Acoustics Builder -
@@ -85,12 +95,12 @@ public:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateSource(double x, double y, double z);
+  [[nodiscard]] BoundaryCheck updateSource(double x, double y, double z);
 
   /* @brief Updates sources
    * @see updateSources(double x, double y, double z)
    */
-  void updateSource(const Eigen::Vector3d &position);
+  [[nodiscard]] BoundaryCheck updateSource(const Eigen::Vector3d &position);
 
   /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG)
    *
@@ -99,12 +109,12 @@ public:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateReceiver(double x, double y, double z);
+  [[nodiscard]] BoundaryCheck updateReceiver(double x, double y, double z);
 
   /* @brief Updates receivers
    * @see updateReceiver(double x, double y, double z)
    */
-  void updateReceiver(const Eigen::Vector3d &position);
+  [[nodiscard]] BoundaryCheck updateReceiver(const Eigen::Vector3d &position);
 
   /** @brief Validates that bathymetry is completely enclosed by ssp grid.
    *
@@ -155,7 +165,7 @@ private:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateAgents();
+  [[nodiscard]] BoundaryCheck updateAgents();
 
   /** @brief Synchronize boundary depth values with SSP depth range
    *
@@ -173,22 +183,41 @@ private:
   /**
    * @brief Constructs and aims ray's between sources and receivers
    *
-   * @details For efficiency this functions assumes that sources and receivers
+   * @details Important to note, the beam box coordinate system is centered
+   * around the source.
+   * For efficiency this functions assumes that sources and receivers
    * have already been built. So be warned! If sources or receivers are updated
    * after this function is called, the beam configuration will need to be
    * updated by calling this function again with the new bearing angle.
-   *   * @param bearingAngle The angle in radians between source and receiver in
+   * @param bearingAngle The angle in radians between source and receiver in
    * x-y plane.
    */
   void constructBeam(double bearingAngle);
 
-  /** @brief
+  /**
+   *  @brief Checks if position is not underneath the bathymetry using
+   *  linear interpolation
+   * @param position
+   * @return provides bathymetry height and boolean, true if it is wihtin
+   * boundary, false if not
+   */
+  std::pair<double, bool> isWithinBathymetry(Eigen::Vector3d &position) const;
+
+  /** @brief A function for adjusting the beam box size to fit within the
+   * terrain
+   *  @details Not the right usage if you can't ensure the reciever stays
+   *  in this zone.
    */
   static void adjustBeamBox(const Eigen::Vector3d &sourcePos,
-                            Grid2D &bathymetry, double &beamX, double &beamY);
+                            const BathymetryConfig &bathymetry, double &beamX,
+                            double &beamY);
 
-  // TODO: Implement this
-  bool checkPositionInWorld(const Eigen::Vector3d &position) const;
+  /** @brief Checks to make sure that the receiver is in the beam box.
+   * @details It only raises a log warning if it is not in the box
+   */
+  static void checkReceiverInBox(const Eigen::Vector3d &sourcePos,
+                                 const Eigen::Vector3d &receiverPos,
+                                 double beamX, double beamY);
 
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                                const BathymetryConfig &bathConfig);
