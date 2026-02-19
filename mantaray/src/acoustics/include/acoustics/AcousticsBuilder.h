@@ -179,10 +179,17 @@ private:
    * updated by calling this function again with the new bearing angle.
    *   * @param bearingAngle The angle in radians between source and receiver in
    * x-y plane.
-   *
-   * TODO: Ensure beam box actually is within bounds of SSP.
    */
   void constructBeam(double bearingAngle);
+
+  /** @brief
+   */
+  static void adjustBeamBox(const Eigen::Vector3d &sourcePos,
+                            Grid2D &bathymetry, double &beamX, double &beamY);
+
+  // TODO: Implement this
+  bool checkPositionInWorld(const Eigen::Vector3d &position) const;
+
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                                const BathymetryConfig &bathConfig);
 };

@@ -23,8 +23,8 @@ struct ArrivalInfoDebug {
   void logArrivalInfo(const std::string &filename);
 };
 
-/* @brief Class that extracts arrival information from bellhop output format
- * @detail Checks to ensure that appropriate fields exist in bellhop output
+/** @brief Class that extracts arrival information from bellhop output format
+ * @details Checks to ensure that appropriate fields exist in bellhop output
  * to prevent segmentation faults through dereferencing of null pointers etc.
  */
 class Arrival {

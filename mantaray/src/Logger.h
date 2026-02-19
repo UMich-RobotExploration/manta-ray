@@ -11,7 +11,7 @@ extern std::shared_ptr<spdlog::logger> global_logger;
 // Bellhop callback only logger (not for general use)
 extern std::shared_ptr<spdlog::logger> bellhop_logger;
 
-/*
+/**
  * @brief Initializes both the global logger and bellhop logger
  * @details
  * - Global logger is for all generic logging tasks

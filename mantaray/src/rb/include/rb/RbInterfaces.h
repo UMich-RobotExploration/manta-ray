@@ -10,7 +10,8 @@
 #include "rb/PhysicsBodies.h"
 
 namespace rb {
-/* @brief Enum to capture all the types of sensors
+/**
+ * @brief Enum to capture all the types of sensors
  * @details This can later be used to parse outputs easier based on these types
  *
  * When adding a new SensorType. Ensure you override the default kUnknown when
@@ -24,8 +25,9 @@ enum class SensorType {
   kGroundTruthTwist,
   kPosOdomXY,
 };
-// @brief Provides a string conversion for the enum
-// @detail No spaces so they make nice file names
+/** @brief Provides a string conversion for the enum
+ * @details No spaces so they make nice file names
+ */
 constexpr const char *sensorTypeToString(SensorType type) {
   switch (type) {
   case SensorType::kUnknown:
@@ -65,15 +67,16 @@ public:
   // Define pure virtual function for sensor data retrieval
   // Choosing to return references to avoid large data copies
 
-  // @brief Returns all sensor data time series
+  // Returns all sensor data time series
   virtual const std::vector<Eigen::VectorXd> &getSensorData() = 0;
 
-  // @brief Returns associated timesteps with sensor data
+  // Returns associated timesteps with sensor data
   virtual const std::vector<double> &getSensorTimesteps() = 0;
 
-  // @brief Pure virtual function to update sensors for inheritor to implement
-  // @details provides rngEngine for the generation of noise if needed.
-  // This function is only called at the correct dt! You do not need to check!
+  /** @brief Pure virtual function to update sensors for inheritor to implement
+   * @details provides rngEngine for the generation of noise if needed.
+   * This function is only called at the correct dt! You do not need to check!
+   */
   virtual void updateSensor(const DynamicsBodies &bodies, double simTime,
                             std::mt19937 &rngEngine) = 0;
   double getFreqHz() const;
@@ -89,15 +92,16 @@ protected:
   const double dt_{0.0};
 };
 
-/* @brief Defines the interface that RbWorld expects from robots in order
+/** @brief Defines the interface that RbWorld expects from robots in order
  * to properly manage lifetimes, sensors, and compute twists.
+ *
+ * @property bodyIdx: index into kinematicData where robot's rigid body
+ * data is stored
  *
  * @par Twist Update
  * The twist update is the key component of this interface. The integrator takes
  * twists from all robots and integrates them to create motion.
  *
- * @property bodyIdx: index into kinematicData where robot's rigid body
- * data is stored
  */
 class RobotI {
 public:
@@ -109,7 +113,10 @@ public:
   virtual manif::SE3Tangentd
   computeLocalTwist(const DynamicsBodies &bodies) = 0; // Make pure virtual
 
-  // @brief Adds a sensor and provides the index to the sensor
+  /**
+   * @brief Adds a sensor
+   * @return index: index to the sensor
+   */
   size_t addSensor(std::unique_ptr<SensorI> sensor);
 
   // bodyIdx_ is provided by the RbWorld builder and gives access into dynamics

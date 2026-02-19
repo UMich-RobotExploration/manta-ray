@@ -47,11 +47,13 @@ struct RbWorld {
 
   void advanceWorld(double time);
 
-  // @brief Create a random generator that works for entirety of sim
+  /** @brief Create a random generator that works for entirety of sim
+   */
   void createRngEngine(size_t seed);
 
-  // Factory that constructs robots, but I return no dangling pointers
-  // Access them through the index
+  /** @brief Factory that constructs robots, but returns no dangling pointers
+   * Access them through the index
+   */
   template <typename RobotType, typename... Args>
   RobotIdx addRobot(Args &&...args) {
     // First, add a body to get the index

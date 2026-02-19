@@ -141,6 +141,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   double deltaY = std::abs(delta(1));
   CHECK((deltaX > 0.0) && (deltaY > 0.0),
         "Delta's need to be positive in bellhop box");
+  // TODO: Add check for bounding box
   beam->Box.x = deltaX;
   beam->Box.y = deltaY;
   SPDLOG_DEBUG("Beam box set to: x: {}, y: {}", deltaX, deltaY);
@@ -148,6 +149,9 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
                                  bathymetryConfig_.Grid.data.end());
   beam->Box.z = max * kmScaler + 10;
 }
+void AcousticsBuilder::adjustBeamBox(const Eigen::Vector3d &sourcePos,
+                                     Grid2D &bathymetry, double &beamX,
+                                     double &beamY) {}
 
 void AcousticsBuilder::updateAgents() {
   if (!agentsBuilt_) {
