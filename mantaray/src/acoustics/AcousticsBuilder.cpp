@@ -143,6 +143,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
         "Delta's need to be positive in bellhop box");
   beam->Box.x = deltaX;
   beam->Box.y = deltaY;
+  SPDLOG_DEBUG("Beam box set to: x: {}, y: {}", deltaX, deltaY);
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   beam->Box.z = max * kmScaler + 10;
@@ -155,7 +156,7 @@ void AcousticsBuilder::updateAgents() {
   }
   bool isReceiverCountIdentical = params_.Pos->NRr == kNumRecievers;
   if (!isReceiverCountIdentical) {
-    std::cout << "Reallocating receiver arrays for updated agents.\n";
+    SPDLOG_DEBUG("Reallocating receiver arrays for updated agents.\n");
     bhc::extsetup_rcvrranges(params_, kNumRecievers);
     bhc::extsetup_rcvrbearings(params_, kNumRecievers);
     bhc::extsetup_rcvrdepths(params_, kNumRecievers);

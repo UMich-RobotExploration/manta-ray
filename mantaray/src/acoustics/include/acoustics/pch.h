@@ -6,23 +6,16 @@
 
 // Standard library headers
 #include <algorithm>
-#include <array>
-#include <cmath>
-#include <complex>
-#include <fstream>
-#include <iostream>
 #include <limits>
-#include <memory>
 #include <numeric>
-#include <sstream>
 #include <string>
 #include <vector>
 
-// Eigen (if used in your project)
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-// Common system headers
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
+#ifndef SPDLOG_ACTIVE_LEVEL
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif
+
+#include <spdlog/spdlog.h>

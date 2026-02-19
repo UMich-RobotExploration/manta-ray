@@ -6,8 +6,8 @@
 #include "checkAssert.h"
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
+#include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <vector>
 
 namespace acoustics {
@@ -23,6 +23,10 @@ struct ArrivalInfoDebug {
   void logArrivalInfo(const std::string &filename);
 };
 
+/* @brief Class that extracts arrival information from bellhop output format
+ * @detail Checks to ensure that appropriate fields exist in bellhop output
+ * to prevent segmentation faults through dereferencing of null pointers etc.
+ */
 class Arrival {
 public:
   Arrival(bhc::bhcParams<true> &in_params,
@@ -30,13 +34,13 @@ public:
   float getFastestArrival();
   float getLargestAmpArrival();
   void getAllArrivals(ArrivalInfoDebug &arrivalInfo);
-  size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
 
 private:
   const bhc::bhcParams<true> &inputs;
   bhc::bhcOutputs<true, true> &outputs;
   bhc::ArrInfo *arrInfo;
-  static void printReceiverInfo(const bhc::Position *Pos, int32_t ir,
-                                int32_t iz, int32_t itheta);
+  size_t getIdx(size_t ir, size_t iz, size_t itheta) const;
+  static std::string printReceiverInfo(const bhc::Position *Pos, int32_t ir,
+                                       int32_t iz, int32_t itheta);
 };
 } // namespace acoustics

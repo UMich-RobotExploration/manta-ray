@@ -143,10 +143,13 @@ void RbWorld::stepWorld(double dt) {
  * by the acoustic sim if needed.
  */
 void RbWorld::advanceWorld(double time) {
+  SPDLOG_INFO("Requested advancement from {:4f} to: {:4f}", simData.time, time);
   if (detail::isEqual(simData.time, 0.0)) {
     validateWorld();
+    SPDLOG_INFO("Validated Rigid Body World");
   }
   if (detail::isEqual(time, simData.time)) {
+    SPDLOG_DEBUG("Requested no advancement of sim.");
     return; // No advancement needed
   } else if (time < simData.time) {
     std::string msg = "Cannot simulate the requested step as it is backwards "
@@ -168,6 +171,8 @@ void RbWorld::advanceWorld(double time) {
       // Remainder is defined as numMultiplies * dt + remainder = t2, if t1 is
       // not divisible by dt. So to get t2, we need to do the following math: t2
       // = dt - remainder + t1. So that means a step of dt - remainder
+      SPDLOG_DEBUG("Sub dt stepping world to re-align dt {}",
+                   simData.dt - timeStepRemainder);
       stepWorld(simData.dt - timeStepRemainder);
       // Do NOT update sensors as this is a re-alignment timestep
       bool isValid = detail::validDeltaTMultiple(simData.time, simData.dt);
@@ -182,7 +187,7 @@ void RbWorld::advanceWorld(double time) {
       double dt = std::min(simData.dt, timeToAdvance);
       updateSensors(*this);
       stepWorld(dt);
-      std::cout << "Simulation time is: " << simData.time << "\n";
+      SPDLOG_TRACE("Simulation time is {}", simData.time);
       timeToAdvance -= dt;
     }
     return;

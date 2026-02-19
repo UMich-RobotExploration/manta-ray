@@ -1,18 +1,15 @@
 
-#include <atomic>
 #include <bhc/bhc.hpp>
-#include <chrono>
-#include <cstring>
 #include <filesystem>
-#include <iostream>
 #include <random>
 #include <vector>
 
 #include "fmt/format.h"
+#include "spdlog/spdlog.h"
 
 // #define BHC_DLL_IMPORT 1
 #include "acoustics/Arrival.h"
-#include "acoustics/BhHandler.h"
+#include "acoustics/BellhopContext.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
@@ -22,6 +19,8 @@
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
 
+#include <Logger.h>
+
 std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
       << " " << x.t.x << " " << x.t.y << " " << x.c << " " << x.Amp << " "
@@ -29,27 +28,30 @@ std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
   return out;
 }
 
-void PrtCallback(const char *message) { std::cout << message << std::flush; }
+void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
-  std::cout << "Out: " << message << std::endl << std::flush;
+  bellhop_logger->debug("{}", message);
 }
 
 int main() {
-  // TODO: Figure out how this random generator works
-  std::mt19937 e{
-      std::random_device{}()}; // or std::default_random_engine e{rd()};
 
+  init_logger();
   auto init = bhc::bhcInit();
+  // Set the global logger as the default logger
+  spdlog::set_default_logger(global_logger);
+  spdlog::set_level(spdlog::level::debug);
+  SPDLOG_INFO("Beginning Bellhop Robotics Sim");
 
   char runName[] = "overhaul";
-  std::cout << "Current path is " << std::filesystem::current_path()
-            << std::endl;
+  SPDLOG_INFO("Run name: {}", runName);
+  SPDLOG_INFO("Current run path is: {}",
+              std::filesystem::current_path().c_str());
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
   // Profiled memory to find PreProcess was the longest task in the sim
   // Reducing memory is the only way to limit it's overhead.
-  init.maxMemory = 80ull * 1024ull * 1024ull; // 30 MiB
+  init.maxMemory = 80ull * 1024ull * 1024ull; // 80 MiB
   init.numThreads = -1;
   // init.useRayCopyMode = true;
   auto context = acoustics::BhContext<true, true>(init);
@@ -88,7 +90,6 @@ int main() {
   // acoustics::munkProfile(SSPGrid, refSoundSpeed, true);
 
   auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
-  std::cout << "SSP at (0,0,z): " << std::endl;
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
@@ -139,49 +140,26 @@ int main() {
       for (auto &robot : world.robots) {
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
         simBuilder.updateReceiver(position);
-        std::stringstream msg;
-        msg << "\n/////////////////////////////////\n";
-        msg << "Robot (" + std::to_string(robot->bodyIdx_) + ") at time " +
-                   std::to_string(startTime);
-        msg << ", position [meters]: " << position.transpose() << "\n";
-        std::cout << msg.str();
-        msg.str("");
+
+        bellhop_logger->debug("\n===Start Bellhop Run===\n");
+
+        if (bellhop_logger->level() == spdlog::level::trace) {
+          bhc::echo(context.params());
+        }
         bhc::run(context.params(), context.outputs());
+        bellhop_logger->debug("\n===End Bellhop Run===\n");
+
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getFastestArrival();
-        auto largestArrival = arrival.getLargestAmpArrival();
-        auto arrivalDebugInfo = acoustics::ArrivalInfoDebug{};
-        arrival.getAllArrivals(arrivalDebugInfo);
-        arrivalDebugInfo.range = (world.landmarks[0] - position).norm();
-        arrivalDebugInfo.groundTruthArrivalTime =
-            arrivalDebugInfo.range / refSoundSpeed;
-        arrivalDebugInfo.soundSpeed = refSoundSpeed;
-
-        auto fileOutput =
-            fmt::format("arrival_{}_{}.csv", robot->bodyIdx_, startTime);
-        arrivalDebugInfo.logArrivalInfo(fileOutput);
         float currSsp = 0;
         auto pos = acoustics::utils::safeEigenToVec23(position);
 
         bhc::get_ssp<true, true>(context.params(), pos, currSsp);
-        fmt::print("SSP at receiver: {} m/s\n", currSsp);
-        fmt::print("SSP based range (earliest): {} m\n",
-                   earliestArrival * currSsp);
-        fmt::print("SSP based range (largest amp): {} m\n",
-                   largestArrival * currSsp);
-        fmt::print("Actual Range: {} m\n",
-                   (world.landmarks[0] - position).norm());
       }
     }
   }
   rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
 
-  try {
-    bhc::echo(context.params());
-  } catch (const std::exception &e) {
-    std::cerr << "Error during echo: " << e.what() << std::endl;
-    return 1;
-  }
   bhc::writeout(context.params(), context.outputs(), runName);
   return 0;
 }

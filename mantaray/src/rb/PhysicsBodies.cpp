@@ -33,7 +33,7 @@ const Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) const {
   return kinematics[index].poseGlobal.translation();
 }
 
-void relativeTransform(manif::SE3d &pose, manif::SE3d &refPose,
+void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,
                        manif::SE3d &outputPose) {
   outputPose = pose * refPose.inverse();
 }

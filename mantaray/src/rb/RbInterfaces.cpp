@@ -19,7 +19,9 @@ SensorI::SensorI(int numTimesteps, SensorType type, double freqHz)
   data_.reserve(numTimesteps);
 }
 void SensorI::setDynamicsIndex(BodyIdx idx) { bodyIdx_ = idx; }
-bool SensorI::checkUpdate() { return (data_.size() == timesteps_.size()); }
+bool SensorI::checkUpdate() const {
+  return (data_.size() == timesteps_.size());
+}
 double SensorI::getFreqHz() const { return 1.0 / dt_; }
 double SensorI::getDt() const { return dt_; }
 } // namespace rb

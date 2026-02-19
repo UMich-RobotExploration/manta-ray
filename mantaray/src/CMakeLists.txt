@@ -2,7 +2,9 @@
 add_executable(${TARGET_NAME}
         main.cpp
         checkAssert.h
-        )
+        Logger.cpp
+        Logger.h
+)
 
 
 # Add the bellhopcuda include directory to the project
@@ -13,6 +15,14 @@ target_include_directories(${TARGET_NAME} PRIVATE
 target_include_directories(${TARGET_NAME} PRIVATE
         ${ACOUSTICS_INCLUDE_DIRS})
 
+# sudo apt install libfmt-dev
+find_package(fmt REQUIRED)
+target_link_libraries(${TARGET_NAME} PRIVATE fmt::fmt)
+
+# sudo apt install libspdlog-dev
+find_package(spdlog REQUIRED)
+target_link_libraries(${TARGET_NAME} PRIVATE spdlog::spdlog)
+
 add_subdirectory(acoustics/)
 add_subdirectory(rb/)
 
@@ -20,9 +30,6 @@ add_subdirectory(rb/)
 target_link_libraries(${TARGET_NAME} PRIVATE ${ACOUSTIC_LIB_NAME})
 target_link_libraries(${TARGET_NAME} PRIVATE ${RB_LIB_NAME})
 
-# sudo apt install libfmt-dev
-find_package(fmt)
-target_link_libraries(${TARGET_NAME} PRIVATE fmt::fmt)
 
 # Apply compiler options based on build type
 target_compile_options(${TARGET_NAME} PRIVATE

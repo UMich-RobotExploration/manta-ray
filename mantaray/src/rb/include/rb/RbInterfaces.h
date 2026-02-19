@@ -41,6 +41,15 @@ constexpr const char *sensorTypeToString(SensorType type) {
   }
 }
 
+/* @brief Defines the interface that RbWorld expects from sensors in order
+ * to properly update them
+ *
+ * @par Sensor Update
+ * Sensor update timing is managed by RbWorld and therefore requires the
+ * inheritor to properly set frequency for SensorI. Additionally, sensor updates
+ * are passed a global random number generator to avoid instantiating a unique
+ * rng engine for each sensor.
+ */
 class SensorI {
 public:
   /* @brief Constructs a sensor interface with preallocated vectors
@@ -71,7 +80,7 @@ public:
   double getDt() const;
 
   void setDynamicsIndex(BodyIdx idx);
-  bool checkUpdate();
+  bool checkUpdate() const;
 
 protected:
   std::vector<double> timesteps_{};
@@ -80,6 +89,16 @@ protected:
   const double dt_{0.0};
 };
 
+/* @brief Defines the interface that RbWorld expects from robots in order
+ * to properly manage lifetimes, sensors, and compute twists.
+ *
+ * @par Twist Update
+ * The twist update is the key component of this interface. The integrator takes
+ * twists from all robots and integrates them to create motion.
+ *
+ * @property bodyIdx: index into kinematicData where robot's rigid body
+ * data is stored
+ */
 class RobotI {
 public:
   virtual ~RobotI(); // Add virtual destructor to ensure proper cleanup
