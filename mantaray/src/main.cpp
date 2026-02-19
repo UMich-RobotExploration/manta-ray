@@ -39,7 +39,6 @@ int main() {
   auto init = bhc::bhcInit();
   // Set the global logger as the default logger
   spdlog::set_default_logger(global_logger);
-  spdlog::set_level(spdlog::level::debug);
   SPDLOG_INFO("Beginning Bellhop Robotics Sim");
 
   char runName[] = "overhaul";
@@ -129,7 +128,9 @@ int main() {
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
-  world.addLandmark(Eigen::Vector3d(400.0, 100.0, 10.0));
+  auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
+  auto &pose = kinData.poseGlobal.coeffs();
+  world.addLandmark(Eigen::Vector3d(10000.0, 100.0, 10.0));
   simBuilder.updateSource(world.landmarks[0]);
 
   auto startTime = world.simData.time;
@@ -143,7 +144,7 @@ int main() {
 
         bellhop_logger->debug("\n===Start Bellhop Run===\n");
 
-        if (bellhop_logger->level() == spdlog::level::trace) {
+        if (bellhop_logger->level() == spdlog::level::debug) {
           bhc::echo(context.params());
         }
         bhc::run(context.params(), context.outputs());

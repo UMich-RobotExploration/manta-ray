@@ -4,6 +4,7 @@
 
 #pragma once
 #include "acoustics/SimulationConfig.h"
+#include "acoustics/fmt_eigen.h"
 #include "acoustics/helpers.h"
 #include "checkAssert.h"
 #include <algorithm>
@@ -173,11 +174,13 @@ private:
   /**
    * @brief Constructs and aims ray's between sources and receivers
    *
-   * @details For efficiency this functions assumes that sources and receivers
+   * @details Important to note, the beam box coordinate system is centered
+   * around the source.
+   * For efficiency this functions assumes that sources and receivers
    * have already been built. So be warned! If sources or receivers are updated
    * after this function is called, the beam configuration will need to be
    * updated by calling this function again with the new bearing angle.
-   *   * @param bearingAngle The angle in radians between source and receiver in
+   * @param bearingAngle The angle in radians between source and receiver in
    * x-y plane.
    */
   void constructBeam(double bearingAngle);
@@ -185,7 +188,11 @@ private:
   /** @brief
    */
   static void adjustBeamBox(const Eigen::Vector3d &sourcePos,
-                            Grid2D &bathymetry, double &beamX, double &beamY);
+                            const BathymetryConfig &bathymetry, double &beamX,
+                            double &beamY);
+  static void validateReceiverInBox(const Eigen::Vector3d &sourcePos,
+                                    const Eigen::Vector3d &receiverPos,
+                                    double beamX, double beamY);
 
   // TODO: Implement this
   bool checkPositionInWorld(const Eigen::Vector3d &position) const;

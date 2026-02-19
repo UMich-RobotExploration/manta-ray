@@ -121,6 +121,28 @@ float safeDoubleToFloat(double value, bool strict = false);
 
 bhc::VEC23<true> safeEigenToVec23(const Eigen::Vector3d &vec,
                                   bool strict = false);
+/**
+ * @brief Convenient struct for holding box and constructing it.
+ */
+struct AxisAlignedBox {
+  Eigen::Vector2d bottomLeft{0, 0};
+  Eigen::Vector2d topRight{0, 0};
+
+  /**
+   * @brief Constructs all values to AAB to zero
+   */
+  AxisAlignedBox() = default;
+
+  /**
+   * @brief Shorthand constructor to initialize all values to center
+   *
+   * @param center center of bounding box, will initialize all values to center
+   */
+  AxisAlignedBox(const Eigen::Vector3d &center);
+};
+
+AxisAlignedBox boxFromMidpoint(const Eigen::Vector3d &center, double deltaX,
+                               double deltaY);
 
 } // namespace utils
 } // namespace acoustics
