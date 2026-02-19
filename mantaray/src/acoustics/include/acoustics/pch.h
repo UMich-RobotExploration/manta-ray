@@ -6,13 +6,8 @@
 
 // Standard library headers
 #include <algorithm>
-#include <array>
-#include <cmath>
-#include <complex>
 #include <limits>
-#include <memory>
 #include <numeric>
-#include <sstream>
 #include <string>
 #include <vector>
 

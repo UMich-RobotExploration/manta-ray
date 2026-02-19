@@ -5,10 +5,7 @@
 #pragma once
 
 // Standard library headers
-#include <algorithm>
-#include <array>
 #include <cmath>
-#include <complex>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -16,7 +13,6 @@
 #include <vector>
 
 // Eigen (if used in your project)
-#include <Eigen/Core>
 #include <Eigen/Dense>
 
 // Manif
