@@ -208,12 +208,12 @@ private:
    *  @details Not the right usage if you can't ensure the reciever stays
    *  in this zone.
    */
-  static void adjustBeamBox(const Eigen::Vector3d &sourcePos,
-                            const BathymetryConfig &bathymetry, double &beamX,
-                            double &beamY);
+  void adjustBeamBox(const Eigen::Vector3d &sourcePos, double &beamX,
+                     double &beamY) const;
 
   /** @brief Checks to make sure that the receiver is in the beam box.
    * @details It only raises a log warning if it is not in the box
+   * TODO: Maybe needs an error raised from caller for this issue.
    */
   static void checkReceiverInBox(const Eigen::Vector3d &sourcePos,
                                  const Eigen::Vector3d &receiverPos,
