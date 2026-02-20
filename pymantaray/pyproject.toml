@@ -7,6 +7,15 @@ requires-python = ">=3.12"
 dependencies = [
     "aubellhop>=0.1.8",
     "matplotlib>=3.10.8",
+    "oceanbench-data-provider",
     "open3d>=0.19.0",
     "pandas-stubs~=3.0.0",
 ]
+
+[tool.uv.workspace]
+members = [
+    "deps/oceanbench-data-provider",
+]
+
+[tool.uv.sources]
+oceanbench-data-provider = { workspace = true }
