@@ -218,13 +218,20 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   // off the bottom
   beam->Box.z = max * kmScaler + 10;
 }
-
-bool AcousticsBuilder::checkPositionInWorld(
-    const Eigen::Vector3d &position) const {
-  return false;
+std::pair<double, bool>
+AcousticsBuilder::isWithinBathymetry(Eigen::Vector3d &position) const {
+  double kmScalerBath = bathymetryConfig_.isKm ? 1.0 / 1000.0 : 1.0;
+  double bathymetryHeight =
+      bathymetryConfig_.Grid.interpolateDataValue(position.x() * kmScalerBath,
+                                                  position.y() * kmScalerBath) *
+      1 / kmScalerBath;
+  if (bathymetryHeight > position.z()) {
+    return {bathymetryHeight, true};
+  }
+  return {bathymetryHeight, false};
 }
 
-void AcousticsBuilder::updateAgents() {
+BoundaryCheck AcousticsBuilder::updateAgents() {
   if (!agentsBuilt_) {
     throw std::runtime_error(
         "Cannot update agents: Agents have not been built yet.");
@@ -245,29 +252,39 @@ void AcousticsBuilder::updateAgents() {
   bool isReceiver =
       utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
 
-  double kmScalerBath = bathymetryConfig_.isKm ? 1.0 / 1000.0 : 1.0;
-  double bathymetryHeight = bathymetryConfig_.Grid.interpolateDataValue(
-                                agentsConfig_.receiver.x() * kmScalerBath,
-                                agentsConfig_.receiver.y() * kmScalerBath) *
-                            1 / kmScalerBath;
-  SPDLOG_DEBUG("Bathymetry interpolation value is {:4f} meters",
-               bathymetryHeight);
-  if (agentsConfig_.receiver.z() >= bathymetryHeight) {
-    auto msg =
-        fmt::format("Current receiver position is below the bathymetry "
-                    "and therefore should be marked as dead. Receiver z-height "
-                    "is {:4f}, while bathymetry interpolated value is {:4f}",
-                    agentsConfig_.receiver.z(), bathymetryHeight);
-    SPDLOG_ERROR(msg);
-  }
   if (!isSourceInBounds || !isReceiver) {
     auto msg = fmt::format(
         "Source or Receiver position is out of bounds of the simulation box. "
         "Source: ({}) , Receiver: ({}) , Min Box: ({}) , Max Box: ({})",
         agentsConfig_.source.transpose(), agentsConfig_.receiver.transpose(),
         minCoords_.transpose(), maxCoords_.transpose());
-    throw std::out_of_range(msg);
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kEitherOrOutOfBounds;
   }
+  auto [bathymetryHeight, isReceiverWithinBath] =
+      isWithinBathymetry(agentsConfig_.receiver);
+  if (!isReceiverWithinBath) {
+    auto msg =
+        fmt::format("Current receiver position is below the bathymetry "
+                    "and therefore should be marked as dead. Receiver z-height "
+                    "is {:4f}, while bathymetry interpolated value is {:4f}",
+                    agentsConfig_.receiver.z(), bathymetryHeight);
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kReceiverOutofBounds;
+  }
+  auto result = isWithinBathymetry(agentsConfig_.source);
+  bool isSourceWithinBath = result.second;
+  bathymetryHeight = result.first;
+  if (!isSourceWithinBath) {
+    auto msg =
+        fmt::format("Current receiver position is below the bathymetry "
+                    "and therefore should be marked as dead. Receiver z-height "
+                    "is {:4f}, while bathymetry interpolated value is {:4f}",
+                    agentsConfig_.source.z(), bathymetryHeight);
+    SPDLOG_WARN(msg);
+    return BoundaryCheck::kSourceOutofBounds;
+  }
+
   // no smart checking, everything is overwritten
   params_.Pos->RrInKm = false;
   params_.Pos->Sx[0] = agentsConfig_.source(0);
@@ -282,6 +299,7 @@ void AcousticsBuilder::updateAgents() {
   params_.Pos->Rz[0] = utils::safeDoubleToFloat(agentsConfig_.receiver(2));
 
   constructBeam(bearingAngle);
+  return BoundaryCheck::kInBounds;
 };
 
 void AcousticsBuilder::buildAgents() {
@@ -385,26 +403,27 @@ void AcousticsBuilder::quadraticBathymetry3D(const std::vector<double> &gridX,
   }
 }
 
-void AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
-  updateReceiver(position(0), position(1), position(2));
+BoundaryCheck
+AcousticsBuilder::updateReceiver(const Eigen::Vector3d &position) {
+  return updateReceiver(position(0), position(1), position(2));
 }
 
-void AcousticsBuilder::updateReceiver(double x, double y, double z) {
+BoundaryCheck AcousticsBuilder::updateReceiver(double x, double y, double z) {
   agentsConfig_.receiver(0) = x;
   agentsConfig_.receiver(1) = y;
   agentsConfig_.receiver(2) = z;
-  updateAgents();
+  return updateAgents();
 }
 
-void AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
-  updateSource(position(0), position(1), position(2));
+BoundaryCheck AcousticsBuilder::updateSource(const Eigen::Vector3d &position) {
+  return updateSource(position(0), position(1), position(2));
 }
 
-void AcousticsBuilder::updateSource(double x, double y, double z) {
+BoundaryCheck AcousticsBuilder::updateSource(double x, double y, double z) {
   agentsConfig_.source(0) = x;
   agentsConfig_.source(1) = y;
   agentsConfig_.source(2) = z;
-  updateAgents();
+  return updateAgents();
 }
 
 } // namespace acoustics

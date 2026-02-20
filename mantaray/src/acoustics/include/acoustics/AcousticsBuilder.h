@@ -15,10 +15,19 @@ namespace acoustics {
 constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;
 
-// TODO: Need to implement validation checks
-// - Beam box is within bounds of sim
-// - Beam box has some minimum reasonable size to prevent rays from ending
-//  immediately after being launched
+enum class BoundaryCheck {
+  kReceiverOutofBounds,
+  kSourceOutofBounds,
+  kEitherOrOutOfBounds,
+  kInBounds
+};
+
+/* TODO: Need to implement validation checks
+ * - [*] Beam box is within bounds of sim
+ *  - This ends up not working due to symmetrical requirements of the beam box
+ * - [ ] Beam box has some minimum reasonable size to prevent rays from ending
+ *  immediately after being launched
+ */
 
 // ============================================================================
 // Acoustics Builder -
@@ -86,12 +95,12 @@ public:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateSource(double x, double y, double z);
+  [[nodiscard]] BoundaryCheck updateSource(double x, double y, double z);
 
   /* @brief Updates sources
    * @see updateSources(double x, double y, double z)
    */
-  void updateSource(const Eigen::Vector3d &position);
+  [[nodiscard]] BoundaryCheck updateSource(const Eigen::Vector3d &position);
 
   /** @brief Updates receiver position (MUST USE SAME UNITS AS CONFIG)
    *
@@ -100,12 +109,12 @@ public:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateReceiver(double x, double y, double z);
+  [[nodiscard]] BoundaryCheck updateReceiver(double x, double y, double z);
 
   /* @brief Updates receivers
    * @see updateReceiver(double x, double y, double z)
    */
-  void updateReceiver(const Eigen::Vector3d &position);
+  [[nodiscard]] BoundaryCheck updateReceiver(const Eigen::Vector3d &position);
 
   /** @brief Validates that bathymetry is completely enclosed by ssp grid.
    *
@@ -156,7 +165,7 @@ private:
    * @throw std::out_of_range if new positions are out of bounds of the
    * simulation box
    */
-  void updateAgents();
+  [[nodiscard]] BoundaryCheck updateAgents();
 
   /** @brief Synchronize boundary depth values with SSP depth range
    *
@@ -185,6 +194,15 @@ private:
    */
   void constructBeam(double bearingAngle);
 
+  /**
+   *  @brief Checks if position is not underneath the bathymetry using
+   *  linear interpolation
+   * @param position
+   * @return provides bathymetry height and boolean, true if it is wihtin
+   * boundary, false if not
+   */
+  std::pair<double, bool> isWithinBathymetry(Eigen::Vector3d &position) const;
+
   /** @brief A function for adjusting the beam box size to fit within the
    * terrain
    *  @details Not the right usage if you can't ensure the reciever stays
@@ -200,9 +218,6 @@ private:
   static void checkReceiverInBox(const Eigen::Vector3d &sourcePos,
                                  const Eigen::Vector3d &receiverPos,
                                  double beamX, double beamY);
-
-  // TODO: Implement this
-  bool checkPositionInWorld(const Eigen::Vector3d &position) const;
 
   static void flatAltimetery3D(bhc::BdryInfoTopBot<true> &boundary,
                                const BathymetryConfig &bathConfig);

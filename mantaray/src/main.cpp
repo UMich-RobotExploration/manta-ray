@@ -130,8 +130,12 @@ int main() {
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
   auto &pose = kinData.poseGlobal.coeffs();
-  world.addLandmark(Eigen::Vector3d(10000.0, 100.0, 10.0));
-  simBuilder.updateSource(world.landmarks[0]);
+  world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
+  auto result = simBuilder.updateSource(world.landmarks[0]);
+  if (result != acoustics::BoundaryCheck::kInBounds) {
+    SPDLOG_ERROR("Landmark is not valid and we can't run the sim.");
+    return 0;
+  }
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
@@ -140,7 +144,13 @@ int main() {
     if (std::remainder(startTime, 2.0) < 1e-6) {
       for (auto &robot : world.robots) {
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
-        simBuilder.updateReceiver(position);
+        auto result = simBuilder.updateReceiver(position);
+        if (result != acoustics::BoundaryCheck::kInBounds) {
+          SPDLOG_INFO("Robot ID: {} is being marked as dead",
+                      robot->getBodyIdx());
+          robot->isAlive_ = false;
+          continue;
+        }
 
         bellhop_logger->debug("\n===Start Bellhop Run===\n");
 
