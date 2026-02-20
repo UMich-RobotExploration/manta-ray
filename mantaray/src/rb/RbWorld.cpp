@@ -19,7 +19,7 @@ void RbWorld::addLandmark(const Eigen::Vector3d &landmark) {
   landmarks.emplace_back(landmark);
 }
 
-/*
+/**
  * @brief Gathers the local twists from each robot and stores them in the bodies
  * @details Sets all dead robots' twist to zeros. Prevents conditionals in
  * update loop

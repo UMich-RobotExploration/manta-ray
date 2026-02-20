@@ -39,7 +39,6 @@ int main() {
   auto init = bhc::bhcInit();
   // Set the global logger as the default logger
   spdlog::set_default_logger(global_logger);
-  spdlog::set_level(spdlog::level::debug);
   SPDLOG_INFO("Beginning Bellhop Robotics Sim");
 
   char runName[] = "overhaul";
@@ -129,8 +128,16 @@ int main() {
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
-  world.addLandmark(Eigen::Vector3d(400.0, 100.0, 10.0));
-  simBuilder.updateSource(world.landmarks[0]);
+  auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
+  // TODO: Need to provide a nice method for access pose and updating the
+  // initial pose
+  auto &pose = kinData.poseGlobal.coeffs();
+  world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
+  auto result = simBuilder.updateSource(world.landmarks[0]);
+  if (result != acoustics::BoundaryCheck::kInBounds) {
+    SPDLOG_ERROR("Landmark is not valid and we can't run the sim.");
+    return 0;
+  }
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
@@ -139,11 +146,17 @@ int main() {
     if (std::remainder(startTime, 2.0) < 1e-6) {
       for (auto &robot : world.robots) {
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
-        simBuilder.updateReceiver(position);
+        auto result = simBuilder.updateReceiver(position);
+        if (result != acoustics::BoundaryCheck::kInBounds) {
+          SPDLOG_INFO("Robot ID: {} is being marked as dead",
+                      robot->getBodyIdx());
+          robot->isAlive_ = false;
+          continue;
+        }
 
         bellhop_logger->debug("\n===Start Bellhop Run===\n");
 
-        if (bellhop_logger->level() == spdlog::level::trace) {
+        if (bellhop_logger->level() == spdlog::level::debug) {
           bhc::echo(context.params());
         }
         bhc::run(context.params(), context.outputs());
@@ -151,6 +164,10 @@ int main() {
 
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getFastestArrival();
+        SPDLOG_INFO("Received arrival time: {}", earliestArrival);
+        if (earliestArrival < 0) {
+          SPDLOG_WARN("Received no arrival time");
+        }
         float currSsp = 0;
         auto pos = acoustics::utils::safeEigenToVec23(position);
 

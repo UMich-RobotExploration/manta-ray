@@ -62,8 +62,9 @@ template <typename T> void unsafeSetupVector(T *arr, T low, T high, int size) {
   }
 }
 
-// @brief Helper to setup vectors from ranges. Operates on copying output buffer
-// size
+/** @brief Helper to setup vectors from ranges. Operates on copying output
+ * buffer size
+ */
 template <class T>
 void unsafeSetupVector(T *arr, const std::vector<T> &vec, size_t size) {
   static_assert(std::is_copy_constructible_v<T>,
@@ -95,7 +96,7 @@ bool eigenFloatSafeComparison(const Vec1 &vec1, const Vec2 &vec2, CompOp comp) {
 
 /**
  * @brief Safely compare two Eigen vectors with a custom comparator.
- * @details Uses minimum bounding box check
+ * @details Uses axis aligned minimum bounding box check on min and max vectors
  *
  * @returns true if in bounds, false otherwise
  */
@@ -120,6 +121,28 @@ float safeDoubleToFloat(double value, bool strict = false);
 
 bhc::VEC23<true> safeEigenToVec23(const Eigen::Vector3d &vec,
                                   bool strict = false);
+/**
+ * @brief Convenient struct for holding box and constructing it.
+ */
+struct AxisAlignedBox {
+  Eigen::Vector2d bottomLeft{0, 0};
+  Eigen::Vector2d topRight{0, 0};
+
+  /**
+   * @brief Constructs all values to AAB to zero
+   */
+  AxisAlignedBox() = default;
+
+  /**
+   * @brief Shorthand constructor to initialize all values to center
+   *
+   * @param center center of bounding box, will initialize all values to center
+   */
+  AxisAlignedBox(const Eigen::Vector3d &center);
+};
+
+AxisAlignedBox boxFromMidpoint(const Eigen::Vector3d &center, double deltaX,
+                               double deltaY);
 
 } // namespace utils
 } // namespace acoustics

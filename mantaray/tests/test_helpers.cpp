@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include <Eigen/Dense>
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
@@ -145,4 +146,32 @@ TEST_CASE("Bounds checking on position", "[position]") {
 
   Eigen::Vector3d position5(101.0, 101.0, 101.0);
   REQUIRE(acoustics::utils::positionInBounds(position5, minBounds, maxBounds) == false);
+}
+
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on flat 2D grid", "[interpolation]") {
+  auto grid2D = get2DGrid();
+  double x = 0.5;
+  double y = 0.5;
+  double interpolatedValue = grid2D.interpolateDataValue(x, y);
+  REQUIRE(interpolatedValue == Catch::Approx(1500.0));
+}
+
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in x", "[interpolation]") {
+  auto grid2D = get2DGrid();
+  grid2D.data = {1500.0, 1501.0, 1500.0, 1501.0};
+
+  double x = 0.5;
+  double y = 0.5;
+  double interpolatedValue = grid2D.interpolateDataValue(x, y);
+  REQUIRE(interpolatedValue == Catch::Approx(1500.5));
+}
+
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in y", "[interpolation]") {
+  auto grid2D = get2DGrid();
+  grid2D.data = {1500.0, 1500.0, 1501.0, 1501.0};
+
+  double x = 0.5;
+  double y = 0.5;
+  double interpolatedValue = grid2D.interpolateDataValue(x, y);
+  REQUIRE(interpolatedValue == Catch::Approx(1500.5));
 }

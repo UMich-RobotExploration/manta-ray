@@ -10,7 +10,8 @@ constexpr double kBoundaryEpsilonDouble =
 namespace detail {
 bool isEqual(double x, double y);
 
-/* @brief Checks to see if time is a valid frequency = 1/dt multiple.
+/**
+ * @brief Checks to see if time is a valid frequency = 1/dt multiple.
  * @details Handles floating point complexity
  * - Evaluates 2 cases:
  *  - A remainder near zero,

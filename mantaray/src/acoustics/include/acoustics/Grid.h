@@ -78,6 +78,12 @@ public:
   /** @brief Checks if this grid contains other grid */
   bool checkContain(const Grid3D &other) const;
 
+  /** @brief Check if position is within grid data rather than bounds
+   * @details if this represents bathymetry, this ensure it is not below the
+   * "floor"
+   */
+  double interpolateDataValue(double x, double y) const;
+
 private:
   void validateInitialization() const;
   void boundsCheck(size_t ix, size_t iy) const;

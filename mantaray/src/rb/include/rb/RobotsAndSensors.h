@@ -1,4 +1,5 @@
-// @brief Houses the current concrete implementations of sensors and robots.
+/** @brief Houses the current concrete implementations of sensors and robots.
+ */
 
 #pragma once
 #include "Eigen/Dense"
@@ -15,7 +16,8 @@ namespace rb {
 class ConstantVelRobot : public RobotI {
 public:
   const Eigen::Vector3d constantVel_;
-  // @brief Constructs constant linear velocity
+  /** @brief Constructs constant linear velocity
+   */
   explicit ConstantVelRobot(Eigen::Vector3d constantVel)
       : constantVel_(constantVel){};
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;

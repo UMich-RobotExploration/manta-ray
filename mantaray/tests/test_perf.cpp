@@ -116,8 +116,6 @@ void initialize_data(PhysicsBodiesSOA &bodies, size_t count) {
 inline void update_AOS(std::vector<EntityAOS> &entities) {
   for (auto &entity : entities) {
     rb::integratePose(entity.pose, entity.twist, dt, entity.pose);
-    rb::integrateVel(entity.massMatrix, entity.wrench, entity.twist, dt,
-                     entity.twist, entity.accel);
   }
 }
 
@@ -126,8 +124,6 @@ inline void update_AOS(std::vector<EntityAOS> &entities) {
 inline void update_SOA(SOA &soa) {
   for (int i = 0; i < NUM_ENTITIES; ++i) {
     rb::integratePose(soa.pose[i], soa.twist[i], dt, soa.pose[i]);
-    rb::integrateVel(soa.massMatrix[i], soa.wrench[i], soa.twist[i], dt,
-                     soa.twist[i], soa.accel[i]);
   }
 }
 
@@ -139,8 +135,6 @@ inline void update_hybrid_SOA(PhysicsBodiesSOA &bodies) {
     auto &dyn = bodies.dynamics[i];
 
     rb::integratePose(kin.pose, kin.twist, dt, kin.pose);
-    rb::integrateVel(bodies.properties[i].massMatrix, dyn.wrench, kin.twist, dt,
-                     kin.twist, dyn.accel);
   }
 }
 
