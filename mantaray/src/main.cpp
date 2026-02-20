@@ -152,6 +152,10 @@ int main() {
 
         auto arrival = acoustics::Arrival(context.params(), context.outputs());
         auto earliestArrival = arrival.getFastestArrival();
+        SPDLOG_INFO("Received arrival time: {}", earliestArrival);
+        if (earliestArrival < 0) {
+          SPDLOG_WARN("Received no arrival time");
+        }
         float currSsp = 0;
         auto pos = acoustics::utils::safeEigenToVec23(position);
 

@@ -136,11 +136,58 @@ bool Grid2D::checkContain(const Grid3D &other) const {
 
 void Grid2D::boundsCheck(size_t ix, size_t iy) const {
   if (ix >= nx() || iy >= ny()) {
-    std::stringstream msg;
-    msg << "Grid index out of bounds: (" << ix << ", " << iy << ") for grid ("
-        << nx() << ", " << ny() << ")";
-    throw std::out_of_range(msg.str());
+    SPDLOG_ERROR(
+        "Grid index out of bounds: ({}, {}) for grid with size ({},{})", ix, iy,
+        nx(), ny());
+    throw std::out_of_range("Out of bounds attempt on grid");
   }
+}
+
+double Grid2D::interpolateDataValue(double x, double y) const {
+  // Grids are monotonic, so no need to sort!
+  // Want upper for strictly < and not <=.
+  auto xLower = std::upper_bound(xCoords.begin(), xCoords.end(), x);
+  auto yLower = std::upper_bound(yCoords.begin(), yCoords.end(), y);
+  if (xLower == xCoords.end() || yLower == yCoords.end()) {
+    // TODO: Would be good to have a function that does check this before
+    // interpolation
+    SPDLOG_ERROR("Before asking to interpolate, verify result in bounds. Check "
+                 "units on input vs Grid data.");
+    throw std::runtime_error("Requesting interpolation outside of grid");
+  }
+  size_t xUpperIdx = std::distance(xCoords.begin(), xLower);
+  size_t yUpperIdx = std::distance(yCoords.begin(), yLower);
+
+  // Using safe access methods to prevent segfaults and UB
+  // Syntax reference:
+  // https://en.wikipedia.org/wiki/Bilinear_interpolation
+
+  size_t xLowerIdx = xUpperIdx - 1;
+  size_t yLowerIdx = yUpperIdx - 1;
+  double q11 = at(xLowerIdx, yLowerIdx);
+  double q21 = at(xUpperIdx, yLowerIdx);
+  double q12 = at(xLowerIdx, yUpperIdx);
+  double q22 = at(xUpperIdx, yUpperIdx);
+
+  double deltaX = xCoords.at(xUpperIdx) - xCoords.at(xLowerIdx);
+  double deltaY = yCoords.at(yUpperIdx) - yCoords.at(yLowerIdx);
+
+  double delta2 = xCoords.at(xUpperIdx) - x;
+  double delta1 = x - xCoords.at(xLowerIdx);
+  double aTerm = delta2 / deltaX;
+  double bTerm = delta1 / deltaX;
+  // breaking camel case convention for clearer math syntax
+  // clang-format off
+  double f_x_y1 = aTerm * q11 + bTerm * q21;
+  double f_x_y2 = aTerm * q12 + bTerm * q22;
+  // clang-format on
+  // Reusing variables now for yCoords
+  delta2 = yCoords.at(yUpperIdx) - y;
+  delta1 = y - yCoords.at(yLowerIdx);
+  aTerm = delta2 / deltaY;
+  bTerm = delta1 / deltaY;
+
+  return aTerm * f_x_y1 + bTerm * f_x_y2;
 }
 
 // ============================================================================
