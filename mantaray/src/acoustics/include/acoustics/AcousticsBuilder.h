@@ -15,10 +15,18 @@ namespace acoustics {
 constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;
 
+/**
+ * @brief Provides info on whether source, reciever, or either or is out of
+ * bounds
+ */
 enum class BoundaryCheck {
+  // Receiver is the culprit
   kReceiverOutofBounds,
+  // Source is the culprit
   kSourceOutofBounds,
+  // One or both of these are out
   kEitherOrOutOfBounds,
+  // Everything is correct and in bounds
   kInBounds
 };
 
