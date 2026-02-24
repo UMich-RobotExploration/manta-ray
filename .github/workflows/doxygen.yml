@@ -11,6 +11,9 @@ on:
 jobs:
   generate_docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Allows the workflow to push to the repo, including gh-pages
+
 
     steps:
       # Checkout the code
