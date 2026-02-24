@@ -26,10 +26,35 @@ struct KinematicData {
 struct DynamicsBodies {
   std::vector<KinematicData> kinematics;
 
+  /** @brief Returns const kinematic data reference*/
   const KinematicData &getKinematicData(BodyIdx index) const;
+
+  /** @brief Returns mutatable kinematic data reference*/
   KinematicData &getKinematicData(BodyIdx index);
+
+  /** @brief Returns copy of linear velocity of robot*/
   Eigen::Vector3d getLinearVelocity(BodyIdx index) const;
-  const Eigen::Vector3d getPosition(BodyIdx index) const;
+
+  /** @brief Returns copy of linear position of robot*/
+  Eigen::Vector3d getPosition(BodyIdx index) const;
+
+  /** @brief Overwrites pose information of robot in sim
+   *
+   * @param index body index
+   * @param position 3x1 position vector
+   * @param orientation quaternion pose
+   */
+  void setPose(BodyIdx index, const Eigen::Vector3d &position,
+               const Eigen::Quaterniond &orientation);
+
+  /** @brief Overwrites position information of robot in sim
+   *
+   * @param index body index
+   * @param position 3x1 position vector
+   */
+  void setPosition(BodyIdx index, const Eigen::Vector3d &position);
+
+  void setOrientation(BodyIdx index, const Eigen::Quaterniond &orientation);
   void reserveBodies(size_t count);
 };
 

@@ -1,4 +1,5 @@
 // Logger.h
+// MUST be included BEFORE <spdlog/spdlog.h> for macros to properly work
 #pragma once
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 

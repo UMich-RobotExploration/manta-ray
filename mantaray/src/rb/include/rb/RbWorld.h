@@ -1,7 +1,3 @@
-//
-// Created by tko on 2/11/26.
-//
-
 #pragma once
 #include <random>
 
@@ -40,11 +36,23 @@ struct RbWorld {
   void addLandmark(const Eigen::Vector3d &landmark);
   void validateWorld();
 
-  /*
-   * @brief Gathers twists and the integrates them
+  /**
+   * @brief Advances the world dt seconds
+   * @details *UPDATES* Sim time. It is the sole updated of sim time.
    */
   void stepWorld(double dt);
 
+  /**
+   * @brief Advances the world to the specified absolute time
+   * @param time desired time to advance to (absolute)
+   * @throws runtime_error if request is backwards in time
+   *
+   * @par Important Items:
+   * When the time requested is not an integer multiple of dt, the advance world
+   * function allows for and corrects for this non-uniform step.
+   * The *reason* this is done, is to enable specific advancements requested
+   * by the acoustic sim if needed.
+   */
   void advanceWorld(double time);
 
   /** @brief Create a random generator that works for entirety of sim
