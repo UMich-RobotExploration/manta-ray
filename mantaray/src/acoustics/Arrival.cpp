@@ -66,25 +66,10 @@ std::string Arrival::printReceiverInfo(const bhc::Position *Pos, int32_t ir,
   return output;
 }
 
-/**
- * @brief Maps 3D receiver indices to flattened vector index.
- * @param ir NRr index
- * @param iz NRz_per_range index
- * @param itheta Ntheta index
- * @return index in flattened vector
- */
 size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
   return (ir * inputs.Pos->NRz_per_range + iz) * inputs.Pos->Ntheta + itheta;
 }
 
-/**
- * @brief Find the fastest arrival time for each reciever position.
- * @details Iterates through all source and receiver positions, checking the
- * arrival. Utilize getIdx to map 3D receiver indices to flattened vector index.
- *
- * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
- * arrivals
- */
 float Arrival::getFastestArrival() {
   const bhc::Position *Pos = inputs.Pos;
 
@@ -163,8 +148,6 @@ float Arrival::getFastestArrival() {
    */
 }
 
-/* @brief Returns largest amplitude arrival (not the shortest flight time)
- */
 float Arrival::getLargestAmpArrival() {
   const bhc::Position *Pos = inputs.Pos;
 

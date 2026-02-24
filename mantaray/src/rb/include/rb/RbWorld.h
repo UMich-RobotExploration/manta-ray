@@ -12,7 +12,10 @@
 namespace rb {
 
 typedef size_t RobotIdx;
+
 /**
+ * @brief Owner of all rigid body dynamics values
+ * @details Struct provides access to values and ensures lifetimes
  * @par Why World?
  * World exists to house the DynamicBodies and robots together. Robots
  * store indexes into DynamicsBodies, so this way we can ensure
