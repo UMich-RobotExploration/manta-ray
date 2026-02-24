@@ -115,10 +115,6 @@ void RbWorld::validateWorld() {
   }
 }
 
-/*
- * @brief Advances the world dt seconds
- * @details *UPDATES* Sim time. It is the sole updated of sim time.
- */
 void RbWorld::stepWorld(double dt) {
   gatherTwists(*this);
   for (auto &kinematicData : dynamicsBodies.kinematics) {
@@ -131,17 +127,6 @@ void RbWorld::stepWorld(double dt) {
   simData.time = std::round(simData.time * 1e7) / 1e7;
 }
 
-/**
- * @brief Advances the world to the specified absolute time
- * @param time desired time to advance to (absolute)
- * @throws runtime_error if request is backwards in time
- *
- * @par Important Items:
- * When the time requested is not an integer multiple of dt, the advance world
- * function allows for and corrects for this non-uniform step.
- * The *reason* this is done, is to enable specific advancements requested
- * by the acoustic sim if needed.
- */
 void RbWorld::advanceWorld(double time) {
   SPDLOG_INFO("Requested advancement from {:4f} to: {:4f}", simData.time, time);
   if (detail::isEqual(simData.time, 0.0)) {

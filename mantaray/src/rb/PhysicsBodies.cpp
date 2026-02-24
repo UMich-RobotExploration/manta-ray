@@ -27,10 +27,24 @@ Eigen::Vector3d DynamicsBodies::getLinearVelocity(BodyIdx index) const {
         "Index out of bounds for dynamics properties");
   return kinematics[index].twistLocal.lin();
 }
-const Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) const {
+Eigen::Vector3d DynamicsBodies::getPosition(BodyIdx index) const {
   CHECK(index < kinematics.size(),
         "Index out of bounds for dynamics properties");
   return kinematics[index].poseGlobal.translation();
+}
+void DynamicsBodies::setPose(BodyIdx index, const Eigen::Vector3d &position,
+                             const Eigen::Quaterniond &orientation) {
+  setPosition(index, position);
+  setOrientation(index, orientation);
+}
+void DynamicsBodies::setPosition(BodyIdx index,
+                                 const Eigen::Vector3d &position) {
+  kinematics[index].poseGlobal.coeffs().block<3, 1>(0, 0) = position;
+}
+void DynamicsBodies::setOrientation(BodyIdx index,
+                                    const Eigen::Quaterniond &orientation) {
+  kinematics[index].poseGlobal.coeffs().block<4, 1>(3, 0) =
+      orientation.coeffs();
 }
 
 void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,

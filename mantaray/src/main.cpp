@@ -2,7 +2,9 @@
 #include <bhc/bhc.hpp>
 #include <filesystem>
 #include <random>
-#include <vector>
+
+// Logger.h must be included before spdlog/spdlog.h to define macros
+#include <Logger.h>
 
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
@@ -19,8 +21,6 @@
 #include "acoustics/SimulationConfig.h"
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
-
-#include <Logger.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -112,8 +112,12 @@ int main() {
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
   // TODO: Need to provide a nice method for access pose and updating the
-  // initial pose
-  auto &pose = kinData.poseGlobal.coeffs();
+  SPDLOG_DEBUG("Position before: {}",
+               world.dynamicsBodies.getPosition(odomRobotIdx));
+  world.dynamicsBodies.setPosition(odomRobotIdx,
+                                   Eigen::Vector3d(100.0, 0.0, 5.0));
+  SPDLOG_DEBUG("Position after: {}",
+               world.dynamicsBodies.getPosition(odomRobotIdx));
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
   auto result = simBuilder.updateSource(world.landmarks[0]);
   if (result != acoustics::BoundaryCheck::kInBounds) {
