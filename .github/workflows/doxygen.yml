@@ -1,0 +1,38 @@
+name: Generate Doxygen Docs
+
+on:
+  push:
+    branches:
+      - main  # or master
+  pull_request:
+    branches:
+      - main  # or master
+
+jobs:
+  generate_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Set up Doxygen (using the prebuilt Docker image equivalent)
+      - name: Set up Doxygen
+        run: sudo apt-get install doxygen
+
+      # Run Doxygen to generate docs (in the 'mantaray' directory)
+      - name: Generate Docs with Doxygen
+        run: |
+          cd mantaray
+          doxygen Doxyfile
+
+      # Deploy to GitHub Pages (move generated docs to 'public')
+      - name: Deploy Doxygen Docs to GitHub Pages
+        run: |
+          mv mantaray/docs/html public  # Move to public folder for GitHub Pages
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add public
+          git commit -m "Update Doxygen docs"
+          git push --force "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
