@@ -30,12 +30,12 @@ jobs:
           cd mantaray
           doxygen Doxyfile
 
-      # Deploy to GitHub Pages (move generated docs to 'public')
+      # Deploy to GitHub Pages (move generated docs to 'docs')
       - name: Deploy Doxygen Docs to GitHub Pages
         run: |
-          mv mantaray/docs/html public  # Move to public folder for GitHub Pages
+          mv mantaray/docs/html docs # Move to docs folder for GitHub Pages
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add public
+          git add docs 
           git commit -m "Update Doxygen docs"
           git push --force "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
