@@ -1,5 +1,4 @@
-/** @brief Houses the current concrete implementations of sensors and robots.
- */
+// Houses the current concrete implementations of sensors and robots.
 
 #pragma once
 #include "Eigen/Dense"

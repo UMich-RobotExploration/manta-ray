@@ -13,9 +13,10 @@ typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef size_t BodyIdx;
 
 /**
- * @brief Data necessary to integrate the state, indexed through BodyIdx
+ * @brief Kinematic data for integrating the state, indexed through BodyIdx
  *
- * @details Implemented as a SoA with growable vectors
+ * @details Implemented as a SoA with growable vectors. The struct is internal
+ * but accessible to library users if necessary.
  *
  */
 struct KinematicData {
@@ -23,6 +24,12 @@ struct KinematicData {
   manif::SE3Tangentd twistLocal = manif::SE3Tangentd::Zero();
 };
 
+/**
+ * @brief Houses dynamics bodies and all accessor methods
+ *
+ * @details Primary interface for accessing kinematic data, setting, and
+ * updating
+ */
 struct DynamicsBodies {
   std::vector<KinematicData> kinematics;
 
@@ -72,7 +79,7 @@ struct DynamicsBodies {
  * relative transform. If we treat pose as T_ac and refPose as T_bc, we can see
  * we want to solve for T_ab. We can do this by:
  * \f[
- *   T_{ac} * T_{bc}^{-1} = T_{ab}
+ *   T_{ac} \cdot T_{bc}^{-1} = T_{ab}
  * \f]
  *
  * @param pose Pose we want to express relative to refPose

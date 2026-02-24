@@ -8,6 +8,7 @@
 #include "rb/RobotsAndSensors.h"
 #include "rb/helpers.h"
 
+/** @brief Namespace handling all rigid body code */
 namespace rb {
 
 typedef size_t RobotIdx;
