@@ -111,20 +111,15 @@ void AcousticsBuilder::syncBoundaryAndSSP() {
 }
 
 void AcousticsBuilder::adjustBeamBox(const Eigen::Vector3d &sourcePos,
-                                     const BathymetryConfig &bathymetry,
-                                     double &beamX, double &beamY) {
-  auto [minValue, maxValue] = bathymetry.Grid.boundingBox();
-  double kmScaler = bathymetry.isKm ? 1000.0 : 1.0;
-  minValue = minValue * kmScaler;
-  maxValue = maxValue * kmScaler;
+                                     double &beamX, double &beamY) const {
   // construct the 2 main corners
   auto beamBox = utils::boxFromMidpoint(sourcePos, beamX, beamY);
   bool isMaxValid = utils::eigenFloatSafeComparison(
-      maxValue, beamBox.topRight, [](const auto &a, const auto &b) {
+      maxCoords_.head(2), beamBox.topRight, [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
       });
   bool isMinValid = utils::eigenFloatSafeComparison(
-      beamBox.bottomLeft, minValue, [](const auto &a, const auto &b) {
+      beamBox.bottomLeft, minCoords_.head(2), [](const auto &a, const auto &b) {
         return (a.array() >= b.array()).all();
       });
   // If we are already within the bounding box, we can just skip
@@ -138,10 +133,10 @@ void AcousticsBuilder::adjustBeamBox(const Eigen::Vector3d &sourcePos,
 
   // Will only be negative if beam box is larger;
   //  (2,2) - (3,1) = (-1, 1)
-  auto deltaMax = maxValue - beamBox.topRight;
+  auto deltaMax = maxCoords_.head(2) - beamBox.topRight;
   // Will only be negative if beam box is smaller
   //  (-2,0) - (-1,-1) = (-1, 1)
-  auto deltaMin = beamBox.bottomLeft - minValue;
+  auto deltaMin = beamBox.bottomLeft - minCoords_.head(2);
   double xAdjust = std::min(deltaMax(0), deltaMin(0));
   double yAdjust = std::min(deltaMax(1), deltaMin(1));
   // Making sure we only take negative adjustments
@@ -255,10 +250,10 @@ BoundaryCheck AcousticsBuilder::updateAgents() {
 
   bool isSourceInBounds =
       utils::positionInBounds(agentsConfig_.source, minCoords_, maxCoords_);
-  bool isReceiver =
+  bool isReceiverInBounds =
       utils::positionInBounds(agentsConfig_.receiver, minCoords_, maxCoords_);
 
-  if (!isSourceInBounds || !isReceiver) {
+  if (!isSourceInBounds || !isReceiverInBounds) {
     auto msg = fmt::format(
         "Source or Receiver position is out of bounds of the simulation box. "
         "Source: ({}) , Receiver: ({}) , Min Box: ({}) , Max Box: ({})",

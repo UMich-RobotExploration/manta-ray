@@ -111,8 +111,10 @@ int main() {
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
+  // TODO: Need to provide a nice method for access pose and updating the
+  // initial pose
   auto &pose = kinData.poseGlobal.coeffs();
-  world.addLandmark(Eigen::Vector3d(-100.0, 100.0, 10.0));
+  world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
   auto result = simBuilder.updateSource(world.landmarks[0]);
   if (result != acoustics::BoundaryCheck::kInBounds) {
     SPDLOG_ERROR("Landmark is not valid and we can't run the sim.");
