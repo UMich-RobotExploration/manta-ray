@@ -17,7 +17,9 @@ set(RB_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/src/rb/include)
 
 # Libraries
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/deps)
-set(EIGEN3_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps/eigen)
+set(EIGEN3_INCLUDE_DIRS ${LIBS_DIR}/eigen)
+set(JSON_INCLUDE_DIRS ${LIBS_DIR}/json)
+set(LIBNPY_INCLUDE_DIRS ${LIBS_DIR}/libnpy)
 
 # BHC dependencies
 set(INCLUDE_BHC ${LIBS_DIR}/bellhopcuda/include/)
@@ -80,8 +82,9 @@ else ()
 endif ()
 
 #find_package(Eigen3 REQUIRED)
-#target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
-target_include_directories(${TARGET_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE ${EIGEN3_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE ${JSON_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE ${LIBNPY_INCLUDE_DIRS})
 
 #find_package(manif REQUIRED)
 #target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${manif_INCLUDE_DIRS})

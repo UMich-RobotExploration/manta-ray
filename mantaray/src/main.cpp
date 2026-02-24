@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 // #define BHC_DLL_IMPORT 1
+#include "ConfigReader.h"
 #include "acoustics/Arrival.h"
 #include "acoustics/BellhopContext.h"
 #include "acoustics/acousticsConstants.h"
@@ -20,13 +21,6 @@
 #include "rb/RobotsAndSensors.h"
 
 #include <Logger.h>
-
-std::ostream &operator<<(std::ostream &out, const bhc::rayPt<true> &x) {
-  out << x.NumTopBnc << " " << x.NumBotBnc << " " << x.x.x << " " << x.x.y
-      << " " << x.t.x << " " << x.t.y << " " << x.c << " " << x.Amp << " "
-      << x.Phase << " " << x.tau;
-  return out;
-}
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -53,6 +47,11 @@ int main() {
   init.maxMemory = 80ull * 1024ull * 1024ull; // 80 MiB
   init.numThreads = -1;
   // init.useRayCopyMode = true;
+
+  auto configFile = config::ConfigReader("../../sim_config/monterey.json");
+  auto importedBathGrid = configFile.readBathymetry();
+  auto importedSSPGrid = configFile.readSSP();
+
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "A");
   // Important to set to I for irregular grid tracking
@@ -63,41 +62,24 @@ int main() {
   // Bathymetry Setup
   //////////////////////////////////////////////////////////////////////////////
 
-  std::vector<double> bathGridX =
-      acoustics::utils::linspace<double>(-10, 55, 10);
-  std::vector<double> bathGridY =
-      acoustics::utils::linspace<double>(-11, 30, 9);
-  std::vector<double> bathData;
-  double bathDepth = 5.0;
-  acoustics::AcousticsBuilder::quadraticBathymetry3D(bathGridX, bathGridY,
-                                                     bathData, bathDepth);
   acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
-      acoustics::Grid2D(bathGridX, bathGridY, bathData),
-      acoustics::BathyInterpolationType::kLinear, true};
+      std::move(importedBathGrid), acoustics::BathyInterpolationType::kLinear,
+      false};
 
   //////////////////////////////////////////////////////////////////////////////
   // SSP Setup
   //////////////////////////////////////////////////////////////////////////////
-  int nX = 10;
-  int nY = 10;
-  int nZ = 100;
-  const double refSoundSpeed = 1500.0;
-  auto SSPgridX = acoustics::utils::linspace(-10.0, 55.0, nX);
-  auto SPPgridY = acoustics::utils::linspace(-30.0, 30.0, nY);
-  auto SSPgridZ = acoustics::utils::linspace(0.0, 5000.0 / 1000.0, nZ);
-  auto SSPGrid = acoustics::Grid3D(SSPgridX, SPPgridY, SSPgridZ, refSoundSpeed);
-  // acoustics::munkProfile(SSPGrid, refSoundSpeed, true);
 
-  auto sspConfig = acoustics::SSPConfig{std::move(SSPGrid), true};
+  auto sspConfig = acoustics::SSPConfig{std::move(importedSSPGrid), false};
 
   //////////////////////////////////////////////////////////////////////////////
   // Source / Receivers Setup
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(10.0, 0.0, 1000.0);
+  Eigen::Vector3d sourcePos(0.0, 0.0, 1000.0);
   Eigen::Vector3d receiverPos;
-  receiverPos(0) = 50000.0;
-  receiverPos(1) = 10.0;
-  receiverPos(2) = 1000.0;
+  receiverPos(0) = 0.0;
+  receiverPos(1) = 0.0;
+  receiverPos(2) = 1.0;
 
   acoustics::AgentsConfig agents =
       acoustics::AgentsConfig{sourcePos, receiverPos};
@@ -177,6 +159,7 @@ int main() {
   }
   rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
 
+  bhc::writeenv(context.params(), runName);
   bhc::writeout(context.params(), context.outputs(), runName);
   return 0;
 }

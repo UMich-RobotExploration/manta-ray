@@ -196,12 +196,18 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   delta = boxScale * delta;
   double deltaX = std::abs(delta(0));
   double deltaY = std::abs(delta(1));
-  CHECK((deltaX > 0.0) && (deltaY > 0.0),
-        "Delta's need to be positive in bellhop box");
+  // setting a minimum of 10 meter box
+  deltaX = (deltaX >= 0.0 && deltaX <= 1.0) ? 10.0 : deltaX;
+  deltaY = (deltaY >= 0.0 && deltaY <= 1.0) ? 10.0 : deltaY;
+  CHECK(
+      (deltaX > 0.0) || (deltaY > 0.0),
+      fmt::format("Beam Box Size needs to be positive in bellhop box. Size is "
+                  "deltaX: {}, deltaY: {}",
+                  deltaX, deltaY));
 
   // Beam box is centered around source coord sys. Reference bellhop docs
   // if needed
-  // adjustBeamBox(agentsConfig_.source, deltaX, deltaY);
+  // adjustBeamBox(agentsConfig_.source, bathymetryConfig_, deltaX, deltaY);
   checkReceiverInBox(agentsConfig_.source, agentsConfig_.receiver, deltaX,
                      deltaY);
   beam->Box.x = deltaX;
