@@ -1,12 +1,10 @@
-//
-// Created by tko on 1/27/26.
-//
-
 #pragma once
 #include <bhc/bhc.hpp>
 
-/** @brief Namespace handling all acoustics and bellhop code */
+/** @brief Namespace handling all acoustics and bellhop code
+ */
 namespace acoustics {
+
 /**
  * @brief Class for ensure Bellhop memory gets cleaned up
  * @tparam O3D ocean 3D
@@ -15,6 +13,7 @@ namespace acoustics {
 template <bool O3D, bool R3D> class BhContext {
 public:
   // Using explicit to prevent implicit conversions later on
+
   /**
    * @param init bhc initialization parameters
    */

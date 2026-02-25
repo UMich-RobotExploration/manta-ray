@@ -1,3 +1,13 @@
+/** @file RbWorld.h
+ *
+ * @brief Controls all rigid body simulation time stepping
+ *
+ * @details Manages all the simulation time stepping along with validation. If
+ * there are preconditions or similar that are needed for the simulation they
+ * should be directly included in @ref RbWorld::validateWorld.
+ *
+ * @see RbWorld::validateWorld
+ */
 #pragma once
 #include <random>
 
@@ -12,7 +22,10 @@
 namespace rb {
 
 typedef size_t RobotIdx;
+
 /**
+ * @brief Owner of all rigid body dynamics values
+ * @details Struct provides access to values and ensures lifetimes
  * @par Why World?
  * World exists to house the DynamicBodies and robots together. Robots
  * store indexes into DynamicsBodies, so this way we can ensure
@@ -35,6 +48,16 @@ struct RbWorld {
   void reserveRobots(size_t count);
   void reserveLandmarks(size_t count);
   void addLandmark(const Eigen::Vector3d &landmark);
+  /**
+   * @brief Ensure all preconditions are met to begin simulation
+   *
+   * @details
+   * Checks the following:
+   *  - Appropriate dt and sensor frequencies
+   *  - Initialization of rng engine
+   *  - Proper allocation of sensor data and timestamp vectors
+   *  - Ensure SensorType has been populated properly
+   */
   void validateWorld();
 
   /**

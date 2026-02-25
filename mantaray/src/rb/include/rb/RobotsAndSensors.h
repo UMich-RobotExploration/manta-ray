@@ -1,4 +1,10 @@
-// Houses the current concrete implementations of sensors and robots.
+/**
+ * @file RobotsAndSensors.h
+ * @brief Houses the current concrete implementations of sensors and robots.
+ *
+ * @details For colocation, new *concrete* types should be implemented here
+ * until this file become too unwieldy.
+ */
 
 #pragma once
 #include "Eigen/Dense"

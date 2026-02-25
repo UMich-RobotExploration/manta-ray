@@ -1,6 +1,8 @@
-//
-// Created by tko on 2/10/26.
-//
+/**
+ * @file Integrator.h
+ * @brief Manages all pose integration.
+ * @details Condensed and easy for testing relying on no internal data structs
+ */
 
 #pragma once
 

@@ -1,6 +1,7 @@
-//
-// Created by tko on 2/5/26.
-//
+/**
+ * @file pch.h
+ * @brief Frequently used header files along with log definitions for library
+ */
 
 #pragma once
 
