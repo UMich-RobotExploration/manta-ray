@@ -1,6 +1,7 @@
-//
-// Created by tko on 2/18/26.
-//
+/**
+ * @file helpers.h
+ * @brief Few critical helpers for floating point comparison.
+ */
 
 #pragma once
 

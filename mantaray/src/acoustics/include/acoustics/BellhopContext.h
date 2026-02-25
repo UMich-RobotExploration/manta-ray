@@ -13,6 +13,7 @@ namespace acoustics {
 template <bool O3D, bool R3D> class BhContext {
 public:
   // Using explicit to prevent implicit conversions later on
+
   /**
    * @param init bhc initialization parameters
    */

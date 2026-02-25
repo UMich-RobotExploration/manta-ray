@@ -1,6 +1,8 @@
-//
-// Created by tko on 1/28/26.
-//
+/**
+ * @file helpers.h
+ * @brief Helpers for floating point, boundary box, monotonic, and vector
+ * creation
+ */
 #pragma once
 
 #include <Eigen/Core>

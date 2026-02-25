@@ -1,4 +1,7 @@
-// Grid.h
+/**
+ * @file Grid.h
+ * @brief Library internal data structures for representing 2 and 3D grids
+ */
 #pragma once
 
 #include <Eigen/Core>
@@ -59,7 +62,7 @@ public:
   size_t size() const;
 
   /**
-   * Index Structure MUST Align with Bellhop's Internal Storage Order
+   * @brief Index Structure MUST Align with Bellhop's Internal Storage Order
    */
   size_t index(size_t ix, size_t iy) const;
 
@@ -70,6 +73,8 @@ public:
   const double &operator()(size_t ix, size_t iy) const;
 
   bool isValid() const;
+
+  /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector2d, Eigen::Vector2d> boundingBox() const;
 
   /** @brief Checks if this grid is completely inside other grid */
@@ -78,8 +83,8 @@ public:
   /** @brief Checks if this grid contains other grid */
   bool checkContain(const Grid3D &other) const;
 
-  /** @brief Check if position is within grid data rather than bounds
-   * @details if this represents bathymetry, this ensure it is not below the
+  /** @brief Interpolates bathymetry linearly and returns depth of bathymetry
+   * @details if this represents bathymetry, this ensures it is not below the
    * "floor"
    */
   double interpolateDataValue(double x, double y) const;
@@ -139,6 +144,8 @@ public:
   const double &operator()(size_t ix, size_t iy, size_t iz) const;
 
   bool isValid() const;
+
+  /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const;
 
   /** @brief Checks if this grid is completely inside other grid */
@@ -149,6 +156,7 @@ private:
   void boundsCheck(size_t ix, size_t iy, size_t iz) const;
 };
 
+/** @brief Utilizes Munk profile equation to generate a sound speed profile */
 void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm);
 
 } // namespace acoustics

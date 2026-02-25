@@ -1,7 +1,6 @@
-//
-// Created by tko on 2/2/26.
-//
-
+/** @file AcousticsBuilder.h
+ *  @brief See details of @ref AcousticsBuilder
+ */
 #pragma once
 #include "acoustics/SimulationConfig.h"
 #include "acoustics/fmt_eigen.h"
@@ -40,6 +39,7 @@ enum class BoundaryCheck {
 // ============================================================================
 // Acoustics Builder -
 // ============================================================================
+
 /**
  * @brief Builder class for constructing Bellhop acoustic simulations
  * @note All positions and dimensions must use consistent units as specified

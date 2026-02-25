@@ -1,7 +1,8 @@
-//
-// Created by tko on 2/9/26.
-//
-
+/**
+ * @file PhysicsBodies.h
+ * @brief An AoS format for storing kinematic data and accessing it.
+ * @details Saw no real performance gain from SoA, so stuck with AoS.
+ */
 #pragma once
 
 #include "manif/manif.h"

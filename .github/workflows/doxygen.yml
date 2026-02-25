@@ -24,6 +24,10 @@ jobs:
       - name: Set up Doxygen
         run: sudo apt-get install doxygen
 
+      # Set up GraphViz
+      - name: Set up Graphviz
+        run: sudo apt-get install graphviz
+
       # Make your script executable
       - name: Make create_docs.sh executable
         run: chmod +x mantaray/create_docs.sh

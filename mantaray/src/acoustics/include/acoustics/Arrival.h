@@ -1,6 +1,8 @@
-//
-// Created by tko on 1/26/26.
-//
+/**
+ * @file Arrival.h
+ * @brief Extract arrival data and arrival debug data from bellhop pointer
+ * struct
+ */
 #pragma once
 #include "acoustics/helpers.h"
 #include "checkAssert.h"

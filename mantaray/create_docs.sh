@@ -4,6 +4,18 @@ set -euo pipefail
 TAG="v2.4.1"
 DOCS_DIR="docs"
 THEME_DIR="$DOCS_DIR/doxygen-awesome"
+HTML_OUTPUT_DIR="$DOCS_DIR/html"  # Directory where Doxygen generates HTML
+
+# Delete the old docs/html folder before rebuild (if it exists)
+if [ -d "$HTML_OUTPUT_DIR" ]; then
+    echo "Deleting old docs/html directory..."
+    rm -rf "$HTML_OUTPUT_DIR"
+fi
+# Delete the old docs/html folder before rebuild (if it exists)
+if [ -d "$THEME_DIR" ]; then
+    echo "Deleting old theme directory"
+    rm -rf "$THEME_DIR"
+fi
 
 # Clone doxygen-awesome-css directly into docs/ (gitignored)
 if [ ! -d "$THEME_DIR" ]; then

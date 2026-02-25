@@ -1,7 +1,11 @@
-//
-// Created by tko on 2/11/26.
-//
-
+/**
+ * @file RbInterfaces.h
+ * @brief Defines all interfaces that RbWorld expects to be fulfilled
+ *
+ * @details When adding new SensorType, ensure instructions are followed on
+ * where values code needs to be added. A more procedural approach was taken
+ * rather than inheritance based.
+ */
 #pragma once
 
 #include <random>

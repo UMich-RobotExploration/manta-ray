@@ -1,6 +1,7 @@
-//
-// Created by tko on 2/5/26.
-//
+/**
+ * @file pch.h
+ * @brief precompiled headers for acoustics library
+ */
 
 #pragma once
 
