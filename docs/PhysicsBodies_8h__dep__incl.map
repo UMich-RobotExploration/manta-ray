@@ -1,0 +1,11 @@
+<map id="src/rb/include/rb/PhysicsBodies.h" name="src/rb/include/rb/PhysicsBodies.h">
+<area shape="rect" id="Node000001" title="An AoS format for storing kinematic data and accessing it." alt="" coords="103,5,281,45"/>
+<area shape="rect" id="Node000002" href="$RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="5,93,229,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,57,130,95,127,91,162,54"/>
+<area shape="rect" id="Node000003" href="$RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="43,255,239,280"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="222,55,235,72,244,92,250,114,256,142,254,175,242,208,230,225,213,238,178,257,176,252,210,234,226,221,238,205,249,174,250,143,245,115,239,94,230,75,218,58"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="83,128,61,145,44,168,38,187,44,205,56,221,71,234,106,252,103,257,68,238,52,225,39,208,32,187,39,165,57,142,79,124"/>
+<area shape="rect" id="Node000004" href="$RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="54,167,229,207"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="127,131,138,166,133,167,122,132"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="144,220,144,254,139,254,139,220"/>
+</map>

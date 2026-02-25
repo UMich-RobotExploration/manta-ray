@@ -1,0 +1,10 @@
+<map id="src/rb/include/rb/RbInterfaces.h" name="src/rb/include/rb/RbInterfaces.h">
+<area shape="rect" id="Node000001" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="5,5,229,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="8,79,80,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,33,68,71,64,67,103,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="115,152,229,177"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="123,30,145,103,162,139,157,141,140,105,118,32"/>
+<area shape="rect" id="Node000004" href="$PhysicsBodies_8h.html" title="An AoS format for storing kinematic data and accessing it." alt="" coords="155,79,299,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="136,28,199,69,196,73,133,33"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="220,106,191,143,187,140,216,103"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="acoustics::SSPConfig" name="acoustics::SSPConfig">
+<area shape="rect" id="Node000001" title="Holds configuration for ssp setup." alt="" coords="5,93,161,119"/>
+<area shape="rect" id="Node000002" href="$classacoustics_1_1Grid3D.html" title="3D grid &#45; same design principles as Grid2D" alt="" coords="15,5,151,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,45,86,93,81,93,81,45"/>
+</map>

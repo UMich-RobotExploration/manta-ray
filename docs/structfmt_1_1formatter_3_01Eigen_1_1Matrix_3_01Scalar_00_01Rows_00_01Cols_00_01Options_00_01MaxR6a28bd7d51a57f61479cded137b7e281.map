@@ -1,0 +1,7 @@
+<map id="fmt::formatter&lt; Eigen::Matrix&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt; &gt;" name="fmt::formatter&lt; Eigen::Matrix&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt; &gt;">
+<area shape="rect" id="Node000001" title="Specialize the formatter for Eigen::Matrix." alt="" coords="439,5,625,75"/>
+<area shape="rect" id="Node000002" href="$classMatrixFormatter.html" title=" " alt="" coords="204,5,391,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="404,37,438,37,438,43,404,43"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,20,156,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="170,37,204,37,204,43,170,43"/>
+</map>

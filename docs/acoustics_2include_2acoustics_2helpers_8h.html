@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: src/acoustics/include/acoustics/helpers.h File Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('acoustics_2include_2acoustics_2helpers_8h.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#namespaces">Namespaces</a> &#124;
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
+  <div class="headertitle"><div class="title">helpers.h File Reference</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>Helpers for floating point, boundary box, monotonic, and vector creation.  
+<a href="#details">More...</a></p>
+<div class="textblock"><code>#include &lt;Eigen/Core&gt;</code><br />
+<code>#include &lt;algorithm&gt;</code><br />
+<code>#include &lt;bhc/bhc.hpp&gt;</code><br />
+<code>#include &lt;cmath&gt;</code><br />
+<code>#include &lt;iostream&gt;</code><br />
+<code>#include &lt;limits&gt;</code><br />
+<code>#include &lt;stdexcept&gt;</code><br />
+<code>#include &lt;vector&gt;</code><br />
+</div><div class="textblock"><div class="dynheader">
+Include dependency graph for helpers.h:</div>
+<div class="dyncontent">
+<div class="center"><img src="acoustics_2include_2acoustics_2helpers_8h__incl.png" border="0" usemap="#asrc_2acoustics_2include_2acoustics_2helpers_8h" alt=""/></div>
+<map name="asrc_2acoustics_2include_2acoustics_2helpers_8h" id="asrc_2acoustics_2include_2acoustics_2helpers_8h">
+<area shape="rect" title="Helpers for floating point, boundary box, monotonic, and vector creation." alt="" coords="357,5,514,45"/>
+<area shape="rect" title=" " alt="" coords="5,93,97,119"/>
+<area shape="poly" title=" " alt="" coords="357,45,112,95,111,90,356,40"/>
+<area shape="rect" title=" " alt="" coords="122,93,207,119"/>
+<area shape="poly" title=" " alt="" coords="371,48,218,92,216,87,370,43"/>
+<area shape="rect" title=" " alt="" coords="232,93,332,119"/>
+<area shape="poly" title=" " alt="" coords="400,48,318,89,315,85,397,43"/>
+<area shape="rect" title=" " alt="" coords="356,93,419,119"/>
+<area shape="poly" title=" " alt="" coords="426,47,404,83,399,80,421,44"/>
+<area shape="rect" title=" " alt="" coords="443,93,523,119"/>
+<area shape="poly" title=" " alt="" coords="449,44,471,80,467,83,445,47"/>
+<area shape="rect" title=" " alt="" coords="547,93,606,119"/>
+<area shape="poly" title=" " alt="" coords="470,43,545,84,542,89,468,48"/>
+<area shape="rect" title=" " alt="" coords="631,93,717,119"/>
+<area shape="poly" title=" " alt="" coords="493,43,627,87,625,92,492,48"/>
+<area shape="rect" title=" " alt="" coords="741,93,804,119"/>
+<area shape="poly" title=" " alt="" coords="515,41,728,90,727,95,514,46"/>
+</map>
+</div>
+</div><div class="textblock"><div class="dynheader">
+This graph shows which files directly or indirectly include this file:</div>
+<div class="dyncontent">
+<div class="center"><img src="acoustics_2include_2acoustics_2helpers_8h__dep__incl.png" border="0" usemap="#asrc_2acoustics_2include_2acoustics_2helpers_8hdep" alt=""/></div>
+<map name="asrc_2acoustics_2include_2acoustics_2helpers_8hdep" id="asrc_2acoustics_2include_2acoustics_2helpers_8hdep">
+<area shape="rect" title="Helpers for floating point, boundary box, monotonic, and vector creation." alt="" coords="27,5,184,45"/>
+<area shape="rect" href="AcousticsBuilder_8h.html" title="See details of AcousticsBuilder." alt="" coords="40,269,251,309"/>
+<area shape="poly" title=" " alt="" coords="55,55,34,73,18,94,12,117,8,153,10,191,19,220,31,235,45,248,80,267,77,272,42,252,27,239,14,223,5,192,3,153,6,116,13,92,30,69,52,51"/>
+<area shape="rect" href="Arrival_8h.html" title="Extract arrival data and arrival debug data from bellhop pointer struct." alt="" coords="27,93,184,133"/>
+<area shape="poly" title=" " alt="" coords="108,59,108,93,103,93,103,59"/>
+<area shape="rect" href="Grid_8h.html" title="Library internal data structures for representing 2 and 3D grids." alt="" coords="208,93,366,133"/>
+<area shape="poly" title=" " alt="" coords="159,49,249,91,246,96,157,54"/>
+<area shape="rect" href="ConfigReader_8h_source.html" title=" " alt="" coords="28,189,170,214"/>
+<area shape="poly" title=" " alt="" coords="235,141,125,191,123,186,233,137"/>
+<area shape="rect" href="SimulationConfig_8h.html" title="All acoustics related configuration structs." alt="" coords="194,181,409,221"/>
+<area shape="poly" title=" " alt="" coords="295,146,301,181,296,182,290,147"/>
+<area shape="poly" title=" " alt="" coords="257,230,181,272,179,267,254,226"/>
+</map>
+</div>
+</div>
+<p><a href="acoustics_2include_2acoustics_2helpers_8h_source.html">Go to the source code of this file.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structacoustics_1_1utils_1_1AxisAlignedBox.html">acoustics::utils::AxisAlignedBox</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convenient struct for holding box and constructing it.  <a href="structacoustics_1_1utils_1_1AxisAlignedBox.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="namespaces" name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespaceacoustics" id="r_namespaceacoustics"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics.html">acoustics</a></td></tr>
+<tr class="memdesc:namespaceacoustics"><td class="mdescLeft">&#160;</td><td class="mdescRight">Namespace handling all acoustics and bellhop code. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:namespaceacoustics_1_1utils" id="r_namespaceacoustics_1_1utils"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html">acoustics::utils</a></td></tr>
+<tr class="memdesc:namespaceacoustics_1_1utils"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate linearly spaced values between start and end. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:acf1fdb6e08962a79dd50176e6e1f781e" id="r_acf1fdb6e08962a79dd50176e6e1f781e"><td class="memTemplParams" colspan="2"><a id="acf1fdb6e08962a79dd50176e6e1f781e" name="acf1fdb6e08962a79dd50176e6e1f781e"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:acf1fdb6e08962a79dd50176e6e1f781e"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>acoustics::utils::linspace</b> (T start, T end, std::size_t num)</td></tr>
+<tr class="separator:acf1fdb6e08962a79dd50176e6e1f781e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5cb83b6e3fc3c17f016308ef954d68ca" id="r_a5cb83b6e3fc3c17f016308ef954d68ca"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a5cb83b6e3fc3c17f016308ef954d68ca"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html#a5cb83b6e3fc3c17f016308ef954d68ca">acoustics::utils::unsafeSetupVector</a> (T *arr, T low, T high, int size)</td></tr>
+<tr class="memdesc:a5cb83b6e3fc3c17f016308ef954d68ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Setup array with linearly spaced values from low to high.  <br /></td></tr>
+<tr class="separator:a5cb83b6e3fc3c17f016308ef954d68ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae037cb0958b84152fd8e686347f2321e" id="r_ae037cb0958b84152fd8e686347f2321e"><td class="memTemplParams" colspan="2"><a id="ae037cb0958b84152fd8e686347f2321e" name="ae037cb0958b84152fd8e686347f2321e"></a>
+template&lt;class T &gt; </td></tr>
+<tr class="memitem:ae037cb0958b84152fd8e686347f2321e"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>acoustics::utils::unsafeSetupVector</b> (T *arr, const std::vector&lt; T &gt; &amp;vec, size_t size)</td></tr>
+<tr class="memdesc:ae037cb0958b84152fd8e686347f2321e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper to setup vectors from ranges. Operates on copying output buffer size. <br /></td></tr>
+<tr class="separator:ae037cb0958b84152fd8e686347f2321e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a87fd27a2dcca2d9eda9a738098c773a5" id="r_a87fd27a2dcca2d9eda9a738098c773a5"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a87fd27a2dcca2d9eda9a738098c773a5"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html#a87fd27a2dcca2d9eda9a738098c773a5">acoustics::utils::printVector</a> (const std::vector&lt; T &gt; &amp;vec)</td></tr>
+<tr class="memdesc:a87fd27a2dcca2d9eda9a738098c773a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print vector contents to console.  <br /></td></tr>
+<tr class="separator:a87fd27a2dcca2d9eda9a738098c773a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac9f28ad00c139ec9393025e7f96a916" id="r_aac9f28ad00c139ec9393025e7f96a916"><td class="memTemplParams" colspan="2"><a id="aac9f28ad00c139ec9393025e7f96a916" name="aac9f28ad00c139ec9393025e7f96a916"></a>
+template&lt;typename Vec1 , typename Vec2 , typename CompOp &gt; </td></tr>
+<tr class="memitem:aac9f28ad00c139ec9393025e7f96a916"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>acoustics::utils::eigenFloatSafeComparison</b> (const Vec1 &amp;vec1, const Vec2 &amp;vec2, CompOp comp)</td></tr>
+<tr class="separator:aac9f28ad00c139ec9393025e7f96a916"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5822491cb60a9b4925e3eddcc60cc6dc" id="r_a5822491cb60a9b4925e3eddcc60cc6dc"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html#a5822491cb60a9b4925e3eddcc60cc6dc">acoustics::utils::positionInBounds</a> (const Eigen::Vector3d &amp;position, const Eigen::Vector3d &amp;min, const Eigen::Vector3d &amp;max)</td></tr>
+<tr class="memdesc:a5822491cb60a9b4925e3eddcc60cc6dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Safely compare two Eigen vectors with a custom comparator.  <br /></td></tr>
+<tr class="separator:a5822491cb60a9b4925e3eddcc60cc6dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae558e7de3c435b713d3e72e0ac905cbe" id="r_ae558e7de3c435b713d3e72e0ac905cbe"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html#ae558e7de3c435b713d3e72e0ac905cbe">acoustics::utils::isMonotonicallyIncreasing</a> (const std::vector&lt; double &gt; &amp;vec)</td></tr>
+<tr class="memdesc:ae558e7de3c435b713d3e72e0ac905cbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a vector of doubles is monotonically increasing.  <br /></td></tr>
+<tr class="separator:ae558e7de3c435b713d3e72e0ac905cbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35410335e963c0875ca3158cac5070bd" id="r_a35410335e963c0875ca3158cac5070bd"><td class="memItemLeft" align="right" valign="top">float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics_1_1utils.html#a35410335e963c0875ca3158cac5070bd">acoustics::utils::safeDoubleToFloat</a> (double value, bool strict)</td></tr>
+<tr class="memdesc:a35410335e963c0875ca3158cac5070bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Safely cast double to float with range and precision checks.  <br /></td></tr>
+<tr class="separator:a35410335e963c0875ca3158cac5070bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e39c2f8c5fafce70d4564e2181da9c5" id="r_a6e39c2f8c5fafce70d4564e2181da9c5"><td class="memItemLeft" align="right" valign="top"><a id="a6e39c2f8c5fafce70d4564e2181da9c5" name="a6e39c2f8c5fafce70d4564e2181da9c5"></a>
+bhc::VEC23&lt; true &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>acoustics::utils::safeEigenToVec23</b> (const Eigen::Vector3d &amp;vec, bool strict)</td></tr>
+<tr class="separator:a6e39c2f8c5fafce70d4564e2181da9c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad792b67169b29f89c442f1b06f28abc9" id="r_ad792b67169b29f89c442f1b06f28abc9"><td class="memItemLeft" align="right" valign="top"><a id="ad792b67169b29f89c442f1b06f28abc9" name="ad792b67169b29f89c442f1b06f28abc9"></a>
+<a class="el" href="structacoustics_1_1utils_1_1AxisAlignedBox.html">AxisAlignedBox</a>&#160;</td><td class="memItemRight" valign="bottom"><b>acoustics::utils::boxFromMidpoint</b> (const Eigen::Vector3d &amp;center, double deltaX, double deltaY)</td></tr>
+<tr class="separator:ad792b67169b29f89c442f1b06f28abc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a8c782c2881b597e309c9263baa89e3e5" id="r_a8c782c2881b597e309c9263baa89e3e5"><td class="memItemLeft" align="right" valign="top">constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceacoustics.html#a8c782c2881b597e309c9263baa89e3e5">acoustics::kBoundaryEpsilonDouble</a></td></tr>
+<tr class="separator:a8c782c2881b597e309c9263baa89e3e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Helpers for floating point, boundary box, monotonic, and vector creation. </p>
+</div></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_8c5f73b9cbf7a76636fa3ce95aed4fb9.html">acoustics</a></li><li class="navelem"><a class="el" href="dir_9608f29bc64282fc7afd5a4dc138508c.html">include</a></li><li class="navelem"><a class="el" href="dir_36cbfaac420e70ca19ea37837546bf79.html">acoustics</a></li><li class="navelem"><a class="el" href="acoustics_2include_2acoustics_2helpers_8h.html">helpers.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>

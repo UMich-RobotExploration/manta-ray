@@ -1,0 +1,333 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: rb::GroundTruthPose Class Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('classrb_1_1GroundTruthPose.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="classrb_1_1GroundTruthPose-members.html">List of all members</a>  </div>
+  <div class="headertitle"><div class="title">rb::GroundTruthPose Class Reference</div></div>
+</div><!--header-->
+<div class="contents">
+<div class="dynheader">
+Inheritance diagram for rb::GroundTruthPose:</div>
+<div class="dyncontent">
+<div class="center"><img src="classrb_1_1GroundTruthPose__inherit__graph.png" border="0" usemap="#arb_1_1GroundTruthPose_inherit__map" alt="Inheritance graph"/></div>
+<map name="arb_1_1GroundTruthPose_inherit__map" id="arb_1_1GroundTruthPose_inherit__map">
+<area shape="rect" title=" " alt="" coords="5,79,159,104"/>
+<area shape="rect" href="classrb_1_1SensorI.html" title=" " alt="" coords="37,5,127,31"/>
+<area shape="poly" title=" " alt="" coords="85,44,85,79,79,79,79,44"/>
+</map>
+<center><span class="legend">[<a target="top" href="graph_legend.html">legend</a>]</span></center></div>
+<div class="dynheader">
+Collaboration diagram for rb::GroundTruthPose:</div>
+<div class="dyncontent">
+<div class="center"><img src="classrb_1_1GroundTruthPose__coll__graph.png" border="0" usemap="#arb_1_1GroundTruthPose_coll__map" alt="Collaboration graph"/></div>
+<map name="arb_1_1GroundTruthPose_coll__map" id="arb_1_1GroundTruthPose_coll__map">
+<area shape="rect" title=" " alt="" coords="5,79,159,104"/>
+<area shape="rect" href="classrb_1_1SensorI.html" title=" " alt="" coords="37,5,127,31"/>
+<area shape="poly" title=" " alt="" coords="85,44,85,79,79,79,79,44"/>
+</map>
+<center><span class="legend">[<a target="top" href="graph_legend.html">legend</a>]</span></center></div>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a48aba0edda31206f722c3a0a69cbc8c3" id="r_a48aba0edda31206f722c3a0a69cbc8c3"><td class="memItemLeft" align="right" valign="top"><a id="a48aba0edda31206f722c3a0a69cbc8c3" name="a48aba0edda31206f722c3a0a69cbc8c3"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>GroundTruthPose</b> (double freqHz, int timeSteps)</td></tr>
+<tr class="separator:a48aba0edda31206f722c3a0a69cbc8c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af17bdb14b094b4e10f97306246be761a" id="r_af17bdb14b094b4e10f97306246be761a"><td class="memItemLeft" align="right" valign="top">const std::vector&lt; Eigen::VectorXd &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classrb_1_1GroundTruthPose.html#af17bdb14b094b4e10f97306246be761a">getSensorData</a> () override</td></tr>
+<tr class="separator:af17bdb14b094b4e10f97306246be761a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a417b6ea0c1d2703529a416c14e704f31" id="r_a417b6ea0c1d2703529a416c14e704f31"><td class="memItemLeft" align="right" valign="top">const std::vector&lt; double &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classrb_1_1GroundTruthPose.html#a417b6ea0c1d2703529a416c14e704f31">getSensorTimesteps</a> () override</td></tr>
+<tr class="separator:a417b6ea0c1d2703529a416c14e704f31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6bd8aa0b3a1727432f55a6240a4c8973" id="r_a6bd8aa0b3a1727432f55a6240a4c8973"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classrb_1_1GroundTruthPose.html#a6bd8aa0b3a1727432f55a6240a4c8973">updateSensor</a> (const <a class="el" href="structrb_1_1DynamicsBodies.html">DynamicsBodies</a> &amp;bodies, double simTime, std::mt19937 &amp;rngEngine) override</td></tr>
+<tr class="memdesc:a6bd8aa0b3a1727432f55a6240a4c8973"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pure virtual function to update sensors for inheritor to implement.  <br /></td></tr>
+<tr class="separator:a6bd8aa0b3a1727432f55a6240a4c8973"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classrb_1_1SensorI"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classrb_1_1SensorI')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classrb_1_1SensorI.html">rb::SensorI</a></td></tr>
+<tr class="memitem:a1c96a99b02f4845b654fbd517d69dbdd inherit pub_methods_classrb_1_1SensorI" id="r_a1c96a99b02f4845b654fbd517d69dbdd"><td class="memItemLeft" align="right" valign="top">
+&#160;</td><td class="memItemRight" valign="bottom"><b>SensorI</b> (int numTimesteps, <a class="el" href="namespacerb.html#afa7f29e6a0a153cf163be768e50d6f9f">SensorType</a> type, double freqHz=100000.0)</td></tr>
+<tr class="separator:a1c96a99b02f4845b654fbd517d69dbdd inherit pub_methods_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae2110f930d3d1393966b71e5c6a0c98c inherit pub_methods_classrb_1_1SensorI" id="r_ae2110f930d3d1393966b71e5c6a0c98c"><td class="memItemLeft" align="right" valign="top">
+double&#160;</td><td class="memItemRight" valign="bottom"><b>getFreqHz</b> () const</td></tr>
+<tr class="separator:ae2110f930d3d1393966b71e5c6a0c98c inherit pub_methods_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a87f42ec68763292a2f66c54255e7f27e inherit pub_methods_classrb_1_1SensorI" id="r_a87f42ec68763292a2f66c54255e7f27e"><td class="memItemLeft" align="right" valign="top">
+double&#160;</td><td class="memItemRight" valign="bottom"><b>getDt</b> () const</td></tr>
+<tr class="separator:a87f42ec68763292a2f66c54255e7f27e inherit pub_methods_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a273f9ad7cd60dcd3528e24e58bcf22e7 inherit pub_methods_classrb_1_1SensorI" id="r_a273f9ad7cd60dcd3528e24e58bcf22e7"><td class="memItemLeft" align="right" valign="top">
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setDynamicsIndex</b> (BodyIdx idx)</td></tr>
+<tr class="separator:a273f9ad7cd60dcd3528e24e58bcf22e7 inherit pub_methods_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3bd2e2a56f2050870acfdfe71060416b inherit pub_methods_classrb_1_1SensorI" id="r_a3bd2e2a56f2050870acfdfe71060416b"><td class="memItemLeft" align="right" valign="top">
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>checkUpdate</b> () const</td></tr>
+<tr class="separator:a3bd2e2a56f2050870acfdfe71060416b inherit pub_methods_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="inherited" name="inherited"></a>
+Additional Inherited Members</h2></td></tr>
+<tr class="inherit_header pub_attribs_classrb_1_1SensorI"><td colspan="2" onclick="javascript:toggleInherit('pub_attribs_classrb_1_1SensorI')"><img src="closed.png" alt="-"/>&#160;Public Attributes inherited from <a class="el" href="classrb_1_1SensorI.html">rb::SensorI</a></td></tr>
+<tr class="memitem:a94c2bab4e7789c4a328c8464bd90c785 inherit pub_attribs_classrb_1_1SensorI" id="r_a94c2bab4e7789c4a328c8464bd90c785"><td class="memItemLeft" align="right" valign="top">
+BodyIdx&#160;</td><td class="memItemRight" valign="bottom"><b>bodyIdx_</b> {0}</td></tr>
+<tr class="separator:a94c2bab4e7789c4a328c8464bd90c785 inherit pub_attribs_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8feaf01222d55dcfb3d8d1a7711b6190 inherit pub_attribs_classrb_1_1SensorI" id="r_a8feaf01222d55dcfb3d8d1a7711b6190"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="namespacerb.html#afa7f29e6a0a153cf163be768e50d6f9f">SensorType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>sensorType_</b> {SensorType::kUnknown}</td></tr>
+<tr class="separator:a8feaf01222d55dcfb3d8d1a7711b6190 inherit pub_attribs_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_attribs_classrb_1_1SensorI"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classrb_1_1SensorI')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classrb_1_1SensorI.html">rb::SensorI</a></td></tr>
+<tr class="memitem:adf9e613bd426ab53771b6e85c5f7043c inherit pro_attribs_classrb_1_1SensorI" id="r_adf9e613bd426ab53771b6e85c5f7043c"><td class="memItemLeft" align="right" valign="top">
+std::vector&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>timesteps_</b> {}</td></tr>
+<tr class="separator:adf9e613bd426ab53771b6e85c5f7043c inherit pro_attribs_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc221508b4a0ca3dcc8dcc3d28a42d75 inherit pro_attribs_classrb_1_1SensorI" id="r_acc221508b4a0ca3dcc8dcc3d28a42d75"><td class="memItemLeft" align="right" valign="top">
+std::vector&lt; Eigen::VectorXd &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>data_</b> {}</td></tr>
+<tr class="separator:acc221508b4a0ca3dcc8dcc3d28a42d75 inherit pro_attribs_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2583f00f13e2b32e47a3f22a8a0bc647 inherit pro_attribs_classrb_1_1SensorI" id="r_a2583f00f13e2b32e47a3f22a8a0bc647"><td class="memItemLeft" align="right" valign="top">
+const double&#160;</td><td class="memItemRight" valign="bottom"><b>dt_</b> {0.0}</td></tr>
+<tr class="separator:a2583f00f13e2b32e47a3f22a8a0bc647 inherit pro_attribs_classrb_1_1SensorI"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="af17bdb14b094b4e10f97306246be761a" name="af17bdb14b094b4e10f97306246be761a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af17bdb14b094b4e10f97306246be761a">&#9670;&#160;</a></span>getSensorData()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const std::vector&lt; Eigen::VectorXd &gt; &amp; rb::GroundTruthPose::getSensorData </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Implements <a class="el" href="classrb_1_1SensorI.html">rb::SensorI</a>.</p>
+
+</div>
+</div>
+<a id="a417b6ea0c1d2703529a416c14e704f31" name="a417b6ea0c1d2703529a416c14e704f31"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a417b6ea0c1d2703529a416c14e704f31">&#9670;&#160;</a></span>getSensorTimesteps()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const std::vector&lt; double &gt; &amp; rb::GroundTruthPose::getSensorTimesteps </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Implements <a class="el" href="classrb_1_1SensorI.html">rb::SensorI</a>.</p>
+
+</div>
+</div>
+<a id="a6bd8aa0b3a1727432f55a6240a4c8973" name="a6bd8aa0b3a1727432f55a6240a4c8973"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6bd8aa0b3a1727432f55a6240a4c8973">&#9670;&#160;</a></span>updateSensor()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void rb::GroundTruthPose::updateSensor </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structrb_1_1DynamicsBodies.html">DynamicsBodies</a> &amp;&#160;</td>
+          <td class="paramname"><em>bodies</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>simTime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::mt19937 &amp;&#160;</td>
+          <td class="paramname"><em>rngEngine</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Pure virtual function to update sensors for inheritor to implement. </p>
+<p>provides rngEngine for the generation of noise if needed. This function is only called at the correct dt! You do not need to check! </p>
+
+<p>Implements <a class="el" href="classrb_1_1SensorI.html#a0157b822a85cd28a8c549bf1ea534f67">rb::SensorI</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following files:<ul>
+<li>src/rb/include/rb/<a class="el" href="RobotsAndSensors_8h_source.html">RobotsAndSensors.h</a></li>
+<li>src/rb/<b>RobotsAndSensors.cpp</b></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="namespacerb.html">rb</a></li><li class="navelem"><a class="el" href="classrb_1_1GroundTruthPose.html">GroundTruthPose</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>
