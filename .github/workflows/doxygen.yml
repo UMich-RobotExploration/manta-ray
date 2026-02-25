@@ -24,11 +24,15 @@ jobs:
       - name: Set up Doxygen
         run: sudo apt-get install doxygen
 
+      # Make your script executable
+      - name: Make create_docs.sh executable
+        run: chmod +x mantaray/create_docs.sh
+
       # Run Doxygen to generate docs (in the 'mantaray' directory)
       - name: Generate Docs with Doxygen
         run: |
           cd mantaray
-          doxygen Doxyfile
+          ./create_docs.sh
 
       # Deploy to GitHub Pages (move generated docs to 'docs')
       - name: Deploy Doxygen Docs to GitHub Pages
