@@ -1,4 +1,6 @@
 [TOC]
+# Documentation
+C++ Documentation can be found at [Docs](https://umich-robotexploration.github.io/manta-ray/)
 
 # Build
 
