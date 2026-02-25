@@ -91,23 +91,32 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////
   // Simulation Setup
   //////////////////////////////////////////////////////////////////////////////
+
+  /// How long do we want to run?
+  /// Multiple days
+  /// Every few hours on ranging?
+  /// Odometry I'll do hours
+  /// Need to figure out DT
+
   rb::RbWorld world{};
-  double endTime = 50.0;
+  double endTime = 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(1);
   world.reserveLandmarks(2);
   auto odomRobotIdx =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.0, 1.0));
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.3, 1.0));
   auto gtIdx = world.robots[odomRobotIdx]->addSensor(
       std::make_unique<rb::GroundTruthPose>(
-          10.0, static_cast<size_t>(100.0 * endTime)));
+          0.01, rb::computeNumTimeSteps(endTime, 0.01)));
   auto odomIdx = world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::PositionalXYOdomoetry>(
-          10.0, static_cast<size_t>(100.0 * endTime),
-          std::normal_distribution<double>{0.0, 0.001}));
+      std::make_unique<rb::PositionalXYOdometry>(
+          0.01, rb::computeNumTimeSteps(endTime, 0.01),
+          std::normal_distribution<double>{0.0, 0.01}));
   auto robotIdx2 =
       world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
+  std::cout << gtIdx;
+  std::cout << odomIdx;
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
@@ -127,10 +136,13 @@ int main() {
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
-    startTime += 1.0 + 1.0 / 3.0;
+    startTime += 60.0;
     world.advanceWorld(startTime);
-    if (std::remainder(startTime, 2.0) < 1e-6) {
+    if (std::remainder(startTime, 60.0) < 1e-6) {
       for (auto &robot : world.robots) {
+        if (!robot->isAlive_) {
+          continue;
+        }
         auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
         auto result = simBuilder.updateReceiver(position);
         if (result != acoustics::BoundaryCheck::kInBounds) {

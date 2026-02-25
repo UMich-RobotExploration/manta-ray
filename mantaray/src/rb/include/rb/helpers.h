@@ -8,6 +8,9 @@
 namespace rb {
 constexpr double kBoundaryEpsilonDouble =
     std::numeric_limits<double>::epsilon() * 100;
+constexpr double kFloatingPointToleranceDouble = 1e-10;
+constexpr double kFloatingPointToleranceNearZero = 1e-12;
+size_t computeNumTimeSteps(double endTimeSec, double freqHz);
 namespace detail {
 bool isEqual(double x, double y);
 

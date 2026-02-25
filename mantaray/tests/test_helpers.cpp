@@ -5,6 +5,7 @@
 #include "../src/acoustics/include/acoustics/Grid.h"
 #include "acoustics/helpers.h"
 #include "catch2/matchers/catch_matchers_vector.hpp"
+#include "rb/helpers.h"
 #include <stdexcept>
 
 #include <Eigen/Dense>
@@ -131,24 +132,30 @@ TEST_CASE("Bounds checking on position", "[position]") {
 
   // Test position within bounds
   Eigen::Vector3d position1(50.0, 50.0, 50.0);
-  REQUIRE(acoustics::utils::positionInBounds(position1, minBounds, maxBounds) == true);
+  REQUIRE(acoustics::utils::positionInBounds(position1, minBounds, maxBounds) ==
+          true);
 
   // Test position on the edge of bounds
   Eigen::Vector3d position2(0.0, 0.0, 0.0);
-  REQUIRE(acoustics::utils::positionInBounds(position2, minBounds, maxBounds) == true);
+  REQUIRE(acoustics::utils::positionInBounds(position2, minBounds, maxBounds) ==
+          true);
 
   Eigen::Vector3d position3(100.0, 100.0, 100.0);
-  REQUIRE(acoustics::utils::positionInBounds(position3, minBounds, maxBounds) == true);
+  REQUIRE(acoustics::utils::positionInBounds(position3, minBounds, maxBounds) ==
+          true);
 
   // Test position outside bounds
   Eigen::Vector3d position4(-1.0, -1.0, -1.0);
-  REQUIRE(acoustics::utils::positionInBounds(position4, minBounds, maxBounds) == false);
+  REQUIRE(acoustics::utils::positionInBounds(position4, minBounds, maxBounds) ==
+          false);
 
   Eigen::Vector3d position5(101.0, 101.0, 101.0);
-  REQUIRE(acoustics::utils::positionInBounds(position5, minBounds, maxBounds) == false);
+  REQUIRE(acoustics::utils::positionInBounds(position5, minBounds, maxBounds) ==
+          false);
 }
 
-TEST_CASE_METHOD(GridTestsFixture, "Interpolation on flat 2D grid", "[interpolation]") {
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on flat 2D grid",
+                 "[interpolation]") {
   auto grid2D = get2DGrid();
   double x = 0.5;
   double y = 0.5;
@@ -156,7 +163,8 @@ TEST_CASE_METHOD(GridTestsFixture, "Interpolation on flat 2D grid", "[interpolat
   REQUIRE(interpolatedValue == Catch::Approx(1500.0));
 }
 
-TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in x", "[interpolation]") {
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in x",
+                 "[interpolation]") {
   auto grid2D = get2DGrid();
   grid2D.data = {1500.0, 1501.0, 1500.0, 1501.0};
 
@@ -166,7 +174,8 @@ TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in x", "[int
   REQUIRE(interpolatedValue == Catch::Approx(1500.5));
 }
 
-TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in y", "[interpolation]") {
+TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in y",
+                 "[interpolation]") {
   auto grid2D = get2DGrid();
   grid2D.data = {1500.0, 1500.0, 1501.0, 1501.0};
 
@@ -174,4 +183,23 @@ TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in y", "[int
   double y = 0.5;
   double interpolatedValue = grid2D.interpolateDataValue(x, y);
   REQUIRE(interpolatedValue == Catch::Approx(1500.5));
+}
+
+TEST_CASE("computeNumTimeSteps computes correct number of steps", "[helpers]") {
+  using rb::computeNumTimeSteps;
+
+  // Basic cases
+  REQUIRE(computeNumTimeSteps(1.0, 1.0) == 2);
+  REQUIRE(computeNumTimeSteps(1.0, 2.0) == 3);
+  REQUIRE(computeNumTimeSteps(2.0, 2.0) == 5);
+
+  // Edge cases
+  REQUIRE(computeNumTimeSteps(0.0, 10.0) == 1);
+  REQUIRE(computeNumTimeSteps(1.0, 0.0) == 1);
+
+  // Non-integer frequency
+  REQUIRE(computeNumTimeSteps(1.0, 1.5) == 3);
+
+  // Large values
+  REQUIRE(computeNumTimeSteps(10.0, 100.0) == 1001);
 }

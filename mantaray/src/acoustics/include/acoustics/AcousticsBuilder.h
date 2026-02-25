@@ -15,7 +15,7 @@ constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;
 
 /**
- * @brief Provides info on whether source, reciever, or either or is out of
+ * @brief Provides info on whether source, receiver, or either or is out of
  * bounds
  */
 enum class BoundaryCheck {

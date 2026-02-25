@@ -304,9 +304,27 @@ GridVec::GridVec(std::vector<double> x, std::vector<double> y,
   validateInitialization();
 }
 
+void GridVec::validateInitialization() const {
+  const std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
+                                                           &zCoords};
+  // need to check both datasets
+  gridCheckViaPtr(coords, dataU);
+  gridCheckViaPtr(coords, dataV);
+}
+
 size_t GridVec::index(size_t ix, size_t iy, size_t iz) const {
   return (ix * yCoords.size() + iy) * zCoords.size() + iz;
 }
+
+size_t GridVec::nx() const { return xCoords.size(); }
+
+size_t GridVec::ny() const { return yCoords.size(); }
+
+size_t GridVec::nz() const { return zCoords.size(); }
+
+size_t GridVec::sizeU() const { return dataU.size(); }
+
+size_t GridVec::sizeV() const { return dataV.size(); }
 
 void GridVec::boundsCheck(size_t ix, size_t iy, size_t iz) const {
   if (ix >= nx() || iy >= ny() || iz >= nz()) {
@@ -315,14 +333,6 @@ void GridVec::boundsCheck(size_t ix, size_t iy, size_t iz) const {
         << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
     throw std::out_of_range(msg.str());
   }
-}
-
-void GridVec::validateInitialization() const {
-  const std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
-                                                           &zCoords};
-  // need to check both datasets
-  gridCheckViaPtr(coords, dataU);
-  gridCheckViaPtr(coords, dataV);
 }
 
 // ============================================================================

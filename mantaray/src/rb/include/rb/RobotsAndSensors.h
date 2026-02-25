@@ -28,10 +28,10 @@ public:
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;
 };
 
-class PositionalXYOdomoetry : public SensorI {
+class PositionalXYOdometry : public SensorI {
 public:
-  PositionalXYOdomoetry(double freqHz, int timeSteps,
-                        std::normal_distribution<double>);
+  PositionalXYOdometry(double freqHz, int timeSteps,
+                       std::normal_distribution<double>);
   const std::vector<Eigen::VectorXd> &getSensorData() override;
   const std::vector<double> &getSensorTimesteps() override;
   void updateSensor(const DynamicsBodies &bodies, double simTime,
