@@ -159,7 +159,6 @@ private:
 /**
  * @brief 4D grid - same design principles as Grid2D
  *
- * @sa Grid2D
  * @see Grid2D
  *
  *
@@ -173,7 +172,8 @@ public:
   std::vector<double> xCoords;
   std::vector<double> yCoords;
   std::vector<double> zCoords;
-  std::vector<double> data;
+  std::vector<double> dataU;
+  std::vector<double> dataV;
 
   GridVec() = delete;
   GridVec(const GridVec &) = delete;
@@ -182,20 +182,16 @@ public:
   GridVec &operator=(GridVec &&) = default;
 
   GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
-          double defaultValue = double{});
-  GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
-          std::vector<double> initData);
+          std::vector<double> initDataU, std::vector<double> initDataV);
 
   void clear();
 
   size_t nx() const;
   size_t ny() const;
   size_t nz() const;
-  size_t size() const;
+  size_t sizeU() const;
+  size_t sizeV() const;
 
-  /**
-   * Index Structure MUST Align with Bellhop's Internal Storage Order
-   */
   size_t index(size_t ix, size_t iy, size_t iz) const;
 
   double &at(size_t ix, size_t iy, size_t iz);
@@ -211,7 +207,7 @@ public:
 
   /** @brief Interpolates vector field linearly
    */
-  double interpolateDataValue(double x, double y) const;
+  Eigen::Vector3d interpolateDataValue(double x, double y) const;
 
 private:
   void validateInitialization() const;
@@ -230,7 +226,7 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm);
  *
  * @invariant Assumes passed in values are in the x,y,z order or x,y
  */
-void GridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
                      const std::vector<double> &data);
 
 } // namespace acoustics

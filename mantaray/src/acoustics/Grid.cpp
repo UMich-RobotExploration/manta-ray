@@ -1,10 +1,8 @@
-//
-// Created by tko on 2/6/26.
-//
-
 #include "acoustics/pch.h"
 
 #include "acoustics/Grid.h"
+
+#include <manif/functions.h>
 
 namespace acoustics {
 
@@ -66,7 +64,7 @@ bool Grid2D::isValid() const {
 void Grid2D::validateInitialization() const {
   const std::vector<const std::vector<double> *> coordPtr = {&xCoords,
                                                              &yCoords};
-  GridCheckViaPtr(coordPtr, data);
+  gridCheckViaPtr(coordPtr, data);
 }
 
 std::pair<Eigen::Vector2d, Eigen::Vector2d> Grid2D::boundingBox() const {
@@ -278,7 +276,7 @@ bool Grid3D::checkInside(const Grid3D &other) const {
 void Grid3D::validateInitialization() const {
   std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
                                                      &zCoords};
-  GridCheckViaPtr(coords, data);
+  gridCheckViaPtr(coords, data);
 
   return;
 }
@@ -290,6 +288,41 @@ void Grid3D::boundsCheck(size_t ix, size_t iy, size_t iz) const {
         << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
     throw std::out_of_range(msg.str());
   }
+}
+// ============================================================================
+// GridVec Implementation
+// ============================================================================
+
+GridVec::GridVec(std::vector<double> x, std::vector<double> y,
+                 std::vector<double> z, std::vector<double> initDataU,
+                 std::vector<double> initDataV)
+    : xCoords(std::move(x)),
+      yCoords(std::move(y)),
+      zCoords(std::move(z)),
+      dataU(std::move(initDataU)),
+      dataV(std::move(initDataV)) {
+  validateInitialization();
+}
+
+size_t GridVec::index(size_t ix, size_t iy, size_t iz) const {
+  return (ix * yCoords.size() + iy) * zCoords.size() + iz;
+}
+
+void GridVec::boundsCheck(size_t ix, size_t iy, size_t iz) const {
+  if (ix >= nx() || iy >= ny() || iz >= nz()) {
+    std::stringstream msg;
+    msg << "Grid index out of bounds: (" << ix << ", " << iy << ", " << iz
+        << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
+    throw std::out_of_range(msg.str());
+  }
+}
+
+void GridVec::validateInitialization() const {
+  const std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
+                                                           &zCoords};
+  // need to check both datasets
+  gridCheckViaPtr(coords, dataU);
+  gridCheckViaPtr(coords, dataV);
 }
 
 // ============================================================================
@@ -311,7 +344,7 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm) {
     }
   }
 }
-void GridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
                      const std::vector<double> &data) {
   size_t combinedSize = 1;
   for (size_t i = 0; i < coords.size(); ++i) {
