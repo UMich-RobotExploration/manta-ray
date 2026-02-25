@@ -64,20 +64,9 @@ bool Grid2D::isValid() const {
 }
 
 void Grid2D::validateInitialization() const {
-  if (xCoords.empty() || yCoords.empty()) {
-    throw std::runtime_error("Grid cannot have empty coordinate vectors");
-  }
-  if (data.size() != xCoords.size() * yCoords.size()) {
-    throw std::invalid_argument("Grid data size mismatch");
-  }
-  if (utils::isMonotonicallyIncreasing(xCoords) == false) {
-    throw std::invalid_argument(
-        "x coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(yCoords) == false) {
-    throw std::invalid_argument(
-        "y coordinates must be monotonically increasing");
-  }
+  const std::vector<const std::vector<double> *> coordPtr = {&xCoords,
+                                                             &yCoords};
+  GridCheckViaPtr(coordPtr, data);
 }
 
 std::pair<Eigen::Vector2d, Eigen::Vector2d> Grid2D::boundingBox() const {
@@ -287,24 +276,10 @@ bool Grid3D::checkInside(const Grid3D &other) const {
 }
 
 void Grid3D::validateInitialization() const {
-  if (xCoords.empty() || yCoords.empty() || zCoords.empty()) {
-    throw std::runtime_error("Grid cannot have empty coordinate vectors");
-  }
-  if (data.size() != xCoords.size() * yCoords.size() * zCoords.size()) {
-    throw std::invalid_argument("Grid data size mismatch");
-  }
-  if (utils::isMonotonicallyIncreasing(xCoords) == false) {
-    throw std::invalid_argument(
-        "x coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(yCoords) == false) {
-    throw std::invalid_argument(
-        "y coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(zCoords) == false) {
-    throw std::invalid_argument(
-        "z coordinates must be monotonically increasing");
-  }
+  std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
+                                                     &zCoords};
+  GridCheckViaPtr(coords, data);
+
   return;
 }
 
@@ -334,6 +309,34 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm) {
             sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
       }
     }
+  }
+}
+void GridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+                     const std::vector<double> &data) {
+  size_t combinedSize = 1;
+  for (size_t i = 0; i < coords.size(); ++i) {
+    std::string coordName;
+    if (i == 0) {
+      coordName = "x";
+    } else if (i == 1) {
+      coordName = "y";
+    } else if (i == 2) {
+      coordName = "z";
+    } else
+      coordName = "unknown name";
+    if (coords[i]->empty()) {
+      throw std::runtime_error(coordName +
+                               ": Grid cannot have empty coordinate vectors");
+    }
+    // accumulating dimensions
+    combinedSize *= coords[i]->size();
+    if (utils::isMonotonicallyIncreasing(*(coords[i])) == false) {
+      throw std::invalid_argument(
+          coordName + " coordinates must be monotonically increasing");
+    }
+  }
+  if (data.size() != combinedSize) {
+    throw std::invalid_argument("Grid data size mismatch");
   }
 }
 

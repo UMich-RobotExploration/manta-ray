@@ -156,7 +156,81 @@ private:
   void boundsCheck(size_t ix, size_t iy, size_t iz) const;
 };
 
+/**
+ * @brief 4D grid - same design principles as Grid2D
+ *
+ * @sa Grid2D
+ * @see Grid2D
+ *
+ *
+ * @par INDEX ORDER:
+ * - index(ix, iy, iz) = (ix * ny + iy) * nz + iz  (row-major)
+ * - See Grid2D documentation for memory layout rationale
+ *
+ */
+class GridVec {
+public:
+  std::vector<double> xCoords;
+  std::vector<double> yCoords;
+  std::vector<double> zCoords;
+  std::vector<double> data;
+
+  GridVec() = delete;
+  GridVec(const GridVec &) = delete;
+  GridVec &operator=(const GridVec &) = delete;
+  GridVec(GridVec &&) noexcept = default;
+  GridVec &operator=(GridVec &&) = default;
+
+  GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
+          double defaultValue = double{});
+  GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
+          std::vector<double> initData);
+
+  void clear();
+
+  size_t nx() const;
+  size_t ny() const;
+  size_t nz() const;
+  size_t size() const;
+
+  /**
+   * Index Structure MUST Align with Bellhop's Internal Storage Order
+   */
+  size_t index(size_t ix, size_t iy, size_t iz) const;
+
+  double &at(size_t ix, size_t iy, size_t iz);
+  const double &at(size_t ix, size_t iy, size_t iz) const;
+
+  double &operator()(size_t ix, size_t iy, size_t iz);
+  const double &operator()(size_t ix, size_t iy, size_t iz) const;
+
+  bool isValid() const;
+
+  /** @brief Returns axis aligned bounding box representation of grid */
+  std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const;
+
+  /** @brief Interpolates vector field linearly
+   */
+  double interpolateDataValue(double x, double y) const;
+
+private:
+  void validateInitialization() const;
+  void boundsCheck(size_t ix, size_t iy, size_t iz) const;
+};
+
 /** @brief Utilizes Munk profile equation to generate a sound speed profile */
 void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm);
+
+/**
+ * @brief Validates grids for all grid class via usage of ptr's
+ *
+ * @details Can take pointers as we only call this function with the class
+ * where to pointers are valid. **WARNING** do not use outside Grid classes
+ * as there is no certainty pointers are nulled.
+ *
+ * @invariant Assumes passed in values are in the x,y,z order or x,y
+ */
+void GridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+                     const std::vector<double> &data);
 
 } // namespace acoustics
