@@ -294,13 +294,11 @@ void Grid3D::boundsCheck(size_t ix, size_t iy, size_t iz) const {
 // ============================================================================
 
 GridVec::GridVec(std::vector<double> x, std::vector<double> y,
-                 std::vector<double> z, std::vector<double> initDataU,
-                 std::vector<double> initDataV)
+                 std::vector<double> z, std::vector<Eigen::Vector2d> initData)
     : xCoords(std::move(x)),
       yCoords(std::move(y)),
       zCoords(std::move(z)),
-      dataU(std::move(initDataU)),
-      dataV(std::move(initDataV)) {
+      dataVec(std::move(initData)) {
   validateInitialization();
 }
 
@@ -308,8 +306,7 @@ void GridVec::validateInitialization() const {
   const std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
                                                            &zCoords};
   // need to check both datasets
-  gridCheckViaPtr(coords, dataU);
-  gridCheckViaPtr(coords, dataV);
+  gridCheckViaPtr(coords, dataVec);
 }
 
 size_t GridVec::index(size_t ix, size_t iy, size_t iz) const {
@@ -322,17 +319,29 @@ size_t GridVec::ny() const { return yCoords.size(); }
 
 size_t GridVec::nz() const { return zCoords.size(); }
 
-size_t GridVec::sizeU() const { return dataU.size(); }
-
-size_t GridVec::sizeV() const { return dataV.size(); }
+size_t GridVec::size() const { return dataVec.size(); }
 
 void GridVec::boundsCheck(size_t ix, size_t iy, size_t iz) const {
   if (ix >= nx() || iy >= ny() || iz >= nz()) {
-    std::stringstream msg;
-    msg << "Grid index out of bounds: (" << ix << ", " << iy << ", " << iz
-        << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
-    throw std::out_of_range(msg.str());
+    auto msg = fmt::format(
+        "Grid index out of bounds: ({}, {}, {}) for grid ({}, {}, {})", ix, iy,
+        iz, nx(), ny(), nz());
+    throw std::out_of_range(msg);
   }
+}
+
+Eigen::Vector2d &GridVec::at(size_t ix, size_t iy, size_t iz) {
+  boundsCheck(ix, iy, iz);
+  auto idx = index(ix, iy, iz);
+  return dataVec[idx];
+}
+
+Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy, size_t iz) {
+  return dataVec[index(ix, iy, iz)];
+}
+const Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy,
+                                           size_t iz) const {
+  return dataVec[index(ix, iy, iz)];
 }
 
 // ============================================================================

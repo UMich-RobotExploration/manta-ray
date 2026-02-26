@@ -172,8 +172,7 @@ public:
   std::vector<double> xCoords;
   std::vector<double> yCoords;
   std::vector<double> zCoords;
-  std::vector<double> dataU;
-  std::vector<double> dataV;
+  std::vector<Eigen::Vector2d> dataVec;
 
   GridVec() = delete;
   GridVec(const GridVec &) = delete;
@@ -182,23 +181,22 @@ public:
   GridVec &operator=(GridVec &&) = default;
 
   GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
-          std::vector<double> initDataU, std::vector<double> initDataV);
+          std::vector<Eigen::Vector2d> initData);
 
   void clear();
 
   size_t nx() const;
   size_t ny() const;
   size_t nz() const;
-  size_t sizeU() const;
-  size_t sizeV() const;
+  size_t size() const;
 
   size_t index(size_t ix, size_t iy, size_t iz) const;
 
-  double &at(size_t ix, size_t iy, size_t iz);
-  const double &at(size_t ix, size_t iy, size_t iz) const;
+  Eigen::Vector2d &at(size_t ix, size_t iy, size_t iz);
+  const Eigen::Vector2d &at(size_t ix, size_t iy, size_t iz) const;
 
-  double &operator()(size_t ix, size_t iy, size_t iz);
-  const double &operator()(size_t ix, size_t iy, size_t iz) const;
+  Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz);
+  const Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz) const;
 
   bool isValid() const;
 
@@ -220,13 +218,40 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm);
 /**
  * @brief Validates grids for all grid class via usage of ptr's
  *
+ * @tparam T intended as double or Eigen::Vector2d or Eigen::Vector3d
  * @details Can take pointers as we only call this function with the class
  * where to pointers are valid. **WARNING** do not use outside Grid classes
  * as there is no certainty pointers are nulled.
  *
  * @invariant Assumes passed in values are in the x,y,z order or x,y
  */
+template <typename T>
 void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
-                     const std::vector<double> &data);
-
+                     const std::vector<T> &data) {
+  size_t combinedSize = 1;
+  for (size_t i = 0; i < coords.size(); ++i) {
+    std::string coordName;
+    if (i == 0) {
+      coordName = "x";
+    } else if (i == 1) {
+      coordName = "y";
+    } else if (i == 2) {
+      coordName = "z";
+    } else
+      coordName = "unknown name";
+    if (coords[i]->empty()) {
+      throw std::runtime_error(coordName +
+                               ": Grid cannot have empty coordinate vectors");
+    }
+    // accumulating dimensions
+    combinedSize *= coords[i]->size();
+    if (utils::isMonotonicallyIncreasing(*(coords[i])) == false) {
+      throw std::invalid_argument(
+          coordName + " coordinates must be monotonically increasing");
+    }
+  }
+  if (data.size() != combinedSize) {
+    throw std::invalid_argument("Grid data size mismatch");
+  }
+}
 } // namespace acoustics

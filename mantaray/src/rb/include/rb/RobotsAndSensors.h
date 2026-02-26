@@ -18,6 +18,13 @@
 
 namespace rb {
 
+////////////////////////////////////////////////////////////////////////////////
+/// Robot Implementations
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Constant Velocity Robot in prescribed vector direction
+ */
 class ConstantVelRobot : public RobotI {
 public:
   const Eigen::Vector3d constantVel_;
@@ -28,6 +35,13 @@ public:
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+/// Sensor Implementations
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Odometry in the X-Y plane of the vehicle. No Z - noise
+ */
 class PositionalXYOdometry : public SensorI {
 public:
   PositionalXYOdometry(double freqHz, int timeSteps,
@@ -41,6 +55,18 @@ private:
   std::normal_distribution<double> noiseDist_;
   Eigen::Vector3d prevPosition_{0.0, 0.0, 0.0};
 };
+
+/**
+ * @brief Sensor for extracting ground truth pose data from simulation
+ * @details Ignores rngEngine, and strictly pulls in flattened SE3 pose for
+ * each requested timestep. The pose in SE3 is represented as
+ *  \f[
+ *  x_{pose} =
+ *  \begin{bmatrix}
+ *  x & y & z & q_1 & q_2 & q_3 & q_4
+ *  \end{bmatrix}
+ *  \f]
+ */
 class GroundTruthPose : public SensorI {
 public:
   GroundTruthPose(double freqHz, int timeSteps);
@@ -50,9 +76,12 @@ public:
                     std::mt19937 &rngEngine) override;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+/// Dumping methods
+////////////////////////////////////////////////////////////////////////////////
+
 // These methods need to be updated when adding a new SensorType
 // Errors are provided if they are not updated
-
 const char *csvHeaderForSensor(const SensorType type);
 std::string csvRowForSensor(const SensorType type, const Eigen::VectorXd data);
 
