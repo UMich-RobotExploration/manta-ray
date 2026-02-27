@@ -327,7 +327,9 @@ const Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy,
                                            size_t iz) const {
   return dataVec[index(ix, iy, iz)];
 }
-Eigen::Vector3d GridVec::interpolateDataValue(double x, double y) const {}
+Eigen::Vector3d GridVec::interpolateDataValue(double x, double y) const {
+  return {0, 0, 0};
+}
 
 // ============================================================================
 // Utility Functions

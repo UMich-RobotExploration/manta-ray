@@ -155,7 +155,7 @@ def krige_data_2d(ds, var_name='bathymetry', fine_factor=5):
     OK = OrdinaryKriging(
         x_valid, y_valid, bathy_valid,
         variogram_model='spherical',
-        verbose=False, enable_plotting=False
+        verbose=False, enable_plotting=True
     )
     x_fine = np.linspace(x.min(), x.max(), len(x) * fine_factor)
     y_fine = np.linspace(y.min(), y.max(), len(y) * fine_factor)
