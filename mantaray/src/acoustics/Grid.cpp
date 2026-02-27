@@ -56,11 +56,6 @@ const double &Grid2D::operator()(size_t ix, size_t iy) const {
   return data[index(ix, iy)];
 }
 
-bool Grid2D::isValid() const {
-  return data.size() == xCoords.size() * yCoords.size() && !xCoords.empty() &&
-         !yCoords.empty();
-}
-
 void Grid2D::validateInitialization() const {
   const std::vector<const std::vector<double> *> coordPtr = {&xCoords,
                                                              &yCoords};
@@ -68,9 +63,6 @@ void Grid2D::validateInitialization() const {
 }
 
 std::pair<Eigen::Vector2d, Eigen::Vector2d> Grid2D::boundingBox() const {
-  if (!isValid()) {
-    throw std::runtime_error("Cannot compute bounding box of invalid grid");
-  }
   // grids are monotonically increasing
   auto xMin = xCoords.front();
   auto xMax = xCoords.back();
@@ -236,15 +228,7 @@ const double &Grid3D::operator()(size_t ix, size_t iy, size_t iz) const {
   return data[index(ix, iy, iz)];
 }
 
-bool Grid3D::isValid() const {
-  return data.size() == xCoords.size() * yCoords.size() * zCoords.size() &&
-         !xCoords.empty() && !yCoords.empty() && !zCoords.empty();
-}
-
 std::pair<Eigen::Vector3d, Eigen::Vector3d> Grid3D::boundingBox() const {
-  if (!isValid()) {
-    throw std::runtime_error("Cannot compute bounding box of invalid grid");
-  }
   // grids are monotonically increasing
   auto xMin = xCoords.front();
   auto xMax = xCoords.back();
@@ -343,6 +327,7 @@ const Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy,
                                            size_t iz) const {
   return dataVec[index(ix, iy, iz)];
 }
+Eigen::Vector3d GridVec::interpolateDataValue(double x, double y) const {}
 
 // ============================================================================
 // Utility Functions

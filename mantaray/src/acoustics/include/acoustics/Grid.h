@@ -72,8 +72,6 @@ public:
   double &operator()(size_t ix, size_t iy);
   const double &operator()(size_t ix, size_t iy) const;
 
-  bool isValid() const;
-
   /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector2d, Eigen::Vector2d> boundingBox() const;
 
@@ -143,8 +141,6 @@ public:
   double &operator()(size_t ix, size_t iy, size_t iz);
   const double &operator()(size_t ix, size_t iy, size_t iz) const;
 
-  bool isValid() const;
-
   /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const;
 
@@ -197,11 +193,6 @@ public:
 
   Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz);
   const Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz) const;
-
-  bool isValid() const;
-
-  /** @brief Returns axis aligned bounding box representation of grid */
-  std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const;
 
   /** @brief Interpolates vector field linearly
    */
