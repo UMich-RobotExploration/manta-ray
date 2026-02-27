@@ -3,11 +3,19 @@ from oceanbench_data_provider.viz import quicklook_map, make_movie, plot_region_
 from oceanbench_data_provider.scenarios import list_scenarios, get_scenario, list_regions, get_region_bounds, get_region
 from oceanbench_data_provider.cache.store import CacheStore
 from oceanbench_data_provider import add_pressure_and_sound_speed
-import pandas as pd
+from pykrige.ok import OrdinaryKriging
+from pykrige.ok3d import OrdinaryKriging3D
+from pyproj import Proj, Transformer
 import numpy as np
 import matplotlib.pyplot as plt
 import xarray as xr
 import os
+
+################################################################################
+# This is a scratch workbook and not true python code yet.
+
+# TODO: Fix AI slop that generated most of this
+################################################################################
 
 
 def export_bathymetry(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", bathy_filename="bathymetry.npy",
@@ -112,19 +120,110 @@ def compute_ssp(ds, var='sound_speed'):
     return filled
 
 
-def plot_ssp(ds: xr.Dataset):
+def plot_ssp(ds: xr.Dataset, xarray_key='sound_speed'):
     fig, ax = plt.subplots(figsize=(4, 3), dpi=400)
     ax.yaxis.set_inverted(True)
     for i in ds['lat']:
         for j in ds['lon']:
             tmp_ds = ds.sel(lat=i, lon=j)
-            ax.plot(tmp_ds['sound_speed'], tmp_ds['depth'])
+            ax.plot(tmp_ds[xarray_key], tmp_ds['depth'])
     ax.set_title("Sound Speed Profile")
     ax.set_xlabel("Sound Speed (m/s)")
     ax.set_ylabel("Depth (m)")
     ax.minorticks_on()
     ax.grid(True)
     plt.show()
+
+
+def krige_data_2d(ds, var_name='bathymetry', fine_factor=5):
+    """
+    Perform Ordinary Kriging on the bathymetry field and return a new DataArray with kriged values on a finer x_m/y_m grid.
+    Also creates lat/lon coordinates for the fine grid using np.linspace.
+    """
+    x = ds.coords['x_m'].values
+    y = ds.coords['y_m'].values
+    bathy = ds[var_name].values
+    # Kriging on fine grid
+    xx, yy = np.meshgrid(x, y)
+    x_flat = xx.flatten()
+    y_flat = yy.flatten()
+    bathy_flat = bathy.flatten()
+    mask = ~np.isnan(bathy_flat)
+    x_valid = x_flat[mask]
+    y_valid = y_flat[mask]
+    bathy_valid = bathy_flat[mask]
+    OK = OrdinaryKriging(
+        x_valid, y_valid, bathy_valid,
+        variogram_model='spherical',
+        verbose=False, enable_plotting=False
+    )
+    x_fine = np.linspace(x.min(), x.max(), len(x) * fine_factor)
+    y_fine = np.linspace(y.min(), y.max(), len(y) * fine_factor)
+    xx, yy = np.meshgrid(x_fine, y_fine)
+    z_kriged, _ = OK.execute('grid', xx.flatten(), yy.flatten())
+    
+    plt.figure(figsize=(8, 6))
+    plt.contourf(xx.flatten(), yy.flatten(), z_kriged, 20, cmap='viridis')
+    plt.colorbar(label='Depth')
+    plt.title('Kriging Interpolation of Bathymetry (Higher Resolution)')
+    plt.xlabel('X-coordinate')
+    plt.ylabel('Y-coordinate')
+    plt.show()
+
+    # Return as DataArray with new finer coordinates
+    print(z_kriged.shape)
+    kriged_da = xr.DataArray(
+        z_kriged,
+        coords={
+            'y_m': yy.flatten(),
+            'x_m': xx.flatten(),
+        },
+        dims=('y_m', 'x_m')
+    )
+    return kriged_da
+
+
+def krige_data_3d(ds, var_name='sound_speed'):
+    """
+    Perform Ordinary Kriging on the sound_speed field and return a new DataArray with kriged values.
+    """
+    x = ds.coords['x_m'].values
+    y = ds.coords['y_m'].values
+    z = ds.coords['depth'].values
+    # Transpose data to (lat, lon, depth) before flattening
+    data = ds[var_name].values.transpose(1, 2, 0)
+    print(f"x shape: {x.shape}, y shape: {y.shape}, z shape: {z.shape}, data shape (lat, lon, depth): {data.shape}")
+    # Flatten the grid for kriging input
+    xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
+    print(f"meshgrid shapes: xx {xx.shape}, yy {yy.shape}, zz {zz.shape}")
+    x_flat = xx.flatten()
+    y_flat = yy.flatten()
+    z_flat = zz.flatten()
+    data_flat = data.flatten()
+    # Remove NaNs for kriging
+    mask = ~np.isnan(data_flat)
+    x_valid = x_flat[mask]
+    y_valid = y_flat[mask]
+    z_valid = z_flat[mask]
+    data_valid = data_flat[mask]
+    print(f"Valid points: {x_valid.shape}")
+    # Set up the kriging object
+    OK = OrdinaryKriging3D(
+        x_valid, y_valid, z_valid, data_valid,
+        variogram_model='spherical',
+        verbose=False, enable_plotting=True
+    )
+    # Interpolate on the original grid
+    z_kriged, _ = OK.execute('grid', x, y, z)
+    print(f"z_kriged shape (should be z,y,x): {z_kriged.shape}")
+    # Transpose to (lat, lon, depth) = (y, x, z)
+    z_kriged = np.transpose(z_kriged, (1, 2, 0))
+    print(f"z_kriged transposed shape (should be y,x,z): {z_kriged.shape}")
+    print(f"lat: {ds.coords['lat'].shape}, lon: {ds.coords['lon'].shape}, depth: {ds.coords['depth'].shape}")
+    kriged_da = xr.DataArray(z_kriged,
+                             coords={'lat': ds.coords['lat'], 'lon': ds.coords['lon'], 'depth': ds.coords['depth']},
+                             dims=('lat', 'lon', 'depth'))
+    return kriged_da
 
 
 def main():
@@ -252,10 +351,6 @@ def main():
         else:
             print(f"  • {coord}: {len(coord_data)} values")
 
-    from pyproj import Proj, Transformer
-
-    # NOTE: Can use ds.isel(index_name=index_number) to select a special subset
-
     # Slicing out a uniform rectangle in the dataset before computing the center lat/lon
     new_ds = ds.isel(lat=slice(1, 7), lon=slice(0, 7))
 
@@ -280,19 +375,6 @@ def main():
 
     print("Grid converted to meters.")
 
-    # Plot the map using the library `quicklook_map` helper
-    for i in range(ds.depth.shape[0]):
-        ax = quicklook_map(
-            new_ds,
-            "sound_speed",
-            time_idx=0,
-            depth_idx=i,
-            variable_info=variable_info,
-            show_date=True,
-        )
-        plt.show()
-        break
-
     # Define a small epsilon offset
     epsilon = 2.5  # meter offset
 
@@ -313,7 +395,7 @@ def main():
         new_ds,
         "bathymetry",
         time_idx=0,
-        depth_idx=i,
+        depth_idx=0,
         variable_info=variable_info,
         show_date=True,
     )
@@ -328,6 +410,26 @@ def main():
     export_bathymetry(new_ds, output_dir=output_dir)
     output_dir = "../mantaray/data/monterey/ssp/"
     export_ssp(new_ds, output_dir=output_dir)
+
+    # After exporting bathymetry and ssp, perform kriging and plot
+    bathy_kriged = krige_data_2d(new_ds, var_name='bathymetry')
+    # Create a new dataset for kriged bathymetry
+    kriged_ds = new_ds.copy()
+    kriged_ds['bathymetry_kriged'] = bathy_kriged
+    print("Plotting kriged bathymetry...")
+    ax = quicklook_map(
+        kriged_ds,
+        "bathymetry_kriged",
+        time_idx=0,
+        depth_idx=0,
+        variable_info=variable_info,
+        show_date=True,
+    )
+    plt.show()
+
+    ssp_krige = krige_data_3d(new_ds, var_name='sound_speed')
+    kriged_ds['sound_speed_kriged'] = ssp_krige
+    plot_ssp(kriged_ds, 'sound_speed_kriged')
 
 
 if __name__ == "__main__":
