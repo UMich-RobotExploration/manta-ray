@@ -1,0 +1,8 @@
+<map id="src/rb/include/rb/RbInterfaces.h" name="src/rb/include/rb/RbInterfaces.h">
+<area shape="rect" id="Node000001" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="5,5,229,31"/>
+<area shape="rect" id="Node000002" href="$RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="19,167,215,192"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,43,91,60,83,79,79,99,83,118,94,144,109,165,105,168,90,146,77,119,74,99,77,78,86,58,97,40"/>
+<area shape="rect" id="Node000003" href="$RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="93,79,267,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="137,40,167,77,163,80,133,43"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="158,131,129,168,125,165,154,128"/>
+</map>

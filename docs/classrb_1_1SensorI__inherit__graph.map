@@ -1,0 +1,7 @@
+<map id="rb::SensorI" name="rb::SensorI">
+<area shape="rect" id="Node000001" title=" " alt="" coords="134,5,225,31"/>
+<area shape="rect" id="Node000002" href="$classrb_1_1GroundTruthPose.html" title="Sensor for extracting ground truth pose data from simulation." alt="" coords="5,79,159,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,41,99,81,96,76,151,37"/>
+<area shape="rect" id="Node000003" href="$classrb_1_1PositionalXYOdometry.html" title="Sensor Implementations." alt="" coords="183,79,371,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="208,37,262,76,259,81,205,41"/>
+</map>
