@@ -1,6 +1,6 @@
-//
-// Created by tko on 2/24/26.
-//
+/** @file ConfigReader.h
+ * @brief Configuration reading and validation
+ */
 
 #pragma once
 #include <acoustics/Grid.h>
@@ -8,6 +8,9 @@
 #include <string>
 
 namespace config {
+
+// Defines key to look for source directory path of data
+constexpr char kSourceKey[] = "source_dir";
 
 /**
  * @brief ConfigReader is responsible for reading and parsing configuration
@@ -73,6 +76,25 @@ public:
    */
   acoustics::Grid3D readSSP() const;
 
+  /**
+   * @brief Reads and constructs a 3D current grid from the
+   * configuration file.
+   *
+   * This method extracts current data, x-coordinates, y-coordinates, and
+   * z-coordinates from the configuration file and constructs a GridVec grid. It
+   * ensures that the required keys ("data", "x", "y", "z") are present in the
+   * JSON data.
+   *
+   *
+   * Data validation is conduced by acoustics::GridVec and should not be handled
+   * by this method.
+   *
+   * @return A GridVec grid representing the sound speed profile data.
+   * @throws std::invalid_argument if required keys are missing or data is
+   * invalid.
+   */
+  acoustics::GridVec readCurrent() const;
+
 private:
   // Path to the configuration file.
   const std::string configPath_;
@@ -81,16 +103,46 @@ private:
 };
 
 /**
- * @brief Checks that json or json sub dictionary has all required keys
+ * @brief Validates that json structure has proper keys and subkeys
+ *
+ * @tparam N number of subkey to check for
+ *
+ * @details Ensures the following structure exists
+ *
+ * ```json
+ *  {
+ *    "source_dir" : "some_path",
+ *      "subKey": {
+ *        "key1": 1,
+ *        "key2": 2
+ *      }
+ *  }
+ * ```
  */
 template <std::size_t N>
-void ensureKeysExist(const nlohmann::json &jsonData,
-                     const std::array<std::string, N> &keys) {
+std::filesystem::path validateJSON(const nlohmann::json &jsonData,
+                                   const std::string subKey,
+                                   const std::array<std::string, N> &keys) {
+  if (!jsonData.contains(kSourceKey)) {
+    auto err = fmt::format("Missing required key: ", kSourceKey);
+    throw std::invalid_argument(err);
+  }
+  if (!jsonData.contains(subKey)) {
+    auto err = fmt::format("Missing required sub-key: ", subKey);
+    throw std::invalid_argument(err);
+  }
+  std::filesystem::path rootPath(jsonData[kSourceKey]);
+  if (!std::filesystem::exists(rootPath)) {
+    auto msg = fmt::format("source_dir from config does not exist {}",
+                           rootPath.c_str());
+    throw std::invalid_argument(msg);
+  }
   for (const auto &key : keys) {
-    if (!jsonData.contains(key)) {
+    if (!jsonData[subKey].contains(key)) {
       throw std::invalid_argument("Missing required key: " + key);
     }
   }
+  return rootPath;
 }
 
 } // namespace config
