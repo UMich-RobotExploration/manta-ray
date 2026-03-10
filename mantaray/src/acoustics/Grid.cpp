@@ -123,26 +123,13 @@ void Grid2D::boundsCheck(size_t ix, size_t iy) const {
 }
 
 double Grid2D::interpolateDataValue(double x, double y) const {
-  // Grids are monotonic, so no need to sort!
-  // Want upper for strictly < and not <=.
-  auto xLower = std::upper_bound(xCoords.begin(), xCoords.end(), x);
-  auto yLower = std::upper_bound(yCoords.begin(), yCoords.end(), y);
-  if (xLower == xCoords.end() || yLower == yCoords.end()) {
-    // TODO: Would be good to have a function that does check this before
-    // interpolation
-    SPDLOG_ERROR("Before asking to interpolate, verify result in bounds. Check "
-                 "units on input vs Grid data.");
-    throw std::runtime_error("Requesting interpolation outside of grid");
-  }
-  size_t xUpperIdx = std::distance(xCoords.begin(), xLower);
-  size_t yUpperIdx = std::distance(yCoords.begin(), yLower);
+  auto [xLowerIdx, xUpperIdx] = detail::bracketIndex(xCoords, x, "x");
+  auto [yLowerIdx, yUpperIdx] = detail::bracketIndex(yCoords, y, "y");
 
   // Using safe access methods to prevent segfaults and UB
   // Syntax reference:
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
-  size_t xLowerIdx = xUpperIdx - 1;
-  size_t yLowerIdx = yUpperIdx - 1;
   double q11 = at(xLowerIdx, yLowerIdx);
   double q21 = at(xUpperIdx, yLowerIdx);
   double q12 = at(xLowerIdx, yUpperIdx);
@@ -287,9 +274,7 @@ GridVec::GridVec(std::vector<double> x, std::vector<double> y,
 }
 
 void GridVec::validateInitialization() const {
-  const std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
-                                                           &zCoords};
-  // need to check both datasets
+  const std::vector coords = {&xCoords, &yCoords, &zCoords};
   gridCheckViaPtr(coords, dataVec);
 }
 
@@ -327,8 +312,46 @@ const Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy,
                                            size_t iz) const {
   return dataVec[index(ix, iy, iz)];
 }
-Eigen::Vector3d GridVec::interpolateDataValue(double x, double y) const {
-  return {0, 0, 0};
+Eigen::Vector3d GridVec::interpolateDataValue(double x, double y,
+                                              double z) const {
+  Eigen::Vector3d c = Eigen::Vector3d::Zero();
+  auto [xLowerIdx, xUpperIdx] = detail::bracketIndex(xCoords, x, "x");
+  auto [yLowerIdx, yUpperIdx] = detail::bracketIndex(yCoords, y, "y");
+  auto [zLowerIdx, zUpperIdx] = detail::bracketIndex(zCoords, z, "z");
+  double xd = x - xCoords.at(xLowerIdx) /
+                      (xCoords.at(xUpperIdx) - xCoords.at(xLowerIdx));
+  double yd = y - yCoords.at(yLowerIdx) /
+                      (yCoords.at(yUpperIdx) - yCoords.at(yLowerIdx));
+  double zd = z - zCoords.at(zLowerIdx) /
+                      (zCoords.at(zUpperIdx) - zCoords.at(zLowerIdx));
+
+  // using notation from reference formulation, but I am using an aggregation
+  // method to sum into c, instead of creating a bunch of allocations
+  Eigen::Vector2d c00 =
+      dataVec[index(xLowerIdx, yLowerIdx, zLowerIdx)] * (1 - xd) +
+      dataVec[index(xUpperIdx, yLowerIdx, zLowerIdx)] * xd;
+  Eigen::Vector2d c10 =
+      dataVec[index(xLowerIdx, yUpperIdx, zLowerIdx)] * (1 - xd) +
+      dataVec[index(xUpperIdx, yUpperIdx, zLowerIdx)] * xd;
+
+  // Formulated form two equations
+  // c0 = c00 (1-yd) + c10*yd
+  // c = c0 (1-zd) + ...
+  c.head(2) = (c00 * (1 - yd) + c10 * yd) * (1 - zd);
+
+  // reusing c00 as c01, and c10 as c11
+
+  // c01
+  c00 = dataVec[index(xLowerIdx, yLowerIdx, zUpperIdx)] * (1 - xd) +
+        dataVec[index(xUpperIdx, yLowerIdx, zUpperIdx)] * xd;
+  // c11
+  c10 = dataVec[index(xLowerIdx, yUpperIdx, zUpperIdx)] * (1 - xd) +
+        dataVec[index(xUpperIdx, yUpperIdx, zUpperIdx)] * xd;
+  // Formulated form two equations
+  // c1 = c01 (1-yd) + c11*yd
+  // c = ... + c1 * zd
+  c.head(2) = (c00 * (1 - yd) + c10 * yd) * zd;
+  return c;
 }
 
 // ============================================================================

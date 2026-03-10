@@ -1,6 +1,6 @@
 
 # These tests can use the Catch2-provided main
-add_executable(tests test_helpers.cpp test_Integrator.cpp)
+add_executable(tests test_helpers.cpp test_grids.cpp test_Integrator.cpp)
 target_link_libraries(tests PUBLIC ${ACOUSTIC_LIB_NAME} PRIVATE Catch2::Catch2WithMain)
 target_include_directories(tests PRIVATE ${INCLUDE_GLM})
 target_include_directories(tests PRIVATE ${INCLUDE_BHC})

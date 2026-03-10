@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <limits>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -195,8 +196,21 @@ public:
   const Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz) const;
 
   /** @brief Interpolates vector field linearly
+   *
+   *  @details Implementation is based off of
+   * https://en.wikipedia.org/wiki/Trilinear_interpolation
+   *
+   * The math is formulated for fewer allocations as an aggregation
+   * strategy to a zero vector. The rest of the math follows the reference
+   * \f[
+   * c += (c_{00} (1 - y_d) + c_{10} y_d) * (1 - z_d)
+   * \f]
+   * \f[
+   * c += (c_{01} (1 - y_d) + c_{11} y_d) * z_d
+   * \f]
+   *
    */
-  Eigen::Vector3d interpolateDataValue(double x, double y) const;
+  Eigen::Vector3d interpolateDataValue(double x, double y, double z) const;
 
 private:
   void validateInitialization() const;
@@ -222,6 +236,8 @@ void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
   size_t combinedSize = 1;
   for (size_t i = 0; i < coords.size(); ++i) {
     std::string coordName;
+    // This is an ugly way of handling this, but since right now grids are
+    // maximally 3D, it was kept simple to avoid over generalizing
     if (i == 0) {
       coordName = "x";
     } else if (i == 1) {
@@ -234,7 +250,7 @@ void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
       throw std::runtime_error(coordName +
                                ": Grid cannot have empty coordinate vectors");
     }
-    // accumulating dimensions
+    // accumulating dimensions for flattened array checks
     combinedSize *= coords[i]->size();
     if (utils::isMonotonicallyIncreasing(*(coords[i])) == false) {
       throw std::invalid_argument(
@@ -245,4 +261,31 @@ void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
     throw std::invalid_argument("Grid data size mismatch");
   }
 }
+namespace detail {
+
+/** @brief Finds the (lowerIdx, upperIdx) pair that brackets `value` in a sorted
+ * coordinate vector.
+ * @param axisName simply a helper for error messages
+ * @throw runtime_error If value is outside the interpolation range (i.e.
+ * or beyond the last element).
+ */
+inline std::pair<size_t, size_t> bracketIndex(const std::vector<double> &coords,
+                                              double value,
+                                              const std::string &axisName) {
+  // Grids are monotonic, so no need to sort!
+  // Want upper for strictly < and not <=.
+  auto upper = std::upper_bound(coords.begin(), coords.end(), value);
+  if (upper == coords.end() || upper == coords.begin()) {
+    spdlog::error(
+        "Interpolation out of bounds on {} axis. Check units on input "
+        "vs Grid data.",
+        axisName);
+    throw std::runtime_error("Requesting interpolation outside of grid on " +
+                             axisName + " axis");
+  }
+  size_t upperIdx = static_cast<size_t>(std::distance(coords.begin(), upper));
+  return {upperIdx - 1, upperIdx};
+}
+
+} // namespace detail
 } // namespace acoustics
