@@ -318,12 +318,12 @@ Eigen::Vector3d GridVec::interpolateDataValue(double x, double y,
   auto [xLowerIdx, xUpperIdx] = detail::bracketIndex(xCoords, x, "x");
   auto [yLowerIdx, yUpperIdx] = detail::bracketIndex(yCoords, y, "y");
   auto [zLowerIdx, zUpperIdx] = detail::bracketIndex(zCoords, z, "z");
-  double xd = x - xCoords.at(xLowerIdx) /
-                      (xCoords.at(xUpperIdx) - xCoords.at(xLowerIdx));
-  double yd = y - yCoords.at(yLowerIdx) /
-                      (yCoords.at(yUpperIdx) - yCoords.at(yLowerIdx));
-  double zd = z - zCoords.at(zLowerIdx) /
-                      (zCoords.at(zUpperIdx) - zCoords.at(zLowerIdx));
+  double xd = (x - xCoords.at(xLowerIdx)) /
+              (xCoords.at(xUpperIdx) - xCoords.at(xLowerIdx));
+  double yd = (y - yCoords.at(yLowerIdx)) /
+              (yCoords.at(yUpperIdx) - yCoords.at(yLowerIdx));
+  double zd = (z - zCoords.at(zLowerIdx)) /
+              (zCoords.at(zUpperIdx) - zCoords.at(zLowerIdx));
 
   // using notation from reference formulation, but I am using an aggregation
   // method to sum into c, instead of creating a bunch of allocations
@@ -337,7 +337,7 @@ Eigen::Vector3d GridVec::interpolateDataValue(double x, double y,
   // Formulated form two equations
   // c0 = c00 (1-yd) + c10*yd
   // c = c0 (1-zd) + ...
-  c.head(2) = (c00 * (1 - yd) + c10 * yd) * (1 - zd);
+  c.head(2) += (c00 * (1 - yd) + c10 * yd) * (1 - zd);
 
   // reusing c00 as c01, and c10 as c11
 
@@ -350,7 +350,7 @@ Eigen::Vector3d GridVec::interpolateDataValue(double x, double y,
   // Formulated form two equations
   // c1 = c01 (1-yd) + c11*yd
   // c = ... + c1 * zd
-  c.head(2) = (c00 * (1 - yd) + c10 * yd) * zd;
+  c.head(2) += (c00 * (1 - yd) + c10 * yd) * zd;
   return c;
 }
 

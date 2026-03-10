@@ -145,4 +145,96 @@ TEST_CASE_METHOD(GridTestsFixture, "Interpolation on 2D grid sloped in y",
   REQUIRE(interpolatedValue == Catch::Approx(1500.5));
 }
 
+// ============================================================================
+// GridVec (trilinear) Interpolation Tests
+// ============================================================================
 
+class GridVecTestsFixture {
+public:
+  /**
+   * @brief Builds a 2x2x2 GridVec with uniform Vector2d values
+   */
+  acoustics::GridVec getUniformGridVec(Eigen::Vector2d fillValue = {1.0,
+                                                                    2.0}) {
+    std::vector<double> x = {0.0, 1.0};
+    std::vector<double> y = {0.0, 1.0};
+    std::vector<double> z = {0.0, 1.0};
+    // 2*2*2 = 8 elements, row-major: index(ix,iy,iz) = (ix*ny + iy)*nz + iz
+    std::vector<Eigen::Vector2d> data(8, fillValue);
+    return acoustics::GridVec(std::move(x), std::move(y), std::move(z),
+                              std::move(data));
+  }
+};
+
+TEST_CASE_METHOD(GridVecTestsFixture,
+                 "GridVec interpolation on uniform field returns constant",
+                 "[interpolation]") {
+  auto grid = getUniformGridVec({3.0, 5.0});
+  Eigen::Vector3d result = grid.interpolateDataValue(0.5, 0.5, 0.5);
+  // Uniform field → interpolation at the center should return the same value
+  REQUIRE(result.x() == Catch::Approx(3.0));
+  REQUIRE(result.y() == Catch::Approx(5.0));
+  REQUIRE(result.z() == Catch::Approx(0.0)); // z component is always 0
+}
+
+TEST_CASE_METHOD(GridVecTestsFixture,
+                 "GridVec interpolation with linear gradient in x",
+                 "[interpolation]") {
+  auto grid = getUniformGridVec({0.0, 0.0});
+  // Set data so that x=0 face has (0,0), x=1 face has (1,0)
+  // index(ix, iy, iz) = (ix*2 + iy)*2 + iz
+  for (size_t iy = 0; iy < 2; ++iy) {
+    for (size_t iz = 0; iz < 2; ++iz) {
+      grid.at(0, iy, iz) = Eigen::Vector2d(0.0, 0.0);
+      grid.at(1, iy, iz) = Eigen::Vector2d(1.0, 0.0);
+    }
+  }
+  Eigen::Vector3d result = grid.interpolateDataValue(0.5, 0.5, 0.5);
+  REQUIRE(result.x() == Catch::Approx(0.5));
+  REQUIRE(result.y() == Catch::Approx(0.0));
+}
+
+TEST_CASE_METHOD(GridVecTestsFixture,
+                 "GridVec interpolation with linear gradient in y",
+                 "[interpolation]") {
+  auto grid = getUniformGridVec({0.0, 0.0});
+  for (size_t ix = 0; ix < 2; ++ix) {
+    for (size_t iz = 0; iz < 2; ++iz) {
+      grid.at(ix, 0, iz) = Eigen::Vector2d(0.0, 0.0);
+      grid.at(ix, 1, iz) = Eigen::Vector2d(0.0, 4.0);
+    }
+  }
+  Eigen::Vector3d result = grid.interpolateDataValue(0.5, 0.5, 0.5);
+  REQUIRE(result.x() == Catch::Approx(0.0));
+  REQUIRE(result.y() == Catch::Approx(2.0));
+}
+
+TEST_CASE_METHOD(GridVecTestsFixture,
+                 "GridVec interpolation with linear gradient in z",
+                 "[interpolation]") {
+  auto grid = getUniformGridVec({0.0, 0.0});
+  for (size_t ix = 0; ix < 2; ++ix) {
+    for (size_t iy = 0; iy < 2; ++iy) {
+      grid.at(ix, iy, 0) = Eigen::Vector2d(0.0, 0.0);
+      grid.at(ix, iy, 1) = Eigen::Vector2d(2.0, 6.0);
+    }
+  }
+  Eigen::Vector3d result = grid.interpolateDataValue(0.5, 0.5, 0.5);
+  REQUIRE(result.x() == Catch::Approx(1.0));
+  REQUIRE(result.y() == Catch::Approx(3.0));
+}
+
+TEST_CASE_METHOD(GridVecTestsFixture,
+                 "GridVec interpolation out of bounds throws",
+                 "[interpolation]") {
+  auto grid = getUniformGridVec();
+  // Below lower bound on x
+  REQUIRE_THROWS_AS(grid.interpolateDataValue(-0.1, 0.5, 0.5),
+                    std::runtime_error);
+  // Above upper bound on y
+  REQUIRE_THROWS_AS(grid.interpolateDataValue(0.5, 1.5, 0.5),
+                    std::runtime_error);
+  // Above upper bound on z
+  REQUIRE_THROWS_AS(grid.interpolateDataValue(0.5, 0.5, 1.5),
+                    std::runtime_error);
+}
