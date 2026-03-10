@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <limits>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -71,8 +72,6 @@ public:
 
   double &operator()(size_t ix, size_t iy);
   const double &operator()(size_t ix, size_t iy) const;
-
-  bool isValid() const;
 
   /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector2d, Eigen::Vector2d> boundingBox() const;
@@ -143,8 +142,6 @@ public:
   double &operator()(size_t ix, size_t iy, size_t iz);
   const double &operator()(size_t ix, size_t iy, size_t iz) const;
 
-  bool isValid() const;
-
   /** @brief Returns axis aligned bounding box representation of grid */
   std::pair<Eigen::Vector3d, Eigen::Vector3d> boundingBox() const;
 
@@ -156,7 +153,139 @@ private:
   void boundsCheck(size_t ix, size_t iy, size_t iz) const;
 };
 
+/**
+ * @brief 4D grid - same design principles as Grid2D
+ *
+ * @see Grid2D
+ *
+ *
+ * @par INDEX ORDER:
+ * - index(ix, iy, iz) = (ix * ny + iy) * nz + iz  (row-major)
+ * - See Grid2D documentation for memory layout rationale
+ *
+ */
+class GridVec {
+public:
+  std::vector<double> xCoords;
+  std::vector<double> yCoords;
+  std::vector<double> zCoords;
+  std::vector<Eigen::Vector2d> dataVec;
+
+  GridVec() = delete;
+  GridVec(const GridVec &) = delete;
+  GridVec &operator=(const GridVec &) = delete;
+  GridVec(GridVec &&) noexcept = default;
+  GridVec &operator=(GridVec &&) = default;
+
+  GridVec(std::vector<double> x, std::vector<double> y, std::vector<double> z,
+          std::vector<Eigen::Vector2d> initData);
+
+  void clear();
+
+  size_t nx() const;
+  size_t ny() const;
+  size_t nz() const;
+  size_t size() const;
+
+  size_t index(size_t ix, size_t iy, size_t iz) const;
+
+  Eigen::Vector2d &at(size_t ix, size_t iy, size_t iz);
+  const Eigen::Vector2d &at(size_t ix, size_t iy, size_t iz) const;
+
+  Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz);
+  const Eigen::Vector2d &operator()(size_t ix, size_t iy, size_t iz) const;
+
+  /** @brief Interpolates vector field linearly
+   *
+   *  @details Implementation is based off of
+   * https://en.wikipedia.org/wiki/Trilinear_interpolation
+   *
+   * The math is formulated for fewer allocations as an aggregation
+   * strategy to a zero vector. The rest of the math follows the reference
+   * \f[
+   * c += (c_{00} (1 - y_d) + c_{10} y_d) * (1 - z_d)
+   * \f]
+   * \f[
+   * c += (c_{01} (1 - y_d) + c_{11} y_d) * z_d
+   * \f]
+   *
+   */
+  Eigen::Vector3d interpolateDataValue(double x, double y, double z) const;
+
+private:
+  void validateInitialization() const;
+  void boundsCheck(size_t ix, size_t iy, size_t iz) const;
+};
+
 /** @brief Utilizes Munk profile equation to generate a sound speed profile */
 void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm);
 
+/**
+ * @brief Validates grids for all grid class via usage of ptr's
+ *
+ * @tparam T intended as double or Eigen::Vector2d or Eigen::Vector3d
+ * @details Can take pointers as we only call this function with the class
+ * where to pointers are valid. **WARNING** do not use outside Grid classes
+ * as there is no certainty pointers are nulled.
+ *
+ * @invariant Assumes passed in values are in the x,y,z order or x,y
+ */
+template <typename T>
+void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+                     const std::vector<T> &data) {
+  size_t combinedSize = 1;
+  for (size_t i = 0; i < coords.size(); ++i) {
+    std::string coordName;
+    // This is an ugly way of handling this, but since right now grids are
+    // maximally 3D, it was kept simple to avoid over generalizing
+    if (i == 0) {
+      coordName = "x";
+    } else if (i == 1) {
+      coordName = "y";
+    } else if (i == 2) {
+      coordName = "z";
+    } else
+      coordName = "unknown name";
+    if (coords[i]->empty()) {
+      throw std::runtime_error(coordName +
+                               ": Grid cannot have empty coordinate vectors");
+    }
+    // accumulating dimensions for flattened array checks
+    combinedSize *= coords[i]->size();
+    if (utils::isMonotonicallyIncreasing(*(coords[i])) == false) {
+      throw std::invalid_argument(
+          coordName + " coordinates must be monotonically increasing");
+    }
+  }
+  if (data.size() != combinedSize) {
+    throw std::invalid_argument("Grid data size mismatch");
+  }
+}
+namespace detail {
+
+/** @brief Finds the (lowerIdx, upperIdx) pair that brackets `value` in a sorted
+ * coordinate vector.
+ * @param axisName simply a helper for error messages
+ * @throw runtime_error If value is outside the interpolation range (i.e.
+ * or beyond the last element).
+ */
+inline std::pair<size_t, size_t> bracketIndex(const std::vector<double> &coords,
+                                              double value,
+                                              const std::string &axisName) {
+  // Grids are monotonic, so no need to sort!
+  // Want upper for strictly < and not <=.
+  auto upper = std::upper_bound(coords.begin(), coords.end(), value);
+  if (upper == coords.end() || upper == coords.begin()) {
+    spdlog::error(
+        "Interpolation out of bounds on {} axis. Check units on input "
+        "vs Grid data.",
+        axisName);
+    throw std::runtime_error("Requesting interpolation outside of grid on " +
+                             axisName + " axis");
+  }
+  size_t upperIdx = static_cast<size_t>(std::distance(coords.begin(), upper));
+  return {upperIdx - 1, upperIdx};
+}
+
+} // namespace detail
 } // namespace acoustics

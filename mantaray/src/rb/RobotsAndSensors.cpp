@@ -16,7 +16,7 @@ ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
   return twist;
 }
 
-PositionalXYOdomoetry::PositionalXYOdomoetry(
+PositionalXYOdometry::PositionalXYOdometry(
     double freqHz, int timeSteps, std::normal_distribution<double> noiseDist)
     : SensorI(timeSteps, SensorType::kPosOdomXY, freqHz),
       noiseDist_(noiseDist) {
@@ -26,21 +26,20 @@ PositionalXYOdomoetry::PositionalXYOdomoetry(
     throw std::invalid_argument("Frequency must be non-negative");
   }
 }
-const std::vector<Eigen::VectorXd> &PositionalXYOdomoetry::getSensorData() {
+const std::vector<Eigen::VectorXd> &PositionalXYOdometry::getSensorData() {
   return data_;
 }
 
-const std::vector<double> &PositionalXYOdomoetry::getSensorTimesteps() {
+const std::vector<double> &PositionalXYOdometry::getSensorTimesteps() {
   return timesteps_;
 }
 
-void PositionalXYOdomoetry::updateSensor(const DynamicsBodies &bodies,
-                                         double simTime,
-                                         std::mt19937 &rngEngine) {
+void PositionalXYOdometry::updateSensor(const DynamicsBodies &bodies,
+                                        double simTime,
+                                        std::mt19937 &rngEngine) {
   // Get the position of the robot this sensor is attached to
   if (detail::isEqual(simTime, 0.0)) {
     prevPosition_ = bodies.getPosition(bodyIdx_);
-
     data_.emplace_back(prevPosition_);
     timesteps_.emplace_back(simTime);
     return;

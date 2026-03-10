@@ -1,7 +1,3 @@
-//
-// Created by tko on 2/6/26.
-//
-
 #include "acoustics/pch.h"
 
 #include "acoustics/Grid.h"
@@ -58,32 +54,13 @@ const double &Grid2D::operator()(size_t ix, size_t iy) const {
   return data[index(ix, iy)];
 }
 
-bool Grid2D::isValid() const {
-  return data.size() == xCoords.size() * yCoords.size() && !xCoords.empty() &&
-         !yCoords.empty();
-}
-
 void Grid2D::validateInitialization() const {
-  if (xCoords.empty() || yCoords.empty()) {
-    throw std::runtime_error("Grid cannot have empty coordinate vectors");
-  }
-  if (data.size() != xCoords.size() * yCoords.size()) {
-    throw std::invalid_argument("Grid data size mismatch");
-  }
-  if (utils::isMonotonicallyIncreasing(xCoords) == false) {
-    throw std::invalid_argument(
-        "x coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(yCoords) == false) {
-    throw std::invalid_argument(
-        "y coordinates must be monotonically increasing");
-  }
+  const std::vector<const std::vector<double> *> coordPtr = {&xCoords,
+                                                             &yCoords};
+  gridCheckViaPtr(coordPtr, data);
 }
 
 std::pair<Eigen::Vector2d, Eigen::Vector2d> Grid2D::boundingBox() const {
-  if (!isValid()) {
-    throw std::runtime_error("Cannot compute bounding box of invalid grid");
-  }
   // grids are monotonically increasing
   auto xMin = xCoords.front();
   auto xMax = xCoords.back();
@@ -144,26 +121,13 @@ void Grid2D::boundsCheck(size_t ix, size_t iy) const {
 }
 
 double Grid2D::interpolateDataValue(double x, double y) const {
-  // Grids are monotonic, so no need to sort!
-  // Want upper for strictly < and not <=.
-  auto xLower = std::upper_bound(xCoords.begin(), xCoords.end(), x);
-  auto yLower = std::upper_bound(yCoords.begin(), yCoords.end(), y);
-  if (xLower == xCoords.end() || yLower == yCoords.end()) {
-    // TODO: Would be good to have a function that does check this before
-    // interpolation
-    SPDLOG_ERROR("Before asking to interpolate, verify result in bounds. Check "
-                 "units on input vs Grid data.");
-    throw std::runtime_error("Requesting interpolation outside of grid");
-  }
-  size_t xUpperIdx = std::distance(xCoords.begin(), xLower);
-  size_t yUpperIdx = std::distance(yCoords.begin(), yLower);
+  auto [xLowerIdx, xUpperIdx] = detail::bracketIndex(xCoords, x, "x");
+  auto [yLowerIdx, yUpperIdx] = detail::bracketIndex(yCoords, y, "y");
 
   // Using safe access methods to prevent segfaults and UB
   // Syntax reference:
   // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
-  size_t xLowerIdx = xUpperIdx - 1;
-  size_t yLowerIdx = yUpperIdx - 1;
   double q11 = at(xLowerIdx, yLowerIdx);
   double q21 = at(xUpperIdx, yLowerIdx);
   double q12 = at(xLowerIdx, yUpperIdx);
@@ -249,15 +213,7 @@ const double &Grid3D::operator()(size_t ix, size_t iy, size_t iz) const {
   return data[index(ix, iy, iz)];
 }
 
-bool Grid3D::isValid() const {
-  return data.size() == xCoords.size() * yCoords.size() * zCoords.size() &&
-         !xCoords.empty() && !yCoords.empty() && !zCoords.empty();
-}
-
 std::pair<Eigen::Vector3d, Eigen::Vector3d> Grid3D::boundingBox() const {
-  if (!isValid()) {
-    throw std::runtime_error("Cannot compute bounding box of invalid grid");
-  }
   // grids are monotonically increasing
   auto xMin = xCoords.front();
   auto xMax = xCoords.back();
@@ -287,24 +243,10 @@ bool Grid3D::checkInside(const Grid3D &other) const {
 }
 
 void Grid3D::validateInitialization() const {
-  if (xCoords.empty() || yCoords.empty() || zCoords.empty()) {
-    throw std::runtime_error("Grid cannot have empty coordinate vectors");
-  }
-  if (data.size() != xCoords.size() * yCoords.size() * zCoords.size()) {
-    throw std::invalid_argument("Grid data size mismatch");
-  }
-  if (utils::isMonotonicallyIncreasing(xCoords) == false) {
-    throw std::invalid_argument(
-        "x coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(yCoords) == false) {
-    throw std::invalid_argument(
-        "y coordinates must be monotonically increasing");
-  }
-  if (utils::isMonotonicallyIncreasing(zCoords) == false) {
-    throw std::invalid_argument(
-        "z coordinates must be monotonically increasing");
-  }
+  std::vector<const std::vector<double> *> coords = {&xCoords, &yCoords,
+                                                     &zCoords};
+  gridCheckViaPtr(coords, data);
+
   return;
 }
 
@@ -315,6 +257,99 @@ void Grid3D::boundsCheck(size_t ix, size_t iy, size_t iz) const {
         << ") for grid (" << nx() << ", " << ny() << ", " << nz() << ")";
     throw std::out_of_range(msg.str());
   }
+}
+// ============================================================================
+// GridVec Implementation
+// ============================================================================
+
+GridVec::GridVec(std::vector<double> x, std::vector<double> y,
+                 std::vector<double> z, std::vector<Eigen::Vector2d> initData)
+    : xCoords(std::move(x)),
+      yCoords(std::move(y)),
+      zCoords(std::move(z)),
+      dataVec(std::move(initData)) {
+  validateInitialization();
+}
+
+void GridVec::validateInitialization() const {
+  const std::vector coords = {&xCoords, &yCoords, &zCoords};
+  gridCheckViaPtr(coords, dataVec);
+}
+
+size_t GridVec::index(size_t ix, size_t iy, size_t iz) const {
+  return (ix * yCoords.size() + iy) * zCoords.size() + iz;
+}
+
+size_t GridVec::nx() const { return xCoords.size(); }
+
+size_t GridVec::ny() const { return yCoords.size(); }
+
+size_t GridVec::nz() const { return zCoords.size(); }
+
+size_t GridVec::size() const { return dataVec.size(); }
+
+void GridVec::boundsCheck(size_t ix, size_t iy, size_t iz) const {
+  if (ix >= nx() || iy >= ny() || iz >= nz()) {
+    auto msg = fmt::format(
+        "Grid index out of bounds: ({}, {}, {}) for grid ({}, {}, {})", ix, iy,
+        iz, nx(), ny(), nz());
+    throw std::out_of_range(msg);
+  }
+}
+
+Eigen::Vector2d &GridVec::at(size_t ix, size_t iy, size_t iz) {
+  boundsCheck(ix, iy, iz);
+  auto idx = index(ix, iy, iz);
+  return dataVec[idx];
+}
+
+Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy, size_t iz) {
+  return dataVec[index(ix, iy, iz)];
+}
+const Eigen::Vector2d &GridVec::operator()(size_t ix, size_t iy,
+                                           size_t iz) const {
+  return dataVec[index(ix, iy, iz)];
+}
+Eigen::Vector3d GridVec::interpolateDataValue(double x, double y,
+                                              double z) const {
+  Eigen::Vector3d c = Eigen::Vector3d::Zero();
+  auto [xLowerIdx, xUpperIdx] = detail::bracketIndex(xCoords, x, "x");
+  auto [yLowerIdx, yUpperIdx] = detail::bracketIndex(yCoords, y, "y");
+  auto [zLowerIdx, zUpperIdx] = detail::bracketIndex(zCoords, z, "z");
+  double xd = (x - xCoords.at(xLowerIdx)) /
+              (xCoords.at(xUpperIdx) - xCoords.at(xLowerIdx));
+  double yd = (y - yCoords.at(yLowerIdx)) /
+              (yCoords.at(yUpperIdx) - yCoords.at(yLowerIdx));
+  double zd = (z - zCoords.at(zLowerIdx)) /
+              (zCoords.at(zUpperIdx) - zCoords.at(zLowerIdx));
+
+  // using notation from reference formulation, but I am using an aggregation
+  // method to sum into c, instead of creating a bunch of allocations
+  Eigen::Vector2d c00 =
+      dataVec[index(xLowerIdx, yLowerIdx, zLowerIdx)] * (1 - xd) +
+      dataVec[index(xUpperIdx, yLowerIdx, zLowerIdx)] * xd;
+  Eigen::Vector2d c10 =
+      dataVec[index(xLowerIdx, yUpperIdx, zLowerIdx)] * (1 - xd) +
+      dataVec[index(xUpperIdx, yUpperIdx, zLowerIdx)] * xd;
+
+  // Formulated form two equations
+  // c0 = c00 (1-yd) + c10*yd
+  // c = c0 (1-zd) + ...
+  c.head(2) += (c00 * (1 - yd) + c10 * yd) * (1 - zd);
+
+  // reusing c00 as c01, and c10 as c11
+
+  // c01
+  c00 = dataVec[index(xLowerIdx, yLowerIdx, zUpperIdx)] * (1 - xd) +
+        dataVec[index(xUpperIdx, yLowerIdx, zUpperIdx)] * xd;
+  // c11
+  c10 = dataVec[index(xLowerIdx, yUpperIdx, zUpperIdx)] * (1 - xd) +
+        dataVec[index(xUpperIdx, yUpperIdx, zUpperIdx)] * xd;
+  // Formulated form two equations
+  // c1 = c01 (1-yd) + c11*yd
+  // c = ... + c1 * zd
+  c.head(2) += (c00 * (1 - yd) + c10 * yd) * zd;
+  return c;
 }
 
 // ============================================================================
@@ -334,6 +369,35 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm) {
             sofarSpeed * (1.0 + kEpsilon * (zBar - 1 + std::exp(-zBar)));
       }
     }
+  }
+}
+
+void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
+                     const std::vector<double> &data) {
+  size_t combinedSize = 1;
+  for (size_t i = 0; i < coords.size(); ++i) {
+    std::string coordName;
+    if (i == 0) {
+      coordName = "x";
+    } else if (i == 1) {
+      coordName = "y";
+    } else if (i == 2) {
+      coordName = "z";
+    } else
+      coordName = "unknown name";
+    if (coords[i]->empty()) {
+      throw std::runtime_error(coordName +
+                               ": Grid cannot have empty coordinate vectors");
+    }
+    // accumulating dimensions
+    combinedSize *= coords[i]->size();
+    if (utils::isMonotonicallyIncreasing(*(coords[i])) == false) {
+      throw std::invalid_argument(
+          coordName + " coordinates must be monotonically increasing");
+    }
+  }
+  if (data.size() != combinedSize) {
+    throw std::invalid_argument("Grid data size mismatch");
   }
 }
 

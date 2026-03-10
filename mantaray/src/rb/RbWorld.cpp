@@ -97,18 +97,16 @@ void RbWorld::validateWorld() {
             "to the inteface class or you need to change the simulation dt.";
         throw std::invalid_argument(msg);
       }
-      if (std::fmod(simDataHz, sensorFreqHz) >
-          std::numeric_limits<double>::epsilon() * 100) {
-        std::string msg =
-            "Sensor attached to robot with body index " +
-            std::to_string(robot->bodyIdx_) +
-            " has an update frequency that is not an integer multiple of the "
-            "simulation timestep." +
-            " Sim Frequency is: " + std::to_string(simDataHz) +
-            ", Sensor Frequency is: " + std::to_string(sensorFreqHz) +
-            " This may lead to missed updates or updates that are not aligned "
-            "with the sim time. Consider adjusting the sensor frequency or "
-            "simulation dt to be integer multiples.";
+      if (!detail::validDeltaTMultiple(simDataHz, sensorFreqHz)) {
+        std::string msg = fmt::format(
+            "Sensor attached to robot with body index {} has an update "
+            "frequency that is not an integer multiple of the simulation "
+            "timestep. Sim Frequency is: {}, Sensor Frequency is: {} This may "
+            "lead to missed updates or updates that are not aligned with the "
+            "sim time. Consider adjusting the sensor frequency or simulation "
+            "dt to be integer multiples Remainder computed was: {}.",
+            robot->bodyIdx_, simDataHz, sensorFreqHz,
+            std::fmod(simDataHz, sensorFreqHz));
         throw std::invalid_argument(msg);
       }
     }
@@ -132,6 +130,7 @@ void RbWorld::advanceWorld(double time) {
   if (detail::isEqual(simData.time, 0.0)) {
     validateWorld();
     SPDLOG_INFO("Validated Rigid Body World");
+    updateSensors(*this);
   }
   if (detail::isEqual(time, simData.time)) {
     SPDLOG_DEBUG("Requested no advancement of sim.");
@@ -161,6 +160,9 @@ void RbWorld::advanceWorld(double time) {
       stepWorld(simData.dt - timeStepRemainder);
       // Do NOT update sensors as this is a re-alignment timestep
       bool isValid = detail::validDeltaTMultiple(simData.time, simData.dt);
+      // if (!isValid) {
+      //   SPDLOG_ERROR("Taking non-uniform step failed");
+      // }
       CHECK(isValid,
             "A non-uniform step was taken, but the result is still not aligned "
             "with dt. This is maybe a bug.");

@@ -2547,6 +2547,34 @@ wheels = [
 ]
 
 [[package]]
+name = "pykrige"
+version = "1.7.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14' or platform_machine != 'ARM64' or sys_platform != 'win32'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14' and platform_machine == 'ARM64' and sys_platform == 'win32'" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5b/e9/8060d42a60912f6409d9f9a3f3c6eebd4b44f7e3ec2ca9323e4413881fd9/pykrige-1.7.3.tar.gz", hash = "sha256:4f06623f9a2c5c5f637d802432ea7843af1b8b5aed33628466224691c52f177c", size = 618462, upload-time = "2025-10-16T19:24:42.391Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/2b/134748f8bb8f006b9b8d84de035ffa1a66f6dcabdfd8b6b43b32677df316/pykrige-1.7.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:fcede7f5b7d7396f760827f748d64b64ce0ead97b00f975e4a66033e04c257ff", size = 223627, upload-time = "2025-10-16T19:24:15.896Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/d0/1e8bb15e6b9fb6d8b5682fcdb3a68e1f4a563fe7af156f7155d25366d1ef/pykrige-1.7.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bb2d1f5cd0e2841d3c7319d53d8db1692a0ad78f564299896c977dd20989f266", size = 220270, upload-time = "2025-10-16T19:24:16.957Z" },
+    { url = "https://files.pythonhosted.org/packages/90/41/dde6921d780f2bc1b25f6a1f427dac83067182e57126281848feee7a3f99/pykrige-1.7.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6d9ee6cd66cafa97c749612d4b9067b8a869515abcb3e31ebac0fbaad7ede81f", size = 1039122, upload-time = "2025-10-16T19:24:18.552Z" },
+    { url = "https://files.pythonhosted.org/packages/56/80/51af65e2de88a433d2790bafdad9ea027d92594f623b1d27cff7d94a3d43/pykrige-1.7.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:160234511fbdbd9f3f8a75fa5a5b7d285fdd0d944fc2f8a14526a6a736e51359", size = 1061430, upload-time = "2025-10-16T19:24:19.746Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/4f/ed1144d8f8dbc7e807fd259032ed7fb22e5c34767952865a830c46a3154e/pykrige-1.7.3-cp312-cp312-win_amd64.whl", hash = "sha256:5e3ae5833e392470845ba58a914fc22b5df80f3fb631c8908668e8d269242cf7", size = 196371, upload-time = "2025-10-16T19:24:20.814Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/e8/1896911282a740b5886275e625832e34603851874bc9d380c9bd5f3bc4f0/pykrige-1.7.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:d1b4ec8c9679a60838fa46f99c327eb6e9a0ca3cd31919f8296a38734d537df2", size = 221743, upload-time = "2025-10-16T19:24:22.248Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/35/e299d8d43081c2528e5e77d4abd64d7370e566070f6f345dbbcf0ee70312/pykrige-1.7.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:fab9fb891a2a18aa6efcdbefd40b807b1880975a89d3fbd975eb499f1ccde4c4", size = 218455, upload-time = "2025-10-16T19:24:23.714Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/5f/98868eaf2a3ac8781e68404dad4127fe40f574cacc2e5dc988cd3e0e02b3/pykrige-1.7.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b692a65d3892b3436006341a054bcee9b6690e00337aeefc7d5d5f6990148591", size = 1027198, upload-time = "2025-10-16T19:24:25.251Z" },
+    { url = "https://files.pythonhosted.org/packages/23/84/93909fa6ed02f83e9e200e5fa4082ea92b227f047467b3e4ca60f96289c8/pykrige-1.7.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d08ba9574009461003c85d5e27408f0a88a38e4b33b1ec229bc809f815ea0a21", size = 1047110, upload-time = "2025-10-16T19:24:26.46Z" },
+    { url = "https://files.pythonhosted.org/packages/50/07/58663c3c29e029c7156fe90282fac2309c681c0617b4607940838f3f0f94/pykrige-1.7.3-cp313-cp313-win_amd64.whl", hash = "sha256:1c48813d7ef4e50538d1942ffdf219b8e2b99a5df5dbc4893d9808ac448d13c7", size = 195897, upload-time = "2025-10-16T19:24:27.786Z" },
+    { url = "https://files.pythonhosted.org/packages/25/b3/43653e598b461e86be39621982012e630e18befef2b49276e866716c8ab0/pykrige-1.7.3-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:02741fdb9bb97911e0aca15c5d0155c4ea9edceba279d7ec056908e76d30bf3e", size = 221871, upload-time = "2025-10-16T19:24:28.816Z" },
+    { url = "https://files.pythonhosted.org/packages/47/7c/5dd7f0af8329abf2e9ab357348913d6c56e8a802800b3ed356526bfee010/pykrige-1.7.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:0d0b9f2e3650469902591cda414d3aa35f52575d711d9f55750277d49fe3c435", size = 219811, upload-time = "2025-10-16T19:24:29.893Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/34/af54f313b0e9404171589f4e69967db8cb86cfc9fd6a9721c2492da1a85c/pykrige-1.7.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bff7871837481deffd06d4356866c398b8219eaaea8877c510d66065c8e8db34", size = 1024697, upload-time = "2025-10-16T19:24:31.906Z" },
+    { url = "https://files.pythonhosted.org/packages/74/7b/360ced85bb21a6d3b91819145dda5262efbf3ae08e0c5ff22a075764c1bc/pykrige-1.7.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:541782cf2f2e843619a314cc0caebac2fbba635e07b6a4f333ffe1b1b91852f6", size = 1037420, upload-time = "2025-10-16T19:24:33.699Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/e6/9b282eca386f12d70a6ca4758cb0f11ceeffad91e52e9bfa57f67730078c/pykrige-1.7.3-cp314-cp314-win_amd64.whl", hash = "sha256:2e67f055c26edd844384a1e627e3528b1180e13211f8a7aab56c84137c8159da", size = 198913, upload-time = "2025-10-16T19:24:34.906Z" },
+]
+
+[[package]]
 name = "pymantaray"
 version = "0.1.0"
 source = { virtual = "." }
@@ -2557,6 +2585,7 @@ dependencies = [
     { name = "oceanbench-data-provider" },
     { name = "open3d" },
     { name = "pandas-stubs" },
+    { name = "pykrige" },
     { name = "pyproj" },
 ]
 
@@ -2568,6 +2597,7 @@ requires-dist = [
     { name = "oceanbench-data-provider", editable = "deps/oceanbench-data-provider" },
     { name = "open3d", specifier = ">=0.19.0" },
     { name = "pandas-stubs", specifier = "~=2.3.3" },
+    { name = "pykrige", specifier = ">=1.7.3" },
     { name = "pyproj", specifier = ">=3.7.2" },
 ]
 
