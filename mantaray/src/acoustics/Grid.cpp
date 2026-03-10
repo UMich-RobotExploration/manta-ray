@@ -2,8 +2,6 @@
 
 #include "acoustics/Grid.h"
 
-#include <manif/functions.h>
-
 namespace acoustics {
 
 // ============================================================================
@@ -373,6 +371,7 @@ void munkProfile(Grid3D &grid, double sofarSpeed, bool isKm) {
     }
   }
 }
+
 void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
                      const std::vector<double> &data) {
   size_t combinedSize = 1;
