@@ -57,7 +57,7 @@ void PositionalXYOdometry::updateSensor(const DynamicsBodies &bodies,
   // Integrating but reusing vector
   velocity.x() = velocity.x() * dt_ + prevPosition_.x() + xNoise;
   velocity.y() = velocity.y() * dt_ + prevPosition_.y() + yNoise;
-  velocity.z() = velocity.z() * dt_ + prevPosition_.z();
+  velocity.z() = bodies.getPosition(bodyIdx_).z();
   data_.emplace_back(velocity);
   prevPosition_ = velocity;
   timesteps_.emplace_back(simTime);
