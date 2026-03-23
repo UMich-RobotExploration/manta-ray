@@ -52,6 +52,13 @@ private:
   // State
   Phase phase_{Phase::kDescend};
   double phaseElapsed_{0.0};
+
+  /**
+   * @brief Helper for phase transitions.
+   * @details Resets per-phase timer and sets the vertical command to zero for
+   * the current step.
+   */
+  void transitionTo(Phase nextPhase, double &vzCmd);
 };
 
 } // namespace robots

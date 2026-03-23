@@ -4,6 +4,12 @@
 
 namespace robots {
 
+void CurrentDriftRobot::transitionTo(Phase nextPhase, double &vzCmd) {
+  phase_ = nextPhase;
+  phaseElapsed_ = 0.0;
+  vzCmd = 0.0;
+}
+
 CurrentDriftRobot::CurrentDriftRobot(const acoustics::GridVec &currentGrid,
                                      double targetDepth, double holdSeconds,
                                      double surfaceHoldSeconds,
@@ -38,9 +44,7 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
   switch (phase_) {
   case Phase::kDescend:
     if (pos.z() >= targetDepth_) {
-      phase_ = Phase::kHoldDepth;
-      phaseElapsed_ = 0.0;
-      vzCmd = 0.0;
+      transitionTo(Phase::kHoldDepth, vzCmd);
     } else {
       // P controller on depth to avoid overshoot; saturate to max
       // verticalSpeed_
@@ -52,14 +56,12 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
     phaseElapsed_ += dt;
     vzCmd = 0.0;
     if (phaseElapsed_ >= holdSeconds_) {
-      phase_ = Phase::kAscend;
+      transitionTo(Phase::kAscend, vzCmd);
     }
     break;
   case Phase::kAscend:
     if (pos.z() <= surfaceDepth_) {
-      phase_ = Phase::kHoldSurface;
-      phaseElapsed_ = 0.0;
-      vzCmd = 0.0;
+      transitionTo(Phase::kHoldSurface, vzCmd);
     } else {
       // P controller on depth to avoid overshoot; saturate to max
       // verticalSpeed_
@@ -72,7 +74,7 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
     phaseElapsed_ += dt;
     vzCmd = 0.0;
     if (phaseElapsed_ >= surfaceHoldSeconds_) {
-      phase_ = Phase::kDescend;
+      transitionTo(Phase::kDescend, vzCmd);
     }
     break;
   default:
