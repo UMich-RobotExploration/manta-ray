@@ -134,14 +134,7 @@ acoustics::GridVec ConfigReader::readCurrent() const {
     }
   }
 
-  if (u.size() != v.size()) {
-    throw std::invalid_argument("Current u/v component sizes do not match");
-  }
   const size_t expected = xCoords.size() * yCoords.size() * zCoords.size();
-  if (u.size() != expected) {
-    throw std::invalid_argument(
-        "Current component data size mismatch vs x/y coordinates");
-  }
 
   std::vector<Eigen::Vector2d> field;
   field.reserve(expected);

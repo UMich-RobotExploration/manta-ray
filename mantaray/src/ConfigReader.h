@@ -80,17 +80,17 @@ public:
    * @brief Reads and constructs a 3D current grid from the
    * configuration file.
    *
-   * This method extracts current data as separate u/v components on an (x,y)
+   * This method extracts current data as separate u/v components on an (x,y,z)
    * grid and constructs a GridVec grid.
    *
    * Expected JSON keys under "current":
    * - "x": path to x-coordinates npy
    * - "y": path to y-coordinates npy
+   * - "z": path to z-coordinates npy
    * - "u": path to u-component npy (flattened to match Grid2D row-major)
    * - "v": path to v-component npy (flattened to match Grid2D row-major)
    *
-   * @note GridVec is (x,y,z) but the current field is 2D; this reader encodes
-   * it as a single z-layer with zCoords = {0.0}.
+   * @note GridVec is (x,y,z)
    *
    *
    * Data validation is conduced by acoustics::GridVec and should not be handled
