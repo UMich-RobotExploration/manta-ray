@@ -9,7 +9,9 @@
 namespace rb {
 
 manif::SE3Tangentd
-ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
+ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies,
+                                    [[maybe_unused]] double simTime,
+                                    [[maybe_unused]] double dt) {
   // NOTE: RobotI expects a *local/body-frame* twist.
   // This robot's configured velocity is interpreted as a WORLD-frame constant
   // linear velocity, so we convert it to the body frame.

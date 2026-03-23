@@ -114,8 +114,16 @@ public:
   void setDynamicsIndex(BodyIdx idx);
   BodyIdx getBodyIdx() const { return bodyIdx_; }
 
-  virtual manif::SE3Tangentd
-  computeLocalTwist(const DynamicsBodies &bodies) = 0; // Make pure virtual
+  /**
+   * @brief Compute the robot's commanded body-frame twist for the current
+   * simulation step.
+   *
+   * @param bodies Access to all simulated bodies (poses/twists)
+   * @param simTime Current simulation time (seconds)
+   * @param dt Integration timestep for the upcoming step (seconds)
+   */
+  virtual manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies,
+                                               double simTime, double dt) = 0;
 
   /**
    * @brief Adds a sensor

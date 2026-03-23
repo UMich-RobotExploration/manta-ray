@@ -17,14 +17,45 @@ namespace robots {
  */
 class CurrentDriftRobot final : public rb::RobotI {
 public:
-  explicit CurrentDriftRobot(const acoustics::GridVec &currentGrid)
-      : currentGrid_(currentGrid) {}
+  /**
+   * @param currentGrid Reference to current field (lifetime managed elsewhere)
+   * @param targetDepth Depth to dive to (world z, typically meters, +down)
+   * @param holdSeconds Time to hold at targetDepth before ascending
+   * @param surfaceHoldSeconds Time to hold at the surface before descending
+   * @param verticalSpeed Magnitude of vertical speed during descent/ascent
+   * @param surfaceDepth Depth considered "surface" for ending ascent
+   */
+  explicit CurrentDriftRobot(const acoustics::GridVec &currentGrid,
+                             double targetDepth = 50.0,
+                             double holdSeconds = 60.0,
+                             double surfaceHoldSeconds = 10.0,
+                             double verticalSpeed = 0.5,
+                             double surfaceDepth = 0.0)
+      : currentGrid_(currentGrid),
+        targetDepth_(targetDepth),
+        holdSeconds_(holdSeconds),
+        surfaceHoldSeconds_(surfaceHoldSeconds),
+        verticalSpeed_(verticalSpeed),
+        surfaceDepth_(surfaceDepth) {}
 
-  manif::SE3Tangentd
-  computeLocalTwist(const rb::DynamicsBodies &bodies) override;
+  manif::SE3Tangentd computeLocalTwist(const rb::DynamicsBodies &bodies,
+                                       double simTime, double dt) override;
 
 private:
+  enum class Phase { kDescend, kHoldDepth, kAscend, kHoldSurface };
+
   const acoustics::GridVec &currentGrid_;
+
+  // Dive schedule parameters
+  double targetDepth_{50.0};
+  double holdSeconds_{60.0};
+  double surfaceHoldSeconds_{10.0};
+  double verticalSpeed_{0.1};
+  double surfaceDepth_{0.1};
+
+  // State
+  Phase phase_{Phase::kDescend};
+  double phaseElapsed_{0.0};
 };
 
 } // namespace robots
