@@ -4,15 +4,26 @@
 
 namespace robots {
 
+CurrentDriftRobot::CurrentDriftRobot(const acoustics::GridVec &currentGrid,
+                                     double targetDepth, double holdSeconds,
+                                     double surfaceHoldSeconds,
+                                     double verticalSpeed, double surfaceDepth)
+    : currentGrid_(currentGrid),
+      targetDepth_(targetDepth),
+      holdSeconds_(holdSeconds),
+      surfaceHoldSeconds_(surfaceHoldSeconds),
+      verticalSpeed_(verticalSpeed),
+      surfaceDepth_(surfaceDepth) {
+
+  if (verticalSpeed_ < 0.0) {
+    throw std::invalid_argument("verticalSpeed must be non-negative");
+  }
+}
 manif::SE3Tangentd
 CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
                                      [[maybe_unused]] double simTime,
                                      double dt) {
   auto twist = manif::SE3Tangentd().setZero();
-
-  if (verticalSpeed_ < 0.0) {
-    throw std::invalid_argument("verticalSpeed must be non-negative");
-  }
 
   // Current GridVec interpolation expects (x,y,z).
   const auto &poseGlobal = bodies.kinematics.at(bodyIdx_).poseGlobal;

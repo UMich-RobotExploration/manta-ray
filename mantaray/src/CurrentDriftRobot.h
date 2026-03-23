@@ -30,13 +30,7 @@ public:
                              double holdSeconds = 60.0,
                              double surfaceHoldSeconds = 10.0,
                              double verticalSpeed = 0.5,
-                             double surfaceDepth = 0.0)
-      : currentGrid_(currentGrid),
-        targetDepth_(targetDepth),
-        holdSeconds_(holdSeconds),
-        surfaceHoldSeconds_(surfaceHoldSeconds),
-        verticalSpeed_(verticalSpeed),
-        surfaceDepth_(surfaceDepth) {}
+                             double surfaceDepth = 0.0);
 
   manif::SE3Tangentd computeLocalTwist(const rb::DynamicsBodies &bodies,
                                        double simTime, double dt) override;
