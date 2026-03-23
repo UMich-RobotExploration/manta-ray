@@ -131,7 +131,6 @@ void RbWorld::advanceWorld(double time) {
   if (detail::isEqual(simData.time, 0.0)) {
     validateWorld();
     SPDLOG_INFO("Validated Rigid Body World");
-    updateSensors(*this);
   }
   if (detail::isEqual(time, simData.time)) {
     SPDLOG_DEBUG("Requested no advancement of sim.");

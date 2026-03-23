@@ -115,23 +115,48 @@ int main() {
       std::make_unique<rb::PositionalXYOdometry>(
           0.01, rb::computeNumTimeSteps(endTime, 0.01),
           std::normal_distribution<double>{0.0, 0.01}));
+
+  // GPS: higher noise in z than x/y; only valid near surface (default 0.1m)
+  world.robots[odomRobotIdx]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
   auto robotIdx2 =
       world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid);
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
-      0.01, rb::computeNumTimeSteps(endTime, 0.01)));
+      1.00, rb::computeNumTimeSteps(endTime, 1.0)));
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
       0.01, rb::computeNumTimeSteps(endTime, 0.01),
       std::normal_distribution<double>{0.0, 0.01}));
-  std::cout << gtIdx;
-  std::cout << odomIdx;
-  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
-  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+
+  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
+  auto robotIdx3 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
+  world.robots[robotIdx3]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
+
+  auto robotIdx4 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+  world.robots[robotIdx4]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
-  // TODO: Need to provide a nice method for access pose and updating the
   SPDLOG_DEBUG("Position before: {}",
                world.dynamicsBodies.getPosition(odomRobotIdx));
   world.dynamicsBodies.setPosition(odomRobotIdx,
-                                   Eigen::Vector3d(100.0, 0.0, 5.0));
+                                   Eigen::Vector3d(100.0, 0.0, 0.01));
+  world.dynamicsBodies.setPosition(robotIdx2,
+                                   Eigen::Vector3d(100.0, -10000.0, 0.01));
+  world.dynamicsBodies.setPosition(robotIdx3,
+                                   Eigen::Vector3d(100.0, 0.0, 0.01));
+  world.dynamicsBodies.setPosition(robotIdx4,
+                                   Eigen::Vector3d(100.0, 0.0, 0.01));
   SPDLOG_DEBUG("Position after: {}",
                world.dynamicsBodies.getPosition(odomRobotIdx));
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
@@ -180,7 +205,7 @@ int main() {
       }
     }
   }
-  rb::outputRobotSensorToCsv("simTest", *world.robots[odomRobotIdx]);
+  rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
 
   bhc::writeenv(context.params(), runName);
   bhc::writeout(context.params(), context.outputs(), runName);

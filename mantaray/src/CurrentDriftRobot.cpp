@@ -35,8 +35,10 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
   const auto &poseGlobal = bodies.kinematics.at(bodyIdx_).poseGlobal;
   const Eigen::Vector3d pos = poseGlobal.translation();
 
-  Eigen::Vector3d currGlobal =
+  SPDLOG_TRACE("Position: {}", pos);
+  Eigen::Vector3d currentGlobalFrame =
       currentGrid_.interpolateDataValue(pos.x(), pos.y(), pos.z());
+  SPDLOG_TRACE("Current Global Frame: {}", currentGlobalFrame);
 
   // Dive schedule controls Z (depth). Keep current drift in X/Y.
   // Convention assumed: z increases with depth (+down).
@@ -44,6 +46,7 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
   switch (phase_) {
   case Phase::kDescend:
     if (pos.z() >= targetDepth_) {
+      SPDLOG_DEBUG("Transitioning to : kHoldDepth from kDescend");
       transitionTo(Phase::kHoldDepth, vzCmd);
     } else {
       // P controller on depth to avoid overshoot; saturate to max
@@ -56,11 +59,14 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
     phaseElapsed_ += dt;
     vzCmd = 0.0;
     if (phaseElapsed_ >= holdSeconds_) {
+      SPDLOG_DEBUG("Transitioning to : kAscend from kHoldDepth after: {}",
+                   phaseElapsed_);
       transitionTo(Phase::kAscend, vzCmd);
     }
     break;
   case Phase::kAscend:
     if (pos.z() <= surfaceDepth_) {
+      SPDLOG_DEBUG("Transitioning to : kHoldSurface from kAscend ");
       transitionTo(Phase::kHoldSurface, vzCmd);
     } else {
       // P controller on depth to avoid overshoot; saturate to max
@@ -74,6 +80,8 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
     phaseElapsed_ += dt;
     vzCmd = 0.0;
     if (phaseElapsed_ >= surfaceHoldSeconds_) {
+      SPDLOG_DEBUG("Transitioning to : kDescend from kHoldSurface after: {}",
+                   phaseElapsed_);
       transitionTo(Phase::kDescend, vzCmd);
     }
     break;
@@ -82,12 +90,15 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
     break;
   }
 
-  currGlobal.z() = vzCmd;
+  currentGlobalFrame.z() = vzCmd;
 
   // RobotI::computeLocalTwist() is expected to return a LOCAL/body-frame twist.
   // Convert the global/world-frame current into the body frame.
-  const Eigen::Matrix3d Rwb = poseGlobal.rotation();
-  twist.lin() = Rwb.transpose() * currGlobal;
+  const Eigen::Matrix3d Rwb = poseGlobal.rotation().transpose();
+  twist.lin() = Rwb * currentGlobalFrame;
+  SPDLOG_TRACE("Rwb: {}", Rwb);
+  SPDLOG_TRACE("Twist Transformed: {}",
+               static_cast<Eigen::Vector3d>(twist.lin()));
   return twist;
 }
 

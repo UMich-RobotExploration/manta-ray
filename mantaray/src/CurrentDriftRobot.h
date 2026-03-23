@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Logger.h"
 #include "acoustics/Grid.h"
+#include "acoustics/fmt_eigen.h"
 #include "rb/RbInterfaces.h"
 
 namespace robots {
@@ -28,15 +30,15 @@ public:
   explicit CurrentDriftRobot(const acoustics::GridVec &currentGrid,
                              double targetDepth = 50.0,
                              double holdSeconds = 60.0,
-                             double surfaceHoldSeconds = 10.0,
+                             double surfaceHoldSeconds = 60.0,
                              double verticalSpeed = 0.5,
-                             double surfaceDepth = 0.0);
+                             double surfaceDepth = 0.01);
 
   manif::SE3Tangentd computeLocalTwist(const rb::DynamicsBodies &bodies,
                                        double simTime, double dt) override;
 
 private:
-  static constexpr double kDepthKp = 1.0;
+  static constexpr double kDepthKp = 10.0;
 
   enum class Phase { kDescend, kHoldDepth, kAscend, kHoldSurface };
 
@@ -45,9 +47,9 @@ private:
   // Dive schedule parameters
   double targetDepth_{50.0};
   double holdSeconds_{60.0};
-  double surfaceHoldSeconds_{10.0};
-  double verticalSpeed_{0.1};
-  double surfaceDepth_{0.1};
+  double surfaceHoldSeconds_{60.0};
+  double verticalSpeed_{0.5};
+  double surfaceDepth_{0.01};
 
   // State
   Phase phase_{Phase::kDescend};

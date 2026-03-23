@@ -57,7 +57,7 @@ void PositionalXYOdometry::updateSensor(const DynamicsBodies &bodies,
   // Integrating but reusing vector
   velocity.x() = velocity.x() * dt_ + prevPosition_.x() + xNoise;
   velocity.y() = velocity.y() * dt_ + prevPosition_.y() + yNoise;
-  velocity.z() = velocity.z() * dt_ + prevPosition_.z();
+  velocity.z() = bodies.getPosition(bodyIdx_).z();
   data_.emplace_back(velocity);
   prevPosition_ = velocity;
   timesteps_.emplace_back(simTime);
@@ -82,6 +82,49 @@ const std::vector<double> &GroundTruthPose::getSensorTimesteps() {
   return timesteps_;
 }
 
+GpsPosition::GpsPosition(double freqHz, int timeSteps,
+                         std::normal_distribution<double> xyNoiseDist,
+                         std::normal_distribution<double> zNoiseDist,
+                         double surfaceRangeMeters, double surfaceDepth)
+    : SensorI(timeSteps, SensorType::kGpsPosition, freqHz),
+      xyNoiseDist_(xyNoiseDist),
+      zNoiseDist_(zNoiseDist),
+      surfaceRangeMeters_(surfaceRangeMeters),
+      surfaceDepth_(surfaceDepth) {
+  SPDLOG_INFO(
+      "Robot idx: {} has GPS sensor at frequency {} Hz (surfaceRange: {}m)",
+      bodyIdx_, getFreqHz(), surfaceRangeMeters_);
+  if (surfaceRangeMeters_ < 0.0) {
+    throw std::invalid_argument("surfaceRangeMeters must be non-negative");
+  }
+}
+
+const std::vector<Eigen::VectorXd> &GpsPosition::getSensorData() {
+  return data_;
+}
+
+const std::vector<double> &GpsPosition::getSensorTimesteps() {
+  return timesteps_;
+}
+
+void GpsPosition::updateSensor(const DynamicsBodies &bodies, double simTime,
+                               std::mt19937 &rngEngine) {
+  const Eigen::Vector3d pos = bodies.getPosition(bodyIdx_);
+  const double dz = std::fabs(pos.z() - surfaceDepth_);
+  if (dz > surfaceRangeMeters_) {
+    // Out of GPS range: no update this tick.
+    return;
+  }
+
+  Eigen::Vector3d meas = pos;
+  meas.x() += xyNoiseDist_(rngEngine);
+  meas.y() += xyNoiseDist_(rngEngine);
+  meas.z() += zNoiseDist_(rngEngine);
+
+  data_.emplace_back(meas);
+  timesteps_.emplace_back(simTime);
+}
+
 std::string commaSeperateVec(const Eigen::VectorXd data, size_t start,
                              size_t stop) {
   std::string output;
@@ -104,6 +147,8 @@ const char *csvHeaderForSensor(const SensorType type) {
     return "x,y,z";
   case SensorType::kGroundTruthTwist:
     return "vx,vy,vz,wx,wy,wz";
+  case SensorType::kGpsPosition:
+    return "x,y,z";
   case SensorType::kUnknown:
     throw std::invalid_argument("Unknown sensor type");
   default:
@@ -120,6 +165,8 @@ std::string csvRowForSensor(const SensorType type, const Eigen::VectorXd data) {
   case SensorType::kPosOdomXY:
     return commaSeperateVec(data, 0, data.size());
   case SensorType::kGroundTruthTwist:
+    return commaSeperateVec(data, 0, data.size());
+  case SensorType::kGpsPosition:
     return commaSeperateVec(data, 0, data.size());
   case SensorType::kUnknown:
     throw std::invalid_argument("Unknown sensor type");

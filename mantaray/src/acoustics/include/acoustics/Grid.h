@@ -209,6 +209,8 @@ public:
    * c += (c_{01} (1 - y_d) + c_{11} y_d) * z_d
    * \f]
    *
+   * @warning If you are getting NaN's interpolated, you may have
+   * forgotten to fill exported grid's with zeros
    */
   Eigen::Vector3d interpolateDataValue(double x, double y, double z) const;
 

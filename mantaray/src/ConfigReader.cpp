@@ -138,6 +138,11 @@ acoustics::GridVec ConfigReader::readCurrent() const {
 
   std::vector<Eigen::Vector2d> field;
   field.reserve(expected);
+  if (u.size() != expected || v.size() != expected) {
+    auto errMsg = fmt::format("U size: {}, V size: {}, but expects: {}",
+                              u.size(), v.size(), expected);
+    throw std::invalid_argument(errMsg);
+  }
   for (size_t i = 0; i < expected; ++i) {
     field.emplace_back(u[i], v[i]);
   }

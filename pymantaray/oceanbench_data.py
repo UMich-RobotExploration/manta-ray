@@ -112,6 +112,11 @@ def export_uv(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", u_f
     u = dataset['u'].values.flatten(order='C').astype(np.float64)
     v = dataset['v'].values.flatten(order='C').astype(np.float64)
 
+    # Replace missing current data with zeros to avoid interpolating gaps downstream.
+    # Important to prevent bugs in C++ interpolation scheme
+    u = np.nan_to_num(u, nan=0.0)
+    v = np.nan_to_num(v, nan=0.0)
+
     np.save(x_filename, x_coords, allow_pickle=False)
     np.save(y_filename, y_coords, allow_pickle=False)
     np.save(u_filename, u, allow_pickle=False)
