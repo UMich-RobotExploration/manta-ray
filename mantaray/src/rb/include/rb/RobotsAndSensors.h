@@ -32,7 +32,8 @@ public:
    */
   explicit ConstantVelRobot(Eigen::Vector3d constantVel)
       : constantVel_(constantVel){};
-  manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies) override;
+  manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies,
+                                       double simTime, double dt) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

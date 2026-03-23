@@ -9,10 +9,16 @@
 namespace rb {
 
 manif::SE3Tangentd
-ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies) {
-  // For this simple float, I test just constant velocity right now
+ConstantVelRobot::computeLocalTwist(const DynamicsBodies &bodies,
+                                    [[maybe_unused]] double simTime,
+                                    [[maybe_unused]] double dt) {
+  // NOTE: RobotI expects a *local/body-frame* twist.
+  // This robot's configured velocity is interpreted as a WORLD-frame constant
+  // linear velocity, so we convert it to the body frame.
   auto twist = manif::SE3Tangentd().setZero();
-  twist.lin() = constantVel_;
+  const auto &poseGlobal = bodies.kinematics.at(bodyIdx_).poseGlobal;
+  const Eigen::Matrix3d Rwb = poseGlobal.rotation();
+  twist.lin() = Rwb.transpose() * constantVel_;
   return twist;
 }
 

@@ -27,7 +27,8 @@ void RbWorld::addLandmark(const Eigen::Vector3d &landmark) {
 void gatherTwists(RbWorld &world) {
   for (auto &robot : world.robots) {
     if (robot->isAlive_) {
-      auto twist = robot->computeLocalTwist(world.dynamicsBodies);
+      auto twist = robot->computeLocalTwist(
+          world.dynamicsBodies, world.simData.time, world.simData.dt);
       world.dynamicsBodies.getKinematicData(robot->bodyIdx_).twistLocal = twist;
     } else {
       world.dynamicsBodies.getKinematicData(robot->bodyIdx_)
