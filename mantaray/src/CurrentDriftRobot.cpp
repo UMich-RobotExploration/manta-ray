@@ -34,8 +34,7 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
       // P controller on depth to avoid overshoot; saturate to max
       // verticalSpeed_
       const double depthErr = targetDepth_ - pos.z(); // positive if too shallow
-      constexpr double kP = 1.0;
-      vzCmd = std::clamp(kP * depthErr, 0.0, verticalSpeed_);
+      vzCmd = std::clamp(kDepthKp * depthErr, 0.0, verticalSpeed_);
     }
     break;
   case Phase::kHoldDepth:
@@ -54,9 +53,8 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
       // P controller on depth to avoid overshoot; saturate to max
       // verticalSpeed_
       const double depthErr = surfaceDepth_ - pos.z(); // negative if too deep
-      constexpr double kP = 1.0;
       // Command upward (negative) velocity
-      vzCmd = std::clamp(kP * depthErr, -verticalSpeed_, 0.0);
+      vzCmd = std::clamp(kDepthKp * depthErr, -verticalSpeed_, 0.0);
     }
     break;
   case Phase::kHoldSurface:

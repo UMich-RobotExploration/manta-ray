@@ -42,6 +42,8 @@ public:
                                        double simTime, double dt) override;
 
 private:
+  static constexpr double kDepthKp = 1.0;
+
   enum class Phase { kDescend, kHoldDepth, kAscend, kHoldSurface };
 
   const acoustics::GridVec &currentGrid_;
