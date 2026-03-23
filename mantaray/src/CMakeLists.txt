@@ -1,6 +1,8 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
         main.cpp
+        CurrentDriftRobot.cpp
+        CurrentDriftRobot.h
         checkAssert.h
         Logger.cpp
         Logger.h

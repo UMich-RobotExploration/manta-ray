@@ -16,6 +16,7 @@
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
 
+#include "CurrentDriftRobot.h"
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
@@ -115,7 +116,12 @@ int main() {
           0.01, rb::computeNumTimeSteps(endTime, 0.01),
           std::normal_distribution<double>{0.0, 0.01}));
   auto robotIdx2 =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.0, 0.0, 5.0));
+      world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid);
+  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
+      0.01, rb::computeNumTimeSteps(endTime, 0.01)));
+  world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
+      0.01, rb::computeNumTimeSteps(endTime, 0.01),
+      std::normal_distribution<double>{0.0, 0.01}));
   std::cout << gtIdx;
   std::cout << odomIdx;
   world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
