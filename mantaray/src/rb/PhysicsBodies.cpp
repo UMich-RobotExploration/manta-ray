@@ -56,6 +56,8 @@ namespace detail {
 BodyIdx addDynamicsBody(DynamicsBodies &bodies) {
   BodyIdx newIndex = bodies.kinematics.size();
   bodies.kinematics.emplace_back(); // Default construct kinematic data
+  bodies.kinematics[newIndex].poseGlobal.setIdentity();
+  bodies.kinematics[newIndex].twistLocal.setZero();
   return newIndex;
 }
 } // namespace detail

@@ -96,6 +96,8 @@ namespace detail {
 /*
  * @brief Function utilized by RbWorld to add bodies. Don't use unless you
  * understand how the robots and world are actually built together!
+ *
+ * @detail Initializes position to zero,and rotation to identity
  */
 BodyIdx addDynamicsBody(DynamicsBodies &bodies);
 } // namespace detail
