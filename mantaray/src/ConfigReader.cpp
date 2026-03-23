@@ -33,15 +33,9 @@ ConfigReader::ConfigReader(std::string configPath) : configPath_(configPath) {
 ConfigReader::~ConfigReader() = default;
 
 acoustics::Grid2D ConfigReader::readBathymetry() const {
-  std::filesystem::path rootPath(jsonData_["source_dir"]);
-  if (!std::filesystem::exists(rootPath)) {
-    auto msg = fmt::format("source_dir from config does not exist {}",
-                           rootPath.c_str());
-    throw std::invalid_argument(msg);
-  }
-
-  auto &subJson = jsonData_["bathymetry"];
-  ensureKeysExist<3>(subJson, {"data", "x", "y"});
+  const std::string subKey = "bathymetry";
+  auto rootPath = validateJSON<3>(jsonData_, subKey, {"data", "x", "y"});
+  auto &subJson = jsonData_[subKey];
 
   std::vector<double> bathymetry;
   std::vector<double> xCoords;
@@ -71,15 +65,9 @@ acoustics::Grid2D ConfigReader::readBathymetry() const {
 }
 
 acoustics::Grid3D ConfigReader::readSSP() const {
-  std::filesystem::path rootPath(jsonData_["source_dir"]);
-  if (!std::filesystem::exists(rootPath)) {
-    auto msg = fmt::format("source_dir from config does not exist {}",
-                           rootPath.c_str());
-    throw std::invalid_argument(msg);
-  }
-
-  auto &subJson = jsonData_["ssp"];
-  ensureKeysExist<4>(subJson, {"data", "x", "y", "z"});
+  const std::string subKey = "ssp";
+  auto rootPath = validateJSON<4>(jsonData_, subKey, {"data", "x", "y", "z"});
+  auto &subJson = jsonData_[subKey];
 
   std::vector<double> ssp;
   std::vector<double> xCoords;
@@ -109,5 +97,52 @@ acoustics::Grid3D ConfigReader::readSSP() const {
     }
   }
   return acoustics::Grid3D(xCoords, yCoords, zCoords, ssp);
+}
+acoustics::GridVec ConfigReader::readCurrent() const {
+  const std::string subKey = "current";
+  auto rootPath = validateJSON<4>(jsonData_, subKey, {"x", "y", "u", "v"});
+  auto &subJson = jsonData_[subKey];
+
+  std::vector<double> xCoords;
+  std::vector<double> yCoords;
+  std::vector<double> zCoords;
+  std::vector<double> u;
+  std::vector<double> v;
+  for (auto &[key, value] : subJson.items()) {
+    std::filesystem::path dataPath = rootPath / value;
+    npy::npy_data d = npy::read_npy<double>(dataPath);
+    if (d.fortran_order) {
+      auto msg = fmt::format(
+          "Do not save npy files in fortran order, force C-style order");
+      throw std::invalid_argument(msg);
+    }
+    SPDLOG_TRACE("Data read in {}", d.data);
+    SPDLOG_DEBUG("Key: {}. Shape of data {}", key, d.shape);
+    if (key == "x") {
+      xCoords = d.data;
+    } else if (key == "y") {
+      yCoords = d.data;
+    } else if (key == "z") {
+      zCoords = d.data;
+    } else if (key == "u") {
+      u = d.data;
+    } else if (key == "v") {
+      v = d.data;
+    } else {
+      SPDLOG_WARN("Ignored bathymetry config key: {}, with values: {}", key,
+                  value);
+    }
+  }
+
+  const size_t expected = xCoords.size() * yCoords.size() * zCoords.size();
+
+  std::vector<Eigen::Vector2d> field;
+  field.reserve(expected);
+  for (size_t i = 0; i < expected; ++i) {
+    field.emplace_back(u[i], v[i]);
+  }
+
+  return acoustics::GridVec(std::move(xCoords), std::move(yCoords),
+                            std::move(zCoords), std::move(field));
 }
 } // namespace config

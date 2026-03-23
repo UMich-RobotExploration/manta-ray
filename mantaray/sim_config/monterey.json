@@ -12,6 +12,10 @@
     "data": "ssp/ssp.npy"
   },
   "current": {
-    "data": "current.npy"
+    "x": "current/x_coords.npy",
+    "y": "current/y_coords.npy",
+    "z": "current/z_coords.npy",
+    "u": "current/u.npy",
+    "v": "current/v.npy"
   }
 }
