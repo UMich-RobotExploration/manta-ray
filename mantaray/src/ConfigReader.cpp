@@ -100,13 +100,14 @@ acoustics::Grid3D ConfigReader::readSSP() const {
 }
 acoustics::GridVec ConfigReader::readCurrent() const {
   const std::string subKey = "current";
-  auto rootPath = validateJSON<4>(jsonData_, subKey, {"data", "x", "y", "z"});
+  auto rootPath = validateJSON<4>(jsonData_, subKey, {"x", "y", "u", "v"});
   auto &subJson = jsonData_[subKey];
 
-  std::vector<double> current;
   std::vector<double> xCoords;
   std::vector<double> yCoords;
   std::vector<double> zCoords;
+  std::vector<double> u;
+  std::vector<double> v;
   for (auto &[key, value] : subJson.items()) {
     std::filesystem::path dataPath = rootPath / value;
     npy::npy_data d = npy::read_npy<double>(dataPath);
@@ -117,22 +118,40 @@ acoustics::GridVec ConfigReader::readCurrent() const {
     }
     SPDLOG_TRACE("Data read in {}", d.data);
     SPDLOG_DEBUG("Key: {}. Shape of data {}", key, d.shape);
-    if (key == "data") {
-      current = d.data;
-    } else if (key == "x") {
+    if (key == "x") {
       xCoords = d.data;
     } else if (key == "y") {
       yCoords = d.data;
     } else if (key == "z") {
       zCoords = d.data;
+    } else if (key == "u") {
+      u = d.data;
+    } else if (key == "v") {
+      v = d.data;
     } else {
       SPDLOG_WARN("Ignored bathymetry config key: {}, with values: {}", key,
                   value);
     }
   }
-  // TODO: Need to convert vector to vector of Eigen's or write proper
-  // initialization method
-  return acoustics::GridVec({1}, {1}, {1}, {{1, 1}});
-  // return acoustics::GridVec(xCoords, yCoords, zCoords, current);
+
+  // Current is a 2D field (x,y) of (u,v) vectors. GridVec is (x,y,z) so we
+  // represent this as a single z-layer.
+  if (u.size() != v.size()) {
+    throw std::invalid_argument("Current u/v component sizes do not match");
+  }
+  const size_t expected = xCoords.size() * yCoords.size() * zCoords.size();
+  if (u.size() != expected) {
+    throw std::invalid_argument(
+        "Current component data size mismatch vs x/y coordinates");
+  }
+
+  std::vector<Eigen::Vector2d> field;
+  field.reserve(expected);
+  for (size_t i = 0; i < expected; ++i) {
+    field.emplace_back(u[i], v[i]);
+  }
+
+  return acoustics::GridVec(std::move(xCoords), std::move(yCoords),
+                            std::move(zCoords), std::move(field));
 }
 } // namespace config

@@ -51,6 +51,7 @@ int main() {
   auto configFile = config::ConfigReader("../../sim_config/monterey.json");
   auto importedBathGrid = configFile.readBathymetry();
   auto importedSSPGrid = configFile.readSSP();
+  auto importedCurrentGrid = configFile.readCurrent();
 
   auto context = acoustics::BhContext<true, true>(init);
   strcpy(context.params().Beam->RunType, "A");

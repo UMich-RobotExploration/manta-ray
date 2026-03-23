@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import os
 
+
 ################################################################################
 # This is a scratch workbook and not true python code yet.
 
@@ -84,6 +85,44 @@ def export_ssp(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", z_
     print(f"Exported y coords to {os.path.abspath(y_filename)}")
     print(f"Exported depth coords to {os.path.abspath(z_filename)}")
     print(f"Exported ssp to {os.path.abspath(sound_speed_filename)}")
+
+
+def export_uv(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", u_filename="u.npy", v_filename="v.npy",
+              z_filename="z_coords.npy", output_dir=None):
+    """
+    Export x/y coordinates and separate 2D u,v arrays to .npy files.
+
+    Output layout:
+        x_coords.npy: 1D array of x_m coordinates
+        y_coords.npy: 1D array of y_m coordinates
+        u.npy: 2D array of u values (y, x)
+        v.npy: 2D array of v values (y, x)
+    """
+    if output_dir is not None:
+        x_filename = output_dir + x_filename
+        y_filename = output_dir + y_filename
+        u_filename = output_dir + u_filename
+        v_filename = output_dir + v_filename
+        z_filename = output_dir + z_filename
+
+    x_coords = dataset.coords['x_m'].values.astype(np.float64)
+    y_coords = dataset.coords['y_m'].values.astype(np.float64)
+    depths = dataset.coords['depth'].values.astype(np.float64)
+
+    u = dataset['u'].values.flatten(order='C').astype(np.float64)
+    v = dataset['v'].values.flatten(order='C').astype(np.float64)
+
+    np.save(x_filename, x_coords, allow_pickle=False)
+    np.save(y_filename, y_coords, allow_pickle=False)
+    np.save(u_filename, u, allow_pickle=False)
+    np.save(v_filename, v, allow_pickle=False)
+    np.save(z_filename, depths, allow_pickle=False)
+
+    print(f"Exported x coords to {os.path.abspath(x_filename)}")
+    print(f"Exported y coords to {os.path.abspath(y_filename)}")
+    print(f"Exported z coords to {os.path.abspath(z_filename)}")
+    print(f"Exported u to {os.path.abspath(u_filename)}")
+    print(f"Exported v to {os.path.abspath(v_filename)}")
 
 
 def compute_bathymetry(ds, epsilon=2.5):
@@ -161,7 +200,7 @@ def krige_data_2d(ds, var_name='bathymetry', fine_factor=5):
     y_fine = np.linspace(y.min(), y.max(), len(y) * fine_factor)
     xx, yy = np.meshgrid(x_fine, y_fine)
     z_kriged, _ = OK.execute('grid', xx.flatten(), yy.flatten())
-    
+
     plt.figure(figsize=(8, 6))
     plt.contourf(xx.flatten(), yy.flatten(), z_kriged, 20, cmap='viridis')
     plt.colorbar(label='Depth')
@@ -410,26 +449,28 @@ def main():
     export_bathymetry(new_ds, output_dir=output_dir)
     output_dir = "../mantaray/data/monterey/ssp/"
     export_ssp(new_ds, output_dir=output_dir)
+    output_dir = "../mantaray/data/monterey/current/"
+    export_uv(new_ds, output_dir=output_dir)
 
-    # After exporting bathymetry and ssp, perform kriging and plot
-    bathy_kriged = krige_data_2d(new_ds, var_name='bathymetry')
-    # Create a new dataset for kriged bathymetry
-    kriged_ds = new_ds.copy()
-    kriged_ds['bathymetry_kriged'] = bathy_kriged
-    print("Plotting kriged bathymetry...")
-    ax = quicklook_map(
-        kriged_ds,
-        "bathymetry_kriged",
-        time_idx=0,
-        depth_idx=0,
-        variable_info=variable_info,
-        show_date=True,
-    )
-    plt.show()
-
-    ssp_krige = krige_data_3d(new_ds, var_name='sound_speed')
-    kriged_ds['sound_speed_kriged'] = ssp_krige
-    plot_ssp(kriged_ds, 'sound_speed_kriged')
+    # # After exporting bathymetry and ssp, perform kriging and plot
+    # bathy_kriged = krige_data_2d(new_ds, var_name='bathymetry')
+    # # Create a new dataset for kriged bathymetry
+    # kriged_ds = new_ds.copy()
+    # kriged_ds['bathymetry_kriged'] = bathy_kriged
+    # print("Plotting kriged bathymetry...")
+    # ax = quicklook_map(
+    #     kriged_ds,
+    #     "bathymetry_kriged",
+    #     time_idx=0,
+    #     depth_idx=0,
+    #     variable_info=variable_info,
+    #     show_date=True,
+    # )
+    # plt.show()
+    #
+    # ssp_krige = krige_data_3d(new_ds, var_name='sound_speed')
+    # kriged_ds['sound_speed_kriged'] = ssp_krige
+    # plot_ssp(kriged_ds, 'sound_speed_kriged')
 
 
 if __name__ == "__main__":
