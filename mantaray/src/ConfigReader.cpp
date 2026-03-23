@@ -134,8 +134,6 @@ acoustics::GridVec ConfigReader::readCurrent() const {
     }
   }
 
-  // Current is a 2D field (x,y) of (u,v) vectors. GridVec is (x,y,z) so we
-  // represent this as a single z-layer.
   if (u.size() != v.size()) {
     throw std::invalid_argument("Current u/v component sizes do not match");
   }
