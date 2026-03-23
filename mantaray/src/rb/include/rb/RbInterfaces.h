@@ -28,6 +28,7 @@ enum class SensorType {
   kGroundTruthPose,
   kGroundTruthTwist,
   kPosOdomXY,
+  kGpsPosition,
 };
 /** @brief Provides a string conversion for the enum
  * @details No spaces so they make nice file names
@@ -42,6 +43,8 @@ constexpr const char *sensorTypeToString(SensorType type) {
     return "GroundTruthTwist";
   case SensorType::kPosOdomXY:
     return "PosOdomXY";
+  case SensorType::kGpsPosition:
+    return "GpsPosition";
   default:
     return "InvalidSensor";
   }

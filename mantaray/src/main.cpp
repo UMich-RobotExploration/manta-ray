@@ -115,6 +115,12 @@ int main() {
       std::make_unique<rb::PositionalXYOdometry>(
           0.01, rb::computeNumTimeSteps(endTime, 0.01),
           std::normal_distribution<double>{0.0, 0.01}));
+
+  // GPS: higher noise in z than x/y; only valid near surface (default 0.1m)
+  world.robots[odomRobotIdx]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
   auto robotIdx2 =
       world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid);
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
@@ -122,10 +128,26 @@ int main() {
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
       0.01, rb::computeNumTimeSteps(endTime, 0.01),
       std::normal_distribution<double>{0.0, 0.01}));
+
+  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
   std::cout << gtIdx;
   std::cout << odomIdx;
-  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
-  world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+  auto robotIdx3 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
+  world.robots[robotIdx3]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
+
+  auto robotIdx4 =
+      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
+  world.robots[robotIdx4]->addSensor(std::make_unique<rb::GpsPosition>(
+      0.5, rb::computeNumTimeSteps(endTime, 0.5),
+      std::normal_distribution<double>{0.0, 0.5},   // xy
+      std::normal_distribution<double>{0.0, 2.0})); // z
   auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
   // TODO: Need to provide a nice method for access pose and updating the
   SPDLOG_DEBUG("Position before: {}",

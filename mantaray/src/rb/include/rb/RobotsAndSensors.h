@@ -77,6 +77,33 @@ public:
                     std::mt19937 &rngEngine) override;
 };
 
+/**
+ * @brief GPS-like position sensor.
+ *
+ * @details Only produces a measurement when the robot is within
+ * `surfaceRangeMeters` of the surface (|z - surfaceDepth| <= surfaceRange).
+ * Noise is anisotropic: z-noise is larger than x/y.
+ */
+class GpsPosition : public SensorI {
+public:
+  GpsPosition(double freqHz, int timeSteps,
+              std::normal_distribution<double> xyNoiseDist,
+              std::normal_distribution<double> zNoiseDist,
+              double surfaceRangeMeters = 0.1, double surfaceDepth = 0.0);
+
+  const std::vector<Eigen::VectorXd> &getSensorData() override;
+  const std::vector<double> &getSensorTimesteps() override;
+
+  void updateSensor(const DynamicsBodies &bodies, double simTime,
+                    std::mt19937 &rngEngine) override;
+
+private:
+  std::normal_distribution<double> xyNoiseDist_;
+  std::normal_distribution<double> zNoiseDist_;
+  double surfaceRangeMeters_{0.1};
+  double surfaceDepth_{0.0};
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Dumping methods
 ////////////////////////////////////////////////////////////////////////////////
