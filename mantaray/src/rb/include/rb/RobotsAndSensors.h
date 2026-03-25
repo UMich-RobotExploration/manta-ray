@@ -13,7 +13,7 @@
 #include <random>
 
 #include "RbInterfaces.h"
-#include "checkAssert.h"
+#include "mantaray/utils/checkAssert.h"
 #include "rb/helpers.h"
 
 namespace rb {

@@ -4,24 +4,24 @@
 #include <random>
 
 // Logger.h must be included before spdlog/spdlog.h to define macros
-#include <Logger.h>
+#include <mantaray/utils/Logger.h>
 
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
 // #define BHC_DLL_IMPORT 1
-#include "ConfigReader.h"
 #include "acoustics/Arrival.h"
 #include "acoustics/BellhopContext.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
+#include <mantaray/config/ConfigReader.h>
 
-#include "CurrentDriftRobot.h"
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
 #include "acoustics/SimulationConfig.h"
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
+#include <mantaray/sim/CurrentDriftRobot.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {

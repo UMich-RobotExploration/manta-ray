@@ -58,5 +58,10 @@ folder tree. Additionally, a Github workflow has been setup to make the docs ava
         |- index.html <-- file to open
 ```
 
+# Other Documentation
+- [Acoustics Library](src/acoustics/acoustics.md)
+- [Rigid Body Library](src/rb/rb.md)
+- [Data](data/README.md)
+- [Configuration](sim_config/README.md)
 
 

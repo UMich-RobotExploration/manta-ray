@@ -2,9 +2,9 @@
 // Created by tko on 2/24/26.
 //
 
-#include "ConfigReader.h"
+#include "mantaray/config/ConfigReader.h"
 
-#include "Logger.h"
+#include "mantaray/utils/Logger.h"
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"

@@ -11,7 +11,7 @@ target_link_libraries(${RB_LIB_NAME} PRIVATE spdlog::spdlog)
 
 # Link the bellhop library to acoustics
 target_include_directories(${RB_LIB_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
-target_include_directories(${RB_LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)  # For assert.h
+target_include_directories(${RB_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/src/include)  # For app public headers (e.g., checkAssert)
 target_include_directories(${RB_LIB_NAME} PUBLIC ${RB_INCLUDE_DIRS}) # Library Includes
 
 find_package(manif REQUIRED)

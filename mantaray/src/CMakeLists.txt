@@ -1,13 +1,9 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
-        main.cpp
-        CurrentDriftRobot.cpp
-        CurrentDriftRobot.h
-        checkAssert.h
-        Logger.cpp
-        Logger.h
-        ConfigReader.cpp
-        ConfigReader.h
+        sim/main.cpp
+        sim/CurrentDriftRobot.cpp
+        config/ConfigReader.cpp
+        utils/Logger.cpp
 )
 
 
@@ -18,6 +14,10 @@ target_include_directories(${TARGET_NAME} PRIVATE
         ${INCLUDE_GLM})
 target_include_directories(${TARGET_NAME} PRIVATE
         ${ACOUSTICS_INCLUDE_DIRS})
+
+# App public headers
+target_include_directories(${TARGET_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # sudo apt install libfmt-dev
 find_package(fmt REQUIRED)
