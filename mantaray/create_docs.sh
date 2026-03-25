@@ -46,7 +46,6 @@ sed -i "/<\/head>/i \
 doxygen Doxyfile
 
 # Rewrite README links in generated HTML to point at the rendered Doxygen pages.
-find "$HTML_OUTPUT_DIR" -name "*.html" -exec sed -i \
-    -e 's|data/README.md|md_data_README.html|g' \
-    -e 's|sim_config/README.md|md_sim_config_README.html|g' \
-    {} +
+while IFS= read -r -d '' html_file; do
+    perl -pi -e 's|data/README.md|md_data_README.html|g; s|sim_config/README.md|md_sim_config_README.html|g' "$html_file"
+done < <(find "$HTML_OUTPUT_DIR" -name "*.html" -print0)
