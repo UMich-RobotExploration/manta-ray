@@ -52,6 +52,10 @@ public:
   // - robot -> every landmark
   void rebuildPairs(const rb::RbWorld &world);
 
+  // Lightweight boundary check — marks any out-of-bounds robot as dead
+  // without running Bellhop. Safe to call at physics-rate.
+  void checkBounds(rb::RbWorld &world);
+
   // Runs Bellhop on every active pair and appends one sample per pair.
   void update(double simTimeSec, rb::RbWorld &world);
 

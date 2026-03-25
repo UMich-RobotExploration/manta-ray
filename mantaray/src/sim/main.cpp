@@ -123,7 +123,7 @@ int main() {
       std::normal_distribution<double>{0.0, 0.5},   // xy
       std::normal_distribution<double>{0.0, 2.0})); // z
   auto robotIdx2 =
-      world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid);
+      world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid, 2000.0);
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
       1.00, rb::computeNumTimeSteps(endTime, 1.0)));
   world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
@@ -155,9 +155,9 @@ int main() {
   world.dynamicsBodies.setPosition(robotIdx2,
                                    Eigen::Vector3d(100.0, -10000.0, 0.01));
   world.dynamicsBodies.setPosition(robotIdx3,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
+                                   Eigen::Vector3d(100.0, 1000.0, 0.01));
   world.dynamicsBodies.setPosition(robotIdx4,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
+                                   Eigen::Vector3d(-100.0, -1000.0, 0.01));
   SPDLOG_DEBUG("Position after: {}",
                world.dynamicsBodies.getPosition(odomRobotIdx));
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
@@ -166,11 +166,25 @@ int main() {
                                                sim::GlobalTofMode::kOneWay);
   rangeSystem.rebuildPairs(world);
 
+  constexpr double kBoundsCheckInterval = 10.0;
+  constexpr double kPingInterval = 60.0;
+  double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
+  double nextPing = world.simData.time + kPingInterval;
+
   auto startTime = world.simData.time;
   while (startTime < endTime) {
-    startTime += 60.0;
+    double nextEvent = std::min(nextBoundsCheck, nextPing);
+    startTime = nextEvent;
     world.advanceWorld(startTime);
-    rangeSystem.update(startTime, world);
+
+    if (startTime >= nextBoundsCheck) {
+      rangeSystem.checkBounds(world);
+      nextBoundsCheck += kBoundsCheckInterval;
+    }
+    if (startTime >= nextPing) {
+      rangeSystem.update(startTime, world);
+      nextPing += kPingInterval;
+    }
   }
   SPDLOG_INFO("Pairwise acoustic links tracked: {}",
               rangeSystem.getLinks().size());
