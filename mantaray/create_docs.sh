@@ -45,13 +45,8 @@ sed -i "/<\/head>/i \
 # Run Doxygen
 doxygen Doxyfile
 
-# Copy README files from subdirectories into the HTML output so that
-# documentation links to data/README.md and sim_config/README.md resolve
-# correctly when deployed to GitHub Pages.
-for readme in data/README.md sim_config/README.md; do
-    if [ ! -f "$readme" ]; then
-        echo "ERROR: Expected README not found: $readme" >&2
-        exit 1
-    fi
-    cp "$readme" "$HTML_OUTPUT_DIR/"
-done
+# Rewrite README links in generated HTML to point at the rendered Doxygen pages.
+find "$HTML_OUTPUT_DIR" -name "*.html" -exec sed -i \
+    -e 's|data/README.md|md_data_README.html|g' \
+    -e 's|sim_config/README.md|md_sim_config_README.html|g' \
+    {} +
