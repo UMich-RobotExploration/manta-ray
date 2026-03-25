@@ -2,7 +2,10 @@
 
 #include "acoustics/Arrival.h"
 #include "acoustics/helpers.h"
+#include "mantaray/utils/Logger.h"
 #include "spdlog/spdlog.h"
+
+#include <map>
 
 namespace sim {
 
@@ -45,6 +48,11 @@ void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
 
 void AcousticPairwiseRangeSystem::update(double simTimeSec,
                                          rb::RbWorld &world) {
+  // Cache Bellhop TOF for robot-robot pairs — acoustic reciprocity means
+  // the propagation time is identical in both directions, so we only need
+  // to run Bellhop once per unordered pair.
+  std::map<std::pair<size_t, size_t>, float> tofCache;
+
   for (auto &link : links_) {
     RangeSample sample;
     sample.simTimeSec = simTimeSec;
@@ -108,10 +116,52 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
-    bhc::run(context_.params(), context_.outputs());
+    // Check TOF cache for robot-robot pairs (acoustic reciprocity)
+    const bool isRobotPair = link.pinger.type == EndpointType::kRobot &&
+                             link.target.type == EndpointType::kRobot;
+    bool tofCached = false;
 
-    acoustics::Arrival arrival(context_.params(), context_.outputs());
-    sample.tofRawSec = arrival.getFastestArrival();
+    if (isRobotPair) {
+      auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
+                                std::max(link.pinger.index, link.target.index));
+      auto it = tofCache.find(key);
+      if (it != tofCache.end()) {
+        sample.tofRawSec = it->second;
+        tofCached = true;
+        bellhop_logger->debug(
+            "Using cached TOF for robot {:d} -> robot {:d} (reciprocal)",
+            link.pinger.index, link.target.index);
+      }
+    }
+
+    if (!tofCached) {
+      const auto *pingerType =
+          link.pinger.type == EndpointType::kRobot ? "robot" : "landmark";
+      const auto *targetType =
+          link.target.type == EndpointType::kRobot ? "robot" : "landmark";
+
+      bellhop_logger->debug(
+          "\n===Start Bellhop Run (pinger {:d}[{}] -> target {:d}[{}])===\n",
+          link.pinger.index, pingerType, link.target.index, targetType);
+      if (bellhop_logger->level() == spdlog::level::debug) {
+        bhc::echo(context_.params());
+      }
+      bhc::run(context_.params(), context_.outputs());
+      bellhop_logger->debug(
+          "\n===End Bellhop Run (pinger {:d}[{}] -> target {:d}[{}])===\n",
+          link.pinger.index, pingerType, link.target.index, targetType);
+
+      acoustics::Arrival arrival(context_.params(), context_.outputs());
+      sample.tofRawSec = arrival.getFastestArrival();
+
+      if (isRobotPair) {
+        auto key =
+            std::make_pair(std::min(link.pinger.index, link.target.index),
+                           std::max(link.pinger.index, link.target.index));
+        tofCache[key] = sample.tofRawSec;
+      }
+    }
+
     if (sample.tofRawSec < 0.0f) {
       sample.status = RangeStatus::kNoArrival;
       link.samples.push_back(sample);
