@@ -21,6 +21,7 @@
 #include "acoustics/SimulationConfig.h"
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
+#include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 #include <mantaray/sim/CurrentDriftRobot.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
@@ -160,51 +161,19 @@ int main() {
   SPDLOG_DEBUG("Position after: {}",
                world.dynamicsBodies.getPosition(odomRobotIdx));
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
-  auto result = simBuilder.updateSource(world.landmarks[0]);
-  if (result != acoustics::BoundaryCheck::kInBounds) {
-    SPDLOG_ERROR("Landmark is not valid and we can't run the sim.");
-    return 0;
-  }
+
+  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
+                                               sim::GlobalTofMode::kOneWay);
+  rangeSystem.rebuildPairs(world);
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
     startTime += 60.0;
     world.advanceWorld(startTime);
-    if (std::remainder(startTime, 60.0) < 1e-6) {
-      for (auto &robot : world.robots) {
-        if (!robot->isAlive_) {
-          continue;
-        }
-        auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
-        auto result = simBuilder.updateReceiver(position);
-        if (result != acoustics::BoundaryCheck::kInBounds) {
-          SPDLOG_INFO("Robot ID: {} is being marked as dead",
-                      robot->getBodyIdx());
-          robot->isAlive_ = false;
-          continue;
-        }
-
-        bellhop_logger->debug("\n===Start Bellhop Run===\n");
-
-        if (bellhop_logger->level() == spdlog::level::debug) {
-          bhc::echo(context.params());
-        }
-        bhc::run(context.params(), context.outputs());
-        bellhop_logger->debug("\n===End Bellhop Run===\n");
-
-        auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto earliestArrival = arrival.getFastestArrival();
-        SPDLOG_INFO("Received arrival time: {}", earliestArrival);
-        if (earliestArrival < 0) {
-          SPDLOG_WARN("Received no arrival time");
-        }
-        float currSsp = 0;
-        auto pos = acoustics::utils::safeEigenToVec23(position);
-
-        bhc::get_ssp<true, true>(context.params(), pos, currSsp);
-      }
-    }
+    rangeSystem.update(startTime, world);
   }
+  SPDLOG_INFO("Pairwise acoustic links tracked: {}",
+              rangeSystem.getLinks().size());
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
 
   bhc::writeenv(context.params(), runName);
