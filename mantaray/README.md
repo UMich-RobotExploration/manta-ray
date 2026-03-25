@@ -61,7 +61,6 @@ folder tree. Additionally, a Github workflow has been setup to make the docs ava
 # Other Documentation
 - [Acoustics Library](src/acoustics/acoustics.md)
 - [Rigid Body Library](src/rb/rb.md)
-- [Data](data/README.md)
-- [Configuration](sim_config/README.md)
-
+- @ref md_data_README "Data"
+- @ref md_sim_config_README "Configuration"
 
