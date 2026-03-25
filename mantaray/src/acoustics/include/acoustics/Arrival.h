@@ -5,7 +5,7 @@
  */
 #pragma once
 #include "acoustics/helpers.h"
-#include "checkAssert.h"
+#include "mantaray/utils/checkAssert.h"
 #include <bhc/bhc.hpp>
 #include <bhc/structs.hpp>
 #include <fstream>

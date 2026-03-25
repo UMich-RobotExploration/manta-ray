@@ -13,7 +13,7 @@
 
 #include "Integrator.h"
 #include "PhysicsBodies.h"
-#include "checkAssert.h"
+#include "mantaray/utils/checkAssert.h"
 #include "rb/RbInterfaces.h"
 #include "rb/RobotsAndSensors.h"
 #include "rb/helpers.h"

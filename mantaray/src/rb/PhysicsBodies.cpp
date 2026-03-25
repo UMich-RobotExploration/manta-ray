@@ -4,7 +4,7 @@
 
 #include "rb/pch.h"
 
-#include "checkAssert.h"
+#include "mantaray/utils/checkAssert.h"
 #include "rb/Integrator.h"
 #include "rb/PhysicsBodies.h"
 

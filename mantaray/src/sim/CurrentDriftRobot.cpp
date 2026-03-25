@@ -1,4 +1,4 @@
-#include "CurrentDriftRobot.h"
+#include "mantaray/sim/CurrentDriftRobot.h"
 
 #include <algorithm>
 

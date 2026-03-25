@@ -5,7 +5,7 @@
 #include "acoustics/SimulationConfig.h"
 #include "acoustics/fmt_eigen.h"
 #include "acoustics/helpers.h"
-#include "checkAssert.h"
+#include "mantaray/utils/checkAssert.h"
 #include <algorithm>
 #include <array>
 #include <bhc/bhc.hpp>
