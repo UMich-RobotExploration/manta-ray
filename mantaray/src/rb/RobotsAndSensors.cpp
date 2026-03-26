@@ -71,7 +71,7 @@ GroundTruthPose::GroundTruthPose(double freqHz, int timeSteps)
 
 void GroundTruthPose::updateSensor(const DynamicsBodies &bodies, double simTime,
                                    [[maybe_unused]] std::mt19937 &rngEngine) {
-  data_.emplace_back(bodies.kinematics[bodyIdx_].poseGlobal.coeffs());
+  data_.emplace_back(bodies.kinematics.at(bodyIdx_).poseGlobal.coeffs());
   timesteps_.emplace_back(simTime);
 }
 const std::vector<Eigen::VectorXd> &GroundTruthPose::getSensorData() {

@@ -1,6 +1,7 @@
 # Define the executable target from the main source file
 add_executable(${TARGET_NAME}
         sim/main.cpp
+        sim/AcousticPairwiseRangeSystem.cpp
         sim/CurrentDriftRobot.cpp
         config/ConfigReader.cpp
         utils/Logger.cpp

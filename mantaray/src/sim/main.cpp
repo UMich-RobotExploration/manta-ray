@@ -21,7 +21,9 @@
 #include "acoustics/SimulationConfig.h"
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
+#include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 #include <mantaray/sim/CurrentDriftRobot.h>
+#include <mantaray/sim/RobotFactory.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -104,107 +106,56 @@ int main() {
   double endTime = 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
-  world.reserveRobots(1);
-  world.reserveLandmarks(2);
-  auto odomRobotIdx =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.3, 1.0));
-  auto gtIdx = world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::GroundTruthPose>(
-          0.01, rb::computeNumTimeSteps(endTime, 0.01)));
-  auto odomIdx = world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::PositionalXYOdometry>(
-          0.01, rb::computeNumTimeSteps(endTime, 0.01),
-          std::normal_distribution<double>{0.0, 0.01}));
+  world.reserveRobots(4);
+  world.reserveLandmarks(1);
 
-  // GPS: higher noise in z than x/y; only valid near surface (default 0.1m)
-  world.robots[odomRobotIdx]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto robotIdx2 =
-      world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid);
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
-      1.00, rb::computeNumTimeSteps(endTime, 1.0)));
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
-      0.01, rb::computeNumTimeSteps(endTime, 0.01),
-      std::normal_distribution<double>{0.0, 0.01}));
+  sim::StandardSensorConfig sensorCfg{};
 
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto robotIdx3 =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
-  world.robots[robotIdx3]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(100.0, 0.0, 0.01), sensorCfg,
+      Eigen::Vector3d(0.1, 0.3, 1.0));
 
-  auto robotIdx4 =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
-  world.robots[robotIdx4]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
-  SPDLOG_DEBUG("Position before: {}",
-               world.dynamicsBodies.getPosition(odomRobotIdx));
-  world.dynamicsBodies.setPosition(odomRobotIdx,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx2,
-                                   Eigen::Vector3d(100.0, -10000.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx3,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx4,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
-  SPDLOG_DEBUG("Position after: {}",
-               world.dynamicsBodies.getPosition(odomRobotIdx));
+  auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(100.0, -10000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 2000.0);
+
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(100.0, 1000.0, 0.01), sensorCfg,
+      Eigen::Vector3d(1.0, 0.0, 5.0));
+
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(-100.0, -1000.0, 0.01), sensorCfg,
+      Eigen::Vector3d(1.0, 4.0, 5.0));
+
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
-  auto result = simBuilder.updateSource(world.landmarks[0]);
-  if (result != acoustics::BoundaryCheck::kInBounds) {
-    SPDLOG_ERROR("Landmark is not valid and we can't run the sim.");
-    return 0;
-  }
+
+  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
+                                               sim::GlobalTofMode::kOneWay);
+  rangeSystem.rebuildPairs(world);
+
+  constexpr double kBoundsCheckInterval = 10.0;
+  constexpr double kPingInterval = 60.0;
+  double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
+  double nextPing = world.simData.time + kPingInterval;
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
-    startTime += 60.0;
+    double nextEvent = std::min(nextBoundsCheck, nextPing);
+    startTime = nextEvent;
     world.advanceWorld(startTime);
-    if (std::remainder(startTime, 60.0) < 1e-6) {
-      for (auto &robot : world.robots) {
-        if (!robot->isAlive_) {
-          continue;
-        }
-        auto position = world.dynamicsBodies.getPosition(robot->getBodyIdx());
-        auto result = simBuilder.updateReceiver(position);
-        if (result != acoustics::BoundaryCheck::kInBounds) {
-          SPDLOG_INFO("Robot ID: {} is being marked as dead",
-                      robot->getBodyIdx());
-          robot->isAlive_ = false;
-          continue;
-        }
 
-        bellhop_logger->debug("\n===Start Bellhop Run===\n");
-
-        if (bellhop_logger->level() == spdlog::level::debug) {
-          bhc::echo(context.params());
-        }
-        bhc::run(context.params(), context.outputs());
-        bellhop_logger->debug("\n===End Bellhop Run===\n");
-
-        auto arrival = acoustics::Arrival(context.params(), context.outputs());
-        auto earliestArrival = arrival.getFastestArrival();
-        SPDLOG_INFO("Received arrival time: {}", earliestArrival);
-        if (earliestArrival < 0) {
-          SPDLOG_WARN("Received no arrival time");
-        }
-        float currSsp = 0;
-        auto pos = acoustics::utils::safeEigenToVec23(position);
-
-        bhc::get_ssp<true, true>(context.params(), pos, currSsp);
-      }
+    if (startTime >= nextBoundsCheck) {
+      rangeSystem.checkBounds(world);
+      nextBoundsCheck += kBoundsCheckInterval;
+    }
+    if (startTime >= nextPing) {
+      rangeSystem.update(startTime, world);
+      nextPing += kPingInterval;
     }
   }
+  SPDLOG_INFO("Pairwise acoustic links: {}, measurements logged: {}",
+              rangeSystem.getLinks().size(),
+              rangeSystem.getMeasurements().size());
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
 
   bhc::writeenv(context.params(), runName);
