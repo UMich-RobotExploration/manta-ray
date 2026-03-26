@@ -10,8 +10,12 @@ namespace sim {
 
 AcousticPairwiseRangeSystem::AcousticPairwiseRangeSystem(
     acoustics::AcousticsBuilder &builder,
-    acoustics::BhContext<true, true> &context, GlobalTofMode mode)
-    : builder_(builder), context_(context), mode_(mode) {}
+    acoustics::BhContext<true, true> &context, GlobalTofMode mode,
+    bool logAllMeasurements)
+    : builder_(builder),
+      context_(context),
+      mode_(mode),
+      logAllMeasurements_(logAllMeasurements) {}
 
 void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
   links_.clear();
@@ -28,18 +32,16 @@ void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
       if (pingerRobot == targetRobot) {
         continue;
       }
-      links_.push_back(RangeLinkState{
+      links_.push_back(RangeLink{
           RangeEndpoint{EndpointType::kRobot, pingerRobot},
           RangeEndpoint{EndpointType::kRobot, targetRobot},
-          {},
       });
     }
 
     for (size_t landmarkIdx = 0; landmarkIdx < numLandmarks; ++landmarkIdx) {
-      links_.push_back(RangeLinkState{
+      links_.push_back(RangeLink{
           RangeEndpoint{EndpointType::kRobot, pingerRobot},
           RangeEndpoint{EndpointType::kLandmark, landmarkIdx},
-          {},
       });
     }
   }
@@ -71,8 +73,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
   std::map<std::pair<size_t, size_t>, float> tofCache;
 
   for (auto &link : links_) {
-    RangeSample sample;
-    sample.simTimeSec = simTimeSec;
+    RangeMeasurement meas;
+    meas.simTimeSec = simTimeSec;
+    meas.pinger = link.pinger;
+    meas.target = link.target;
 
     const auto *pingerType =
         link.pinger.type == EndpointType::kRobot ? "robot" : "landmark";
@@ -80,25 +84,29 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
         link.target.type == EndpointType::kRobot ? "robot" : "landmark";
 
     if (!isAlive(world, link.pinger)) {
-      sample.status = RangeStatus::kSkippedPingerDead;
+      meas.status = RangeStatus::kSkippedPingerDead;
       SPDLOG_WARN("Ping dropped: pinger {:d}[{}] is dead", link.pinger.index,
                   pingerType);
-      link.samples.push_back(sample);
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
     if (!isAlive(world, link.target)) {
-      sample.status = RangeStatus::kSkippedTargetDead;
+      meas.status = RangeStatus::kSkippedTargetDead;
       SPDLOG_WARN("Ping dropped: target {:d}[{}] is dead", link.target.index,
                   targetType);
-      link.samples.push_back(sample);
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
 
     const Eigen::Vector3d pingerPos = positionOf(world, link.pinger);
     const Eigen::Vector3d targetPos = positionOf(world, link.target);
 
-    sample.boundaryCheck = builder_.updateSource(pingerPos);
-    switch (sample.boundaryCheck) {
+    auto boundaryCheck = builder_.updateSource(pingerPos);
+    switch (boundaryCheck) {
     case acoustics::BoundaryCheck::kInBounds:
       break;
     case acoustics::BoundaryCheck::kSourceOutofBounds:
@@ -109,13 +117,15 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       }
       SPDLOG_WARN("Ping dropped: pinger {:d}[{}] out of bounds",
                   link.pinger.index, pingerType);
-      sample.status = RangeStatus::kOutOfBounds;
-      link.samples.push_back(sample);
+      meas.status = RangeStatus::kOutOfBounds;
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
 
-    sample.boundaryCheck = builder_.updateReceiver(targetPos);
-    switch (sample.boundaryCheck) {
+    boundaryCheck = builder_.updateReceiver(targetPos);
+    switch (boundaryCheck) {
     case acoustics::BoundaryCheck::kInBounds:
       break;
     case acoustics::BoundaryCheck::kReceiverOutofBounds:
@@ -124,8 +134,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       }
       SPDLOG_WARN("Ping dropped: target {:d}[{}] out of bounds",
                   link.target.index, targetType);
-      sample.status = RangeStatus::kOutOfBounds;
-      link.samples.push_back(sample);
+      meas.status = RangeStatus::kOutOfBounds;
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     case acoustics::BoundaryCheck::kSourceOutofBounds:
       if (link.pinger.type == EndpointType::kRobot) {
@@ -133,8 +145,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       }
       SPDLOG_WARN("Ping dropped: pinger {:d}[{}] out of bounds",
                   link.pinger.index, pingerType);
-      sample.status = RangeStatus::kOutOfBounds;
-      link.samples.push_back(sample);
+      meas.status = RangeStatus::kOutOfBounds;
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     case acoustics::BoundaryCheck::kEitherOrOutOfBounds:
       if (link.target.type == EndpointType::kRobot) {
@@ -146,8 +160,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       SPDLOG_WARN("Ping dropped: both pinger {:d}[{}] and target {:d}[{}] out "
                   "of bounds",
                   link.pinger.index, pingerType, link.target.index, targetType);
-      sample.status = RangeStatus::kOutOfBounds;
-      link.samples.push_back(sample);
+      meas.status = RangeStatus::kOutOfBounds;
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
 
@@ -155,13 +171,14 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     const bool isRobotPair = link.pinger.type == EndpointType::kRobot &&
                              link.target.type == EndpointType::kRobot;
     bool tofCached = false;
+    float tofRawSec = kInvalidDistance;
 
     if (isRobotPair) {
       auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
                                 std::max(link.pinger.index, link.target.index));
       auto it = tofCache.find(key);
       if (it != tofCache.end()) {
-        sample.tofRawSec = it->second;
+        tofRawSec = it->second;
         tofCached = true;
         bellhop_logger->debug(
             "Using cached TOF for robot {:d} -> robot {:d} (reciprocal)",
@@ -182,21 +199,23 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
           link.pinger.index, pingerType, link.target.index, targetType);
 
       acoustics::Arrival arrival(context_.params(), context_.outputs());
-      sample.tofRawSec = arrival.getFastestArrival();
+      tofRawSec = arrival.getFastestArrival();
 
       if (isRobotPair) {
         auto key =
             std::make_pair(std::min(link.pinger.index, link.target.index),
                            std::max(link.pinger.index, link.target.index));
-        tofCache[key] = sample.tofRawSec;
+        tofCache[key] = tofRawSec;
       }
     }
 
-    if (sample.tofRawSec < 0.0f) {
-      sample.status = RangeStatus::kNoArrival;
+    if (tofRawSec < 0.0f) {
+      meas.status = RangeStatus::kNoArrival;
       SPDLOG_WARN("Ping dropped: no arrival from {:d}[{}] -> {:d}[{}]",
                   link.pinger.index, pingerType, link.target.index, targetType);
-      link.samples.push_back(sample);
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
 
@@ -204,27 +223,34 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     float cPinger = 0.0f;
     bhc::get_ssp<true, true>(context_.params(), pos, cPinger);
     if (cPinger <= 0.0f) {
-      sample.status = RangeStatus::kSspSampleFailed;
+      meas.status = RangeStatus::kSspSampleFailed;
       SPDLOG_WARN("Ping dropped: SSP sample failed at pinger {:d}[{}]",
                   link.pinger.index, pingerType);
-      link.samples.push_back(sample);
+      if (logAllMeasurements_) {
+        measurements_.push_back(meas);
+      }
       continue;
     }
 
-    sample.soundSpeedAtPingerMps = cPinger;
-    sample.tofEffectiveSec = sample.tofRawSec * tofScale(mode_);
-    sample.rangeMeters = sample.tofEffectiveSec * sample.soundSpeedAtPingerMps;
-    sample.status = RangeStatus::kOk;
+    meas.soundSpeedAtPingerMps = cPinger;
+    meas.tofEffectiveSec = tofRawSec * tofScale(mode_);
+    meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
+    meas.status = RangeStatus::kOk;
     SPDLOG_INFO("Ping OK: {:d}[{}] -> {:d}[{}] range={:.2f}m tof={:.6f}s "
                 "ssp={:.1f}m/s",
                 link.pinger.index, pingerType, link.target.index, targetType,
-                sample.rangeMeters, sample.tofEffectiveSec,
-                sample.soundSpeedAtPingerMps);
-    link.samples.push_back(sample);
+                meas.rangeMeters, meas.tofEffectiveSec,
+                meas.soundSpeedAtPingerMps);
+    measurements_.push_back(meas);
   }
 }
 
-const std::vector<RangeLinkState> &
+const std::vector<RangeMeasurement> &
+AcousticPairwiseRangeSystem::getMeasurements() const noexcept {
+  return measurements_;
+}
+
+const std::vector<RangeLink> &
 AcousticPairwiseRangeSystem::getLinks() const noexcept {
   return links_;
 }

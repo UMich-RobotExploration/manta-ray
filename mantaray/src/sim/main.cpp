@@ -186,8 +186,9 @@ int main() {
       nextPing += kPingInterval;
     }
   }
-  SPDLOG_INFO("Pairwise acoustic links tracked: {}",
-              rangeSystem.getLinks().size());
+  SPDLOG_INFO("Pairwise acoustic links: {}, measurements logged: {}",
+              rangeSystem.getLinks().size(),
+              rangeSystem.getMeasurements().size());
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
 
   bhc::writeenv(context.params(), runName);
