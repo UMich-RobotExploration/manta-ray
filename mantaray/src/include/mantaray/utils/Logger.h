@@ -1,5 +1,8 @@
-// Logger.h
-// MUST be included BEFORE <spdlog/spdlog.h> for macros to properly work
+/** @file Logger.h
+ * @brief Global and Bellhop logger initialization
+ * @details MUST be included BEFORE spdlog/spdlog.h for macros to properly work
+ */
+
 #pragma once
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 

@@ -7,6 +7,9 @@
 #include <json.hpp>
 #include <string>
 
+/** @namespace config
+ * @brief Configuration file reading and validation
+ */
 namespace config {
 
 // Defines key to look for source directory path of data

@@ -27,6 +27,9 @@ constexpr double kBoundaryEpsilonDouble =
  * @param num Number of points to generate
  * @return Vector of linearly spaced values
  */
+/** @namespace acoustics::utils
+ * @brief Utility functions for acoustic coordinate transforms and vector setup
+ */
 namespace utils {
 template <typename T> std::vector<T> linspace(T start, T end, std::size_t num) {
   std::vector<T> result;

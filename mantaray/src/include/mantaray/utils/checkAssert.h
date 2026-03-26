@@ -1,3 +1,7 @@
+/** @file checkAssert.h
+ * @brief CHECK macro for runtime assertions
+ */
+
 #pragma once
 
 #include <cstdlib>
