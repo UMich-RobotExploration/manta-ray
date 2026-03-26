@@ -24,7 +24,10 @@ void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
   const size_t numRobots = world.robots.size();
   const size_t numLandmarks = world.landmarks.size();
 
-  // Full pairwise with robot as pinger.
+  // Convention: the robot is always the pinger, even for robot-landmark links
+  // where the physical ping originates at the landmark. This ensures the SSP
+  // is always sampled at the robot's position, which is the unknown being
+  // estimated — the landmark position is known a priori.
   links_.reserve(numRobots * (numRobots > 0 ? numRobots - 1 : 0) +
                  numRobots * numLandmarks);
 

@@ -108,6 +108,11 @@ public:
    * - robot -> every other robot
    * - robot -> every landmark
    *
+   * The robot is always assigned as the pinger so that the sound speed
+   * profile (SSP) is sampled at the robot's position — the unknown being
+   * estimated. For robot-landmark links this means the pinger is the robot
+   * even though the physical ping may originate at the landmark.
+   *
    * @param world The simulation world containing robots and landmarks
    */
   void rebuildPairs(const rb::RbWorld &world);
