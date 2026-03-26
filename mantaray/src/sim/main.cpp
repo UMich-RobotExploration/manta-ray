@@ -117,25 +117,25 @@ int main() {
       Eigen::Vector3d(0.1, 0.3, 0.0));
 
   auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
-      world, endTime, Eigen::Vector3d(100.0, -10000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 2000.0);
+      world, endTime, Eigen::Vector3d(3000.0, -3000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 30.0);
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(100.0, 1000.0, 0.01), sensorCfg,
-      Eigen::Vector3d(1.0, 0.0, 5.0));
+  sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(-100.0, 1000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 1000.0);
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(-100.0, -1000.0, 0.01), sensorCfg,
-      Eigen::Vector3d(1.0, 4.0, 5.0));
+  sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(-1000.0, -4000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 400.0);
 
-  world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
+  world.addLandmark(Eigen::Vector3d(-2001.0, 100.0, 0.1));
 
   sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
                                                sim::GlobalTofMode::kOneWay);
   rangeSystem.rebuildPairs(world);
 
-  constexpr double kBoundsCheckInterval = 10.0;
-  constexpr double kPingInterval = 100.0;
+  constexpr double kBoundsCheckInterval = 100.0;
+  constexpr double kPingInterval = 30 * 60.0;
   double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
   double nextPing = world.simData.time + kPingInterval;
 
