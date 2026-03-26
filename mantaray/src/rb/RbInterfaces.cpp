@@ -1,5 +1,6 @@
 
 #include "rb/RbInterfaces.h"
+#include "spdlog/spdlog.h"
 
 namespace rb {
 RobotI::~RobotI() = default; // Add destructor definition
@@ -8,8 +9,10 @@ void RobotI::setDynamicsIndex(BodyIdx idx) { bodyIdx_ = idx; }
 size_t RobotI::addSensor(std::unique_ptr<SensorI> sensor) {
   size_t newIdx = sensors_.size();
   sensors_.emplace_back(std::move(sensor));
-  sensors_.back()->setDynamicsIndex(
-      bodyIdx_); // Set the sensor's body index to match the robot's
+  sensors_.back()->setDynamicsIndex(bodyIdx_);
+  SPDLOG_INFO("Robot idx: {} attached sensor {} at {:.4f} Hz", bodyIdx_,
+              sensorTypeToString(sensors_.back()->sensorType_),
+              sensors_.back()->getFreqHz());
   return newIdx;
 }
 

@@ -104,7 +104,7 @@ int main() {
   /// Need to figure out DT
 
   rb::RbWorld world{};
-  double endTime = 60.0 * 60.0;
+  double endTime = 10 * 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(4);
@@ -112,9 +112,9 @@ int main() {
 
   sim::StandardSensorConfig sensorCfg{};
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(100.0, 0.0, 0.01), sensorCfg,
-      Eigen::Vector3d(0.1, 0.3, 1.0));
+  auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
+      Eigen::Vector3d(0.1, 0.3, 0.0));
 
   auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
       world, endTime, Eigen::Vector3d(100.0, -10000.0, 0.01), sensorCfg,
@@ -135,7 +135,7 @@ int main() {
   rangeSystem.rebuildPairs(world);
 
   constexpr double kBoundsCheckInterval = 10.0;
-  constexpr double kPingInterval = 60.0;
+  constexpr double kPingInterval = 100.0;
   double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
   double nextPing = world.simData.time + kPingInterval;
 
@@ -157,6 +157,7 @@ int main() {
   SPDLOG_INFO("Pairwise acoustic links: {}, measurements logged: {}",
               rangeSystem.getLinks().size(),
               rangeSystem.getMeasurements().size());
+  rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx1]);
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
 
   // Write PFG factor graph file

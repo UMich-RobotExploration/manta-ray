@@ -63,7 +63,9 @@ void AcousticPairwiseRangeSystem::checkBounds(rb::RbWorld &world) {
     builder_.updateReceiver(pos);
     auto result = builder_.updateSource(pos);
     if (result != acoustics::BoundaryCheck::kInBounds) {
-      SPDLOG_WARN("Robot {:d} out of bounds (boundary check), marking dead", i);
+      SPDLOG_WARN("Robot {:d} out of bounds (checkBounds), result={:d}, "
+                  "pos=[{}, {}, {}]",
+                  i, static_cast<int>(result), pos.x(), pos.y(), pos.z());
       markRobotDead(world, i);
     }
   }
@@ -306,9 +308,9 @@ void AcousticPairwiseRangeSystem::markRobotDead(rb::RbWorld &world,
   }
   auto &robot = world.robots[robotIdx];
   if (robot->isAlive_) {
-    SPDLOG_INFO(
-        "Marking robot {} as dead due to out-of-bounds acoustic endpoint",
-        robotIdx);
+    const auto pos = world.dynamicsBodies.getPosition(robot->getBodyIdx());
+    SPDLOG_WARN("Marking robot {} as dead — position: [{}, {}, {}]", robotIdx,
+                pos.x(), pos.y(), pos.z());
   }
   robot->isAlive_ = false;
 }
