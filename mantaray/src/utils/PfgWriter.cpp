@@ -1,7 +1,6 @@
-/**
- * @file PfgWriter.cpp
- * @brief Implementation of PFG (PyFactorGraphs) text file writer
- */
+//
+// PfgWriter.cpp
+//
 
 #include "mantaray/utils/PfgWriter.h"
 #include "rb/PhysicsBodies.h"
@@ -16,10 +15,6 @@
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Naming helpers
-// ---------------------------------------------------------------------------
-
 std::string robotName(size_t robotIdx, size_t timeIdx) {
   assert(robotIdx < 26 && "PFG format supports at most 26 robots (A-Z)");
   return fmt::format("{}{}", static_cast<char>('A' + robotIdx), timeIdx);
@@ -27,24 +22,16 @@ std::string robotName(size_t robotIdx, size_t timeIdx) {
 
 std::string landmarkName(size_t idx) { return fmt::format("L{}", idx); }
 
-// ---------------------------------------------------------------------------
-// Formatting helpers (PFG precision rules)
-// ---------------------------------------------------------------------------
-
-/// Prevents -0.0 from appearing in output
+// Prevents -0.0 from appearing in output
 inline double noNegZero(double v) { return v == 0.0 ? 0.0 : v; }
 
-/// Timestamp, translation, covariance: 9 decimal places
+// Timestamp, translation, covariance: 9 decimal places
 std::string fmtT(double v) { return fmt::format("{:.9f}", noNegZero(v)); }
 
-/// Quaternion component: 7 decimal places
+// Quaternion component: 7 decimal places
 std::string fmtQ(double v) { return fmt::format("{:.7f}", noNegZero(v)); }
 
-// ---------------------------------------------------------------------------
-// Quaternion normalization
-// ---------------------------------------------------------------------------
-
-/// Ensures qw >= 0 by negating all four components if needed.
+// Ensures qw >= 0 by negating all four components if needed
 void normalizeQwPositive(double &qx, double &qy, double &qz, double &qw) {
   if (qw < 0.0) {
     qx = -qx;
@@ -54,11 +41,6 @@ void normalizeQwPositive(double &qx, double &qy, double &qz, double &qw) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sensor lookup
-// ---------------------------------------------------------------------------
-
-/// Returns pointer to the sensor of the given type, or nullptr.
 rb::SensorI *findSensor(const rb::RobotI &robot, rb::SensorType type) {
   for (auto &sensor : robot.sensors_) {
     if (sensor->sensorType_ == type) {
@@ -68,32 +50,22 @@ rb::SensorI *findSensor(const rb::RobotI &robot, rb::SensorType type) {
   return nullptr;
 }
 
-/// Returns the GroundTruthPose sensor, or nullptr.
 rb::SensorI *findGtSensor(const rb::RobotI &robot) {
   return findSensor(robot, rb::SensorType::kGroundTruthPose);
 }
 
-/// Returns the PositionalXYOdometry sensor, or nullptr.
 rb::PositionalXYOdometry *findOdomSensor(const rb::RobotI &robot) {
   auto *s = findSensor(robot, rb::SensorType::kPosOdomXY);
   return s ? static_cast<rb::PositionalXYOdometry *>(s) : nullptr;
 }
 
-// ---------------------------------------------------------------------------
-// SE3 reconstruction from ground truth data vector
-// ---------------------------------------------------------------------------
-
-/// Builds manif::SE3d from a 7-element VectorXd [x,y,z,qx,qy,qz,qw].
+// Builds manif::SE3d from a 7-element VectorXd [x,y,z,qx,qy,qz,qw]
 manif::SE3d se3FromGtData(const Eigen::VectorXd &data) {
   Eigen::Quaterniond q(data[6], data[3], data[4], data[5]); // w,x,y,z ctor
   return manif::SE3d(Eigen::Vector3d(data[0], data[1], data[2]), q);
 }
 
-// ---------------------------------------------------------------------------
-// Nearest timestamp index lookup
-// ---------------------------------------------------------------------------
-
-/// Finds the index in `timestamps` closest to `queryTime`.
+// Finds the index in timestamps closest to queryTime
 size_t findNearestTimeIndex(const std::vector<double> &timestamps,
                             double queryTime) {
   assert(!timestamps.empty());
@@ -113,10 +85,6 @@ size_t findNearestTimeIndex(const std::vector<double> &timestamps,
   return (distPrev <= distCurr) ? idx - 1 : idx;
 }
 
-// ---------------------------------------------------------------------------
-// Covariance formatting
-// ---------------------------------------------------------------------------
-
 template <size_t N>
 std::string formatUpperTri(const std::array<double, N> &cov) {
   std::string result;
@@ -128,24 +96,17 @@ std::string formatUpperTri(const std::array<double, N> &cov) {
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// Pose writing helpers
-// ---------------------------------------------------------------------------
-
-/// Writes qx qy qz qw from a 7-element GT data vector, with qw>=0
-/// normalization.
+// Formats qx qy qz qw from a 7-element GT data vector, with qw>=0
 std::string formatPoseQuaternion(const Eigen::VectorXd &data) {
   double qx = data[3], qy = data[4], qz = data[5], qw = data[6];
   normalizeQwPositive(qx, qy, qz, qw);
   return fmt::format("{} {} {} {}", fmtQ(qx), fmtQ(qy), fmtQ(qz), fmtQ(qw));
 }
 
-/// Writes x y z from a data vector.
 std::string formatTranslation(const Eigen::VectorXd &data) {
   return fmt::format("{} {} {}", fmtT(data[0]), fmtT(data[1]), fmtT(data[2]));
 }
 
-/// Writes x y z qx qy qz qw from an SE3d pose.
 std::string formatSE3(const manif::SE3d &pose) {
   auto t = pose.translation();
   auto q = pose.quat();
@@ -154,10 +115,6 @@ std::string formatSE3(const manif::SE3d &pose) {
   return fmt::format("{} {} {} {} {} {} {}", fmtT(t.x()), fmtT(t.y()),
                      fmtT(t.z()), fmtQ(qx), fmtQ(qy), fmtQ(qz), fmtQ(qw));
 }
-
-// ---------------------------------------------------------------------------
-// Endpoint → PFG name
-// ---------------------------------------------------------------------------
 
 std::string
 endpointName(const sim::RangeEndpoint &ep, double queryTime,
@@ -171,24 +128,17 @@ endpointName(const sim::RangeEndpoint &ep, double queryTime,
     return robotName(ep.index, timeIdx);
   }
   }
-  // Unreachable, but satisfy compiler
   return {};
 }
 
-} // anonymous namespace
-
-// ===========================================================================
-// Public API
-// ===========================================================================
+} // namespace
 
 namespace pyfg {
 
 std::array<double, 21> makeDiagUpperTri6x6(double d0, double d1, double d2,
                                            double d3, double d4, double d5) {
   std::array<double, 21> out{};
-  // Upper triangle row-major: (0,0) (0,1) (0,2) (0,3) (0,4) (0,5)
-  //                                 (1,1) (1,2) (1,3) (1,4) (1,5) ...
-  // Diagonal elements are at positions: 0, 6, 11, 15, 18, 20
+  // Diagonal positions in upper-tri row-major: 0, 6, 11, 15, 18, 20
   out[0] = d0;
   out[6] = d1;
   out[11] = d2;
@@ -226,9 +176,9 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
    */
   // TODO: Double check mapping between factors, variables, and edges
 
-  // =========================================================================
-  // Section 1: VERTEX_SE3:QUAT — pose variables
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // VERTEX_SE3:QUAT — pose variables
+  //////////////////////////////////////////////////////////////////////////////
   for (size_t i = 0; i < numRobots; ++i) {
     auto *gt = findGtSensor(*world.robots[i]);
     if (!gt) {
@@ -245,18 +195,18 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     }
   }
 
-  // =========================================================================
-  // Section 2: VERTEX_XYZ — landmark variables
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // VERTEX_XYZ — landmark variables
+  //////////////////////////////////////////////////////////////////////////////
   for (size_t j = 0; j < numLandmarks; ++j) {
     const auto &pos = world.landmarks[j];
     file << "VERTEX_XYZ " << landmarkName(j) << ' ' << fmtT(pos.x()) << ' '
          << fmtT(pos.y()) << ' ' << fmtT(pos.z()) << '\n';
   }
 
-  // =========================================================================
-  // Section 3: VERTEX_SE3:QUAT:PRIOR — pose priors (first pose per robot)
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // VERTEX_SE3:QUAT:PRIOR — pose priors (first pose per robot)
+  //////////////////////////////////////////////////////////////////////////////
   for (size_t i = 0; i < numRobots; ++i) {
     auto *gt = findGtSensor(*world.robots[i]);
     if (!gt)
@@ -272,12 +222,11 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
          << formatUpperTri(config.defaultPosePriorCov) << '\n';
   }
 
-  // =========================================================================
-  // Section 4: VERTEX_XYZ:PRIOR — landmark priors
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // VERTEX_XYZ:PRIOR — landmark priors
+  //////////////////////////////////////////////////////////////////////////////
   if (!config.landmarkPriorCovs.empty()) {
     for (size_t j = 0; j < numLandmarks; ++j) {
-      // Use per-landmark cov if available, otherwise last entry
       size_t covIdx = std::min(j, config.landmarkPriorCovs.size() - 1);
       const auto &pos = world.landmarks[j];
       file << "VERTEX_XYZ:PRIOR " << fmtT(0.0) << ' ' << landmarkName(j) << ' '
@@ -286,11 +235,10 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     }
   }
 
-  // =========================================================================
-  // Section 5: EDGE_SE3:QUAT — odometry edges
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // EDGE_SE3:QUAT — odometry edges
+  //////////////////////////////////////////////////////////////////////////////
   for (size_t i = 0; i < numRobots; ++i) {
-    // Build per-robot odom covariance from sensor noise
     auto *odomSensor = findOdomSensor(*world.robots[i]);
     std::array<double, 21> odomCov{};
     if (odomSensor) {
@@ -307,7 +255,6 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     }
 
     if (config.useGroundTruthOdometry) {
-      // Use ground truth poses for noiseless relative transforms
       auto *gt = findGtSensor(*world.robots[i]);
       if (!gt || gt->getSensorData().size() < 2)
         continue;
@@ -325,7 +272,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
              << formatSE3(rel) << ' ' << formatUpperTri(odomCov) << '\n';
       }
     } else {
-      // Use odom sensor positions (noisy), identity rotation
+      // Odom sensor positions (noisy), identity rotation
       if (!odomSensor || odomSensor->getSensorData().size() < 2)
         continue;
       const auto &data = odomSensor->getSensorData();
@@ -344,9 +291,9 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     }
   }
 
-  // =========================================================================
-  // Section 8: EDGE_RANGE — range measurements
-  // =========================================================================
+  //////////////////////////////////////////////////////////////////////////////
+  // EDGE_RANGE — range measurements
+  //////////////////////////////////////////////////////////////////////////////
 
   // Pre-build per-robot GT timestamp lookup
   std::vector<std::vector<double>> robotGtTimestamps(numRobots);
