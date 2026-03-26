@@ -220,6 +220,12 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
   const size_t numRobots = world.robots.size();
   const size_t numLandmarks = world.landmarks.size();
 
+  // TODO: GPS Measurements need to be included as priors
+  /* TODO: Need to ensure rotations sigma is very low to prevent rotations
+   * from influencing solver
+   */
+  // TODO: Double check mapping between factors, variables, and edges
+
   // =========================================================================
   // Section 1: VERTEX_SE3:QUAT — pose variables
   // =========================================================================
@@ -308,7 +314,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
       const auto &data = gt->getSensorData();
       const auto &timestamps = gt->getSensorTimesteps();
 
-      for (size_t t = 0; t + 1 < data.size(); ++t) {
+      for (size_t t = 0; t < data.size() - 1; ++t) {
         manif::SE3d poseFrom = se3FromGtData(data[t]);
         manif::SE3d poseTo = se3FromGtData(data[t + 1]);
         manif::SE3d rel;
@@ -325,7 +331,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
       const auto &data = odomSensor->getSensorData();
       const auto &timestamps = odomSensor->getSensorTimesteps();
 
-      for (size_t t = 0; t + 1 < data.size(); ++t) {
+      for (size_t t = 0; t < data.size() - 1; ++t) {
         Eigen::Vector3d delta = data[t + 1].head<3>() - data[t].head<3>();
 
         file << "EDGE_SE3:QUAT " << fmtT(timestamps[t + 1]) << ' '
