@@ -23,6 +23,7 @@
 #include "rb/RobotsAndSensors.h"
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 #include <mantaray/sim/CurrentDriftRobot.h>
+#include <mantaray/sim/RobotFactory.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -105,61 +106,27 @@ int main() {
   double endTime = 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
-  world.reserveRobots(1);
-  world.reserveLandmarks(2);
-  auto odomRobotIdx =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0.1, 0.3, 1.0));
-  auto gtIdx = world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::GroundTruthPose>(
-          0.01, rb::computeNumTimeSteps(endTime, 0.01)));
-  auto odomIdx = world.robots[odomRobotIdx]->addSensor(
-      std::make_unique<rb::PositionalXYOdometry>(
-          0.01, rb::computeNumTimeSteps(endTime, 0.01),
-          std::normal_distribution<double>{0.0, 0.01}));
+  world.reserveRobots(4);
+  world.reserveLandmarks(1);
 
-  // GPS: higher noise in z than x/y; only valid near surface (default 0.1m)
-  world.robots[odomRobotIdx]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto robotIdx2 =
-      world.addRobot<robots::CurrentDriftRobot>(importedCurrentGrid, 2000.0);
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GroundTruthPose>(
-      1.00, rb::computeNumTimeSteps(endTime, 1.0)));
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
-      0.01, rb::computeNumTimeSteps(endTime, 0.01),
-      std::normal_distribution<double>{0.0, 0.01}));
+  sim::StandardSensorConfig sensorCfg{};
 
-  world.robots[robotIdx2]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto robotIdx3 =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 0.0, 5.0));
-  world.robots[robotIdx3]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(100.0, 0.0, 0.01), sensorCfg,
+      Eigen::Vector3d(0.1, 0.3, 1.0));
 
-  auto robotIdx4 =
-      world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1.0, 4.0, 5.0));
-  world.robots[robotIdx4]->addSensor(std::make_unique<rb::GpsPosition>(
-      0.5, rb::computeNumTimeSteps(endTime, 0.5),
-      std::normal_distribution<double>{0.0, 0.5},   // xy
-      std::normal_distribution<double>{0.0, 2.0})); // z
-  auto &kinData = world.dynamicsBodies.getKinematicData(odomRobotIdx);
-  SPDLOG_DEBUG("Position before: {}",
-               world.dynamicsBodies.getPosition(odomRobotIdx));
-  world.dynamicsBodies.setPosition(odomRobotIdx,
-                                   Eigen::Vector3d(100.0, 0.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx2,
-                                   Eigen::Vector3d(100.0, -10000.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx3,
-                                   Eigen::Vector3d(100.0, 1000.0, 0.01));
-  world.dynamicsBodies.setPosition(robotIdx4,
-                                   Eigen::Vector3d(-100.0, -1000.0, 0.01));
-  SPDLOG_DEBUG("Position after: {}",
-               world.dynamicsBodies.getPosition(odomRobotIdx));
+  auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(100.0, -10000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 2000.0);
+
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(100.0, 1000.0, 0.01), sensorCfg,
+      Eigen::Vector3d(1.0, 0.0, 5.0));
+
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(-100.0, -1000.0, 0.01), sensorCfg,
+      Eigen::Vector3d(1.0, 4.0, 5.0));
+
   world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
 
   sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,

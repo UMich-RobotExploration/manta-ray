@@ -83,6 +83,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     const auto *targetType =
         link.target.type == EndpointType::kRobot ? "robot" : "landmark";
 
+    // -- Liveness pre-check --
     if (!isAlive(world, link.pinger)) {
       meas.status = RangeStatus::kSkippedPingerDead;
       SPDLOG_WARN("Ping dropped: pinger {:d}[{}] is dead", link.pinger.index,
@@ -105,10 +106,16 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     const Eigen::Vector3d pingerPos = positionOf(world, link.pinger);
     const Eigen::Vector3d targetPos = positionOf(world, link.target);
 
+    // Source boundary check
+    // Any non-kInBounds result means the pinger position is invalid for
+    // Bellhop, so we kill the pinger robot and skip the link.
     auto boundaryCheck = builder_.updateSource(pingerPos);
     switch (boundaryCheck) {
     case acoustics::BoundaryCheck::kInBounds:
       break;
+    // Source, receiver, or both reported out — all treated the same here
+    // because we only set the source; any failure is attributable to the
+    // pinger.
     case acoustics::BoundaryCheck::kSourceOutofBounds:
     case acoustics::BoundaryCheck::kReceiverOutofBounds:
     case acoustics::BoundaryCheck::kEitherOrOutOfBounds:
@@ -124,10 +131,14 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
+    // Receiver boundary check
+    // Now both source and receiver are set; each case identifies which
+    // endpoint(s) to mark dead.
     boundaryCheck = builder_.updateReceiver(targetPos);
     switch (boundaryCheck) {
     case acoustics::BoundaryCheck::kInBounds:
       break;
+    // Only the receiver (target) is out of bounds
     case acoustics::BoundaryCheck::kReceiverOutofBounds:
       if (link.target.type == EndpointType::kRobot) {
         markRobotDead(world, link.target.index);
@@ -139,6 +150,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
         measurements_.push_back(meas);
       }
       continue;
+    // Only the source (pinger) is out of bounds
     case acoustics::BoundaryCheck::kSourceOutofBounds:
       if (link.pinger.type == EndpointType::kRobot) {
         markRobotDead(world, link.pinger.index);
@@ -150,6 +162,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
         measurements_.push_back(meas);
       }
       continue;
+    // Both source and receiver are out of bounds
     case acoustics::BoundaryCheck::kEitherOrOutOfBounds:
       if (link.target.type == EndpointType::kRobot) {
         markRobotDead(world, link.target.index);
@@ -167,7 +180,9 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
-    // Check TOF cache for robot-robot pairs (acoustic reciprocity)
+    // TOF acquisition (with reciprocal caching for robot-robot pairs)
+    // For robot-robot links, the TOF is symmetric so we only run Bellhop
+    // for the first direction and reuse the result for the reverse.
     const bool isRobotPair = link.pinger.type == EndpointType::kRobot &&
                              link.target.type == EndpointType::kRobot;
     bool tofCached = false;
@@ -186,6 +201,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       }
     }
 
+    // Bellhop ray tracing (skipped when TOF is cached)
     if (!tofCached) {
       bellhop_logger->debug(
           "\n===Start Bellhop Run (pinger {:d}[{}] -> target {:d}[{}])===\n",
@@ -209,6 +225,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       }
     }
 
+    // Arrival validation
     if (tofRawSec < 0.0f) {
       meas.status = RangeStatus::kNoArrival;
       SPDLOG_WARN("Ping dropped: no arrival from {:d}[{}] -> {:d}[{}]",
@@ -219,6 +236,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
+    // SSP query at pinger position
     const auto pos = acoustics::utils::safeEigenToVec23(pingerPos);
     float cPinger = 0.0f;
     bhc::get_ssp<true, true>(context_.params(), pos, cPinger);
@@ -232,6 +250,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
+    // Successful measurement: compute range from TOF and local SSP
     meas.soundSpeedAtPingerMps = cPinger;
     meas.tofEffectiveSec = tofRawSec * tofScale(mode_);
     meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
