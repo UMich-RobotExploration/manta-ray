@@ -5,6 +5,7 @@ add_executable(${TARGET_NAME}
         sim/CurrentDriftRobot.cpp
         config/ConfigReader.cpp
         utils/Logger.cpp
+        utils/PfgWriter.cpp
 )
 
 

@@ -56,6 +56,12 @@ void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,
   outputPose = pose * refPose.inverse();
 }
 
+void relativeTransformBodyFrame(const manif::SE3d &fromPose,
+                                const manif::SE3d &toPose,
+                                manif::SE3d &outputPose) {
+  outputPose = fromPose.inverse() * toPose;
+}
+
 namespace detail {
 BodyIdx addDynamicsBody(DynamicsBodies &bodies) {
   BodyIdx newIndex = bodies.kinematics.size();

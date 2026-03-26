@@ -24,6 +24,7 @@
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 #include <mantaray/sim/CurrentDriftRobot.h>
 #include <mantaray/sim/RobotFactory.h>
+#include <mantaray/utils/PfgWriter.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -157,6 +158,17 @@ int main() {
               rangeSystem.getLinks().size(),
               rangeSystem.getMeasurements().size());
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
+
+  // Write PFG factor graph file
+  pyfg::PfgWriterConfig pfgConfig{};
+  pfgConfig.useGroundTruthOdometry = true;
+  pfgConfig.rangeVariance = 1.0;
+  pfgConfig.defaultPosePriorCov =
+      pyfg::makeDiagUpperTri6x6(0.01, 0.01, 0.01, 0.04, 0.04, 0.04);
+  pfgConfig.landmarkPriorCovs.push_back(
+      pyfg::makeDiagUpperTri3x3(0.01, 0.01, 0.01));
+  pfgConfig.odomRotationVariance = 0.04;
+  pyfg::writePfg("output.pfg", world, rangeSystem.getMeasurements(), pfgConfig);
 
   bhc::writeenv(context.params(), runName);
   bhc::writeout(context.params(), context.outputs(), runName);
