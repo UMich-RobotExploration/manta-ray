@@ -104,7 +104,7 @@ int main() {
   /// Need to figure out DT
 
   rb::RbWorld world{};
-  double endTime = 60.0 * 60.0;
+  double endTime = 8.0 * 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(4);
@@ -116,17 +116,18 @@ int main() {
       world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
       Eigen::Vector3d(0.1, 0.3, 0.0));
 
+  constexpr double kOneHour = 60.0 * 60.0;
   auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
       world, endTime, Eigen::Vector3d(3000.0, -3000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 30.0);
+      importedCurrentGrid, 300.0, kOneHour, kOneHour);
 
   sim::addStandardRobot<robots::CurrentDriftRobot>(
       world, endTime, Eigen::Vector3d(-100.0, 1000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 1000.0);
+      importedCurrentGrid, 1000.0, kOneHour, kOneHour);
 
   sim::addStandardRobot<robots::CurrentDriftRobot>(
       world, endTime, Eigen::Vector3d(-1000.0, -4000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 400.0);
+      importedCurrentGrid, 400.0, kOneHour, kOneHour);
 
   world.addLandmark(Eigen::Vector3d(-2001.0, 100.0, 0.1));
 
