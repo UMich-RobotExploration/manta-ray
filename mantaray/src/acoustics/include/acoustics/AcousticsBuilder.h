@@ -209,7 +209,8 @@ private:
    * @return provides bathymetry height and boolean, true if it is wihtin
    * boundary, false if not
    */
-  std::pair<double, bool> isWithinBathymetry(Eigen::Vector3d &position) const;
+  std::pair<double, bool>
+  isWithinBathymetry(const Eigen::Vector3d &position) const;
 
   /** @brief A function for adjusting the beam box size to fit within the
    * terrain

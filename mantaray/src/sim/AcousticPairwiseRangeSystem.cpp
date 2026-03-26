@@ -5,6 +5,7 @@
 #include "mantaray/utils/Logger.h"
 
 #include <map>
+#include <stdexcept>
 
 namespace sim {
 
@@ -281,6 +282,7 @@ float AcousticPairwiseRangeSystem::tofScale(GlobalTofMode mode) {
   case GlobalTofMode::kTwoWay:
     return 2.0f;
   }
+  throw std::logic_error("Unhandled GlobalTofMode");
 }
 
 bool AcousticPairwiseRangeSystem::isAlive(const rb::RbWorld &world,
@@ -291,6 +293,7 @@ bool AcousticPairwiseRangeSystem::isAlive(const rb::RbWorld &world,
   case EndpointType::kLandmark:
     return true;
   }
+  throw std::logic_error("Unhandled EndpointType");
 }
 
 void AcousticPairwiseRangeSystem::markRobotDead(rb::RbWorld &world,
@@ -318,6 +321,7 @@ AcousticPairwiseRangeSystem::positionOf(const rb::RbWorld &world,
   case EndpointType::kLandmark:
     return world.landmarks.at(endpoint.index);
   }
+  throw std::logic_error("Unhandled EndpointType");
 }
 
 } // namespace sim

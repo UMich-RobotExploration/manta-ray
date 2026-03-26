@@ -220,7 +220,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   beam->Box.z = max * kmScaler + 10;
 }
 std::pair<double, bool>
-AcousticsBuilder::isWithinBathymetry(Eigen::Vector3d &position) const {
+AcousticsBuilder::isWithinBathymetry(const Eigen::Vector3d &position) const {
   double kmScalerBath = bathymetryConfig_.isKm ? 1.0 / 1000.0 : 1.0;
   double bathymetryHeight =
       bathymetryConfig_.Grid.interpolateDataValue(position.x() * kmScalerBath,
@@ -278,8 +278,8 @@ BoundaryCheck AcousticsBuilder::updateAgents() {
   bathymetryHeight = result.first;
   if (!isSourceWithinBath) {
     auto msg =
-        fmt::format("Current receiver position is below the bathymetry "
-                    "and therefore should be marked as dead. Receiver z-height "
+        fmt::format("Current source position is below the bathymetry "
+                    "and therefore should be marked as dead. Source z-height "
                     "is {:4f}, while bathymetry interpolated value is {:4f}",
                     agentsConfig_.source.z(), bathymetryHeight);
     SPDLOG_WARN(msg);

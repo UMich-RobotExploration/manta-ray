@@ -39,10 +39,14 @@ void DynamicsBodies::setPose(BodyIdx index, const Eigen::Vector3d &position,
 }
 void DynamicsBodies::setPosition(BodyIdx index,
                                  const Eigen::Vector3d &position) {
+  CHECK(index < kinematics.size(),
+        "Index out of bounds for dynamics properties");
   kinematics[index].poseGlobal.coeffs().block<3, 1>(0, 0) = position;
 }
 void DynamicsBodies::setOrientation(BodyIdx index,
                                     const Eigen::Quaterniond &orientation) {
+  CHECK(index < kinematics.size(),
+        "Index out of bounds for dynamics properties");
   kinematics[index].poseGlobal.coeffs().block<4, 1>(3, 0) =
       orientation.coeffs();
 }
