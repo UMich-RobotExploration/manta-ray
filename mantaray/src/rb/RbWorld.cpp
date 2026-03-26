@@ -169,13 +169,13 @@ void RbWorld::advanceWorld(double time) {
     }
 
     // The simple constant dt stepping loop that will run most of the time.
-    double timeToAdvance = time - simData.time;
-    while (timeToAdvance > 0.0) {
-      double dt = std::min(simData.dt, timeToAdvance);
+    // Recompute remaining time from the authoritative (rounded) clock each
+    // iteration to avoid floating-point accumulation in a separate counter.
+    while (!detail::isEqual(simData.time, time) && simData.time < time) {
+      double dt = std::min(simData.dt, time - simData.time);
       updateSensors(*this);
       stepWorld(dt);
       SPDLOG_TRACE("Simulation time is {}", simData.time);
-      timeToAdvance -= dt;
     }
     return;
   }

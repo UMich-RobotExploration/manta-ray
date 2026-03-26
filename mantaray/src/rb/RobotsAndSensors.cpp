@@ -26,8 +26,6 @@ PositionalXYOdometry::PositionalXYOdometry(
     double freqHz, int timeSteps, std::normal_distribution<double> noiseDist)
     : SensorI(timeSteps, SensorType::kPosOdomXY, freqHz),
       noiseDist_(noiseDist) {
-  SPDLOG_INFO("Robot idx: {} has PositionXYOdom sensor at frequency {} Hz",
-              bodyIdx_, getFreqHz());
   if (getFreqHz() < 0) {
     throw std::invalid_argument("Frequency must be non-negative");
   }
@@ -64,10 +62,7 @@ void PositionalXYOdometry::updateSensor(const DynamicsBodies &bodies,
 }
 
 GroundTruthPose::GroundTruthPose(double freqHz, int timeSteps)
-    : SensorI(timeSteps, SensorType::kGroundTruthPose, freqHz) {
-  SPDLOG_INFO("Robot idx: {} has ground truth pose sensor at frequency {} Hz",
-              bodyIdx_, getFreqHz());
-}
+    : SensorI(timeSteps, SensorType::kGroundTruthPose, freqHz) {}
 
 void GroundTruthPose::updateSensor(const DynamicsBodies &bodies, double simTime,
                                    [[maybe_unused]] std::mt19937 &rngEngine) {
@@ -91,9 +86,6 @@ GpsPosition::GpsPosition(double freqHz, int timeSteps,
       zNoiseDist_(zNoiseDist),
       surfaceRangeMeters_(surfaceRangeMeters),
       surfaceDepth_(surfaceDepth) {
-  SPDLOG_INFO(
-      "Robot idx: {} has GPS sensor at frequency {} Hz (surfaceRange: {}m)",
-      bodyIdx_, getFreqHz(), surfaceRangeMeters_);
   if (surfaceRangeMeters_ < 0.0) {
     throw std::invalid_argument("surfaceRangeMeters must be non-negative");
   }

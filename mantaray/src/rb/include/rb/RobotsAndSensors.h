@@ -52,6 +52,8 @@ public:
   void updateSensor(const DynamicsBodies &bodies, double simTime,
                     std::mt19937 &rngEngine) override;
 
+  double getNoiseStddev() const { return noiseDist_.stddev(); }
+
 private:
   std::normal_distribution<double> noiseDist_;
   Eigen::Vector3d prevPosition_{0.0, 0.0, 0.0};

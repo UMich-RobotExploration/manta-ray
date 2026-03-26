@@ -4,9 +4,16 @@
 
 #pragma once
 
+#include "acoustics/Arrival.h"
+#include "acoustics/helpers.h"
+#include "fmt/format.h"
+#include "mantaray/utils/Logger.h"
+
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/BellhopContext.h"
 #include "rb/RbWorld.h"
+#include <map>
+#include <stdexcept>
 #include <vector>
 
 /** @namespace sim

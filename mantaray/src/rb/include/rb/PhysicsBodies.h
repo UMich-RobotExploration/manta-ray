@@ -90,6 +90,25 @@ struct DynamicsBodies {
 void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,
                        manif::SE3d &outputPose);
 
+/**
+ * @brief Computes the body-frame relative transform from fromPose to toPose.
+ *
+ * @par Math:
+ * \f[
+ *   T_{output} = T_{from}^{-1} \cdot T_{to}
+ * \f]
+ * The result expresses the transform from `fromPose` to `toPose` in the
+ * `fromPose` body frame. This is the convention used by odometry edges in
+ * factor graph SLAM (e.g., PFG EDGE_SE3:QUAT).
+ *
+ * @param fromPose The reference (base) pose
+ * @param toPose The target pose
+ * @param outputPose Output transform expressed in fromPose's frame
+ */
+void relativeTransformBodyFrame(const manif::SE3d &fromPose,
+                                const manif::SE3d &toPose,
+                                manif::SE3d &outputPose);
+
 /** @brief Details namespace is for private internal use of the rb library
  */
 namespace detail {

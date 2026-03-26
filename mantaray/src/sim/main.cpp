@@ -24,6 +24,7 @@
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 #include <mantaray/sim/CurrentDriftRobot.h>
 #include <mantaray/sim/RobotFactory.h>
+#include <mantaray/utils/PfgWriter.h>
 
 void PrtCallback(const char *message) { bellhop_logger->debug("{}", message); }
 void OutputCallback(const char *message) {
@@ -103,7 +104,7 @@ int main() {
   /// Need to figure out DT
 
   rb::RbWorld world{};
-  double endTime = 60.0 * 60.0;
+  double endTime = 8.0 * 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(4);
@@ -111,30 +112,31 @@ int main() {
 
   sim::StandardSensorConfig sensorCfg{};
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(100.0, 0.0, 0.01), sensorCfg,
-      Eigen::Vector3d(0.1, 0.3, 1.0));
+  auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
+      Eigen::Vector3d(0.1, 0.3, 0.0));
 
+  constexpr double kOneHour = 60.0 * 60.0;
   auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
-      world, endTime, Eigen::Vector3d(100.0, -10000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 2000.0);
+      world, endTime, Eigen::Vector3d(3000.0, -3000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 300.0, kOneHour, kOneHour);
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(100.0, 1000.0, 0.01), sensorCfg,
-      Eigen::Vector3d(1.0, 0.0, 5.0));
+  sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(-100.0, 1000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 1000.0, kOneHour, kOneHour);
 
-  sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(-100.0, -1000.0, 0.01), sensorCfg,
-      Eigen::Vector3d(1.0, 4.0, 5.0));
+  sim::addStandardRobot<robots::CurrentDriftRobot>(
+      world, endTime, Eigen::Vector3d(-1000.0, -4000.0, 0.01), sensorCfg,
+      importedCurrentGrid, 400.0, kOneHour, kOneHour);
 
-  world.addLandmark(Eigen::Vector3d(-10001.0, 100.0, 10.0));
+  world.addLandmark(Eigen::Vector3d(-2001.0, 100.0, 0.1));
 
   sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
                                                sim::GlobalTofMode::kOneWay);
   rangeSystem.rebuildPairs(world);
 
-  constexpr double kBoundsCheckInterval = 10.0;
-  constexpr double kPingInterval = 60.0;
+  constexpr double kBoundsCheckInterval = 100.0;
+  constexpr double kPingInterval = 30 * 60.0;
   double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
   double nextPing = world.simData.time + kPingInterval;
 
@@ -156,7 +158,19 @@ int main() {
   SPDLOG_INFO("Pairwise acoustic links: {}, measurements logged: {}",
               rangeSystem.getLinks().size(),
               rangeSystem.getMeasurements().size());
+  rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx1]);
   rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
+
+  // Write PFG factor graph file
+  pyfg::PfgWriterConfig pfgConfig{};
+  pfgConfig.useGroundTruthOdometry = true;
+  pfgConfig.rangeVariance = 1.0;
+  pfgConfig.defaultPosePriorCov =
+      pyfg::makeDiagUpperTri6x6(0.01, 0.01, 0.01, 0.04, 0.04, 0.04);
+  pfgConfig.landmarkPriorCovs.push_back(
+      pyfg::makeDiagUpperTri3x3(0.01, 0.01, 0.01));
+  pfgConfig.odomRotationVariance = 0.04;
+  pyfg::writePfg("output.pfg", world, rangeSystem.getMeasurements(), pfgConfig);
 
   bhc::writeenv(context.params(), runName);
   bhc::writeout(context.params(), context.outputs(), runName);

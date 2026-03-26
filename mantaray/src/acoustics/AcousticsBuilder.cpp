@@ -193,12 +193,12 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
   beam->deltas = delta.norm() * kBeamStepSizeRatio;
+  // Ensure beam box is large enough for rays to refract across the full
+  // range even when one axis component is small (e.g., nearly-aligned pairs).
+  double minBoxDim = std::max(delta.norm() * boxScale * 0.5, 100.0);
   delta = boxScale * delta;
-  double deltaX = std::abs(delta(0));
-  double deltaY = std::abs(delta(1));
-  // setting a minimum of 10 meter box
-  deltaX = (deltaX >= 0.0 && deltaX <= 1.0) ? 10.0 : deltaX;
-  deltaY = (deltaY >= 0.0 && deltaY <= 1.0) ? 10.0 : deltaY;
+  double deltaX = std::max(std::abs(delta(0)), minBoxDim);
+  double deltaY = std::max(std::abs(delta(1)), minBoxDim);
   CHECK(
       (deltaX > 0.0) || (deltaY > 0.0),
       fmt::format("Beam Box Size needs to be positive in bellhop box. Size is "
@@ -212,7 +212,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
                      deltaY);
   beam->Box.x = deltaX;
   beam->Box.y = deltaY;
-  SPDLOG_DEBUG("Beam box set to: x: {}, y: {}", deltaX, deltaY);
+  SPDLOG_TRACE("Beam box set to: x: {}, y: {}", deltaX, deltaY);
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   // Adding a 10 meter buffer to the beam box to ensure that values can rebound

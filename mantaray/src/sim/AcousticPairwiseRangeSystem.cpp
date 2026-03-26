@@ -1,11 +1,16 @@
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 
-#include "acoustics/Arrival.h"
-#include "acoustics/helpers.h"
-#include "mantaray/utils/Logger.h"
-
-#include <map>
-#include <stdexcept>
+namespace {
+/// Compact composite key for correlating general and bellhop logs.
+/// Format: "[t=<time> <pingerIdx>[R|L]-><targetIdx>[R|L]]"
+std::string measureTag(double simTimeSec, const sim::RangeEndpoint &pinger,
+                       const sim::RangeEndpoint &target) {
+  const char p = pinger.type == sim::EndpointType::kRobot ? 'R' : 'L';
+  const char t = target.type == sim::EndpointType::kRobot ? 'R' : 'L';
+  return fmt::format("[t={:.1f} {}[{}]->{}[{}]]", simTimeSec, pinger.index, p,
+                     target.index, t);
+}
+} // namespace
 
 namespace sim {
 
@@ -63,7 +68,9 @@ void AcousticPairwiseRangeSystem::checkBounds(rb::RbWorld &world) {
     builder_.updateReceiver(pos);
     auto result = builder_.updateSource(pos);
     if (result != acoustics::BoundaryCheck::kInBounds) {
-      SPDLOG_WARN("Robot {:d} out of bounds (boundary check), marking dead", i);
+      SPDLOG_WARN("Robot {:d} out of bounds (checkBounds), result={:d}, "
+                  "pos=[{}, {}, {}]",
+                  i, static_cast<int>(result), pos.x(), pos.y(), pos.z());
       markRobotDead(world, i);
     }
   }
@@ -86,12 +93,13 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
         link.pinger.type == EndpointType::kRobot ? "robot" : "landmark";
     const auto *targetType =
         link.target.type == EndpointType::kRobot ? "robot" : "landmark";
+    const auto tag = measureTag(simTimeSec, link.pinger, link.target);
 
     // -- Liveness pre-check --
     if (!isAlive(world, link.pinger)) {
       meas.status = RangeStatus::kSkippedPingerDead;
-      SPDLOG_WARN("Ping dropped: pinger {:d}[{}] is dead", link.pinger.index,
-                  pingerType);
+      SPDLOG_TRACE("Ping dropped: pinger {:d}[{}] is dead", link.pinger.index,
+                   pingerType);
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
       }
@@ -99,8 +107,8 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     }
     if (!isAlive(world, link.target)) {
       meas.status = RangeStatus::kSkippedTargetDead;
-      SPDLOG_WARN("Ping dropped: target {:d}[{}] is dead", link.target.index,
-                  targetType);
+      SPDLOG_TRACE("Ping dropped: target {:d}[{}] is dead", link.target.index,
+                   targetType);
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
       }
@@ -126,8 +134,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       if (link.pinger.type == EndpointType::kRobot) {
         markRobotDead(world, link.pinger.index);
       }
-      SPDLOG_WARN("Ping dropped: pinger {:d}[{}] out of bounds",
-                  link.pinger.index, pingerType);
+      SPDLOG_WARN("{} Ping dropped: pinger out of bounds", tag);
       meas.status = RangeStatus::kOutOfBounds;
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
@@ -147,8 +154,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       if (link.target.type == EndpointType::kRobot) {
         markRobotDead(world, link.target.index);
       }
-      SPDLOG_WARN("Ping dropped: target {:d}[{}] out of bounds",
-                  link.target.index, targetType);
+      SPDLOG_WARN("{} Ping dropped: target out of bounds", tag);
       meas.status = RangeStatus::kOutOfBounds;
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
@@ -159,8 +165,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       if (link.pinger.type == EndpointType::kRobot) {
         markRobotDead(world, link.pinger.index);
       }
-      SPDLOG_WARN("Ping dropped: pinger {:d}[{}] out of bounds",
-                  link.pinger.index, pingerType);
+      SPDLOG_WARN("{} Ping dropped: pinger out of bounds", tag);
       meas.status = RangeStatus::kOutOfBounds;
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
@@ -174,9 +179,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       if (link.pinger.type == EndpointType::kRobot) {
         markRobotDead(world, link.pinger.index);
       }
-      SPDLOG_WARN("Ping dropped: both pinger {:d}[{}] and target {:d}[{}] out "
-                  "of bounds",
-                  link.pinger.index, pingerType, link.target.index, targetType);
+      SPDLOG_WARN("{} Ping dropped: both pinger and target out of bounds", tag);
       meas.status = RangeStatus::kOutOfBounds;
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
@@ -199,24 +202,18 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       if (it != tofCache.end()) {
         tofRawSec = it->second;
         tofCached = true;
-        bellhop_logger->debug(
-            "Using cached TOF for robot {:d} -> robot {:d} (reciprocal)",
-            link.pinger.index, link.target.index);
+        bellhop_logger->debug("{} Using cached TOF (reciprocal)", tag);
       }
     }
 
     // Bellhop ray tracing (skipped when TOF is cached)
     if (!tofCached) {
-      bellhop_logger->debug(
-          "\n===Start Bellhop Run (pinger {:d}[{}] -> target {:d}[{}])===\n",
-          link.pinger.index, pingerType, link.target.index, targetType);
+      bellhop_logger->debug("\n===Start Bellhop {}===\n", tag);
       if (bellhop_logger->level() == spdlog::level::debug) {
         bhc::echo(context_.params());
       }
       bhc::run(context_.params(), context_.outputs());
-      bellhop_logger->debug(
-          "\n===End Bellhop Run (pinger {:d}[{}] -> target {:d}[{}])===\n",
-          link.pinger.index, pingerType, link.target.index, targetType);
+      bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
 
       acoustics::Arrival arrival(context_.params(), context_.outputs());
       tofRawSec = arrival.getFastestArrival();
@@ -232,8 +229,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     // Arrival validation
     if (tofRawSec < 0.0f) {
       meas.status = RangeStatus::kNoArrival;
-      SPDLOG_WARN("Ping dropped: no arrival from {:d}[{}] -> {:d}[{}]",
-                  link.pinger.index, pingerType, link.target.index, targetType);
+      SPDLOG_WARN("{} Ping dropped: no arrival", tag);
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
       }
@@ -246,8 +242,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     bhc::get_ssp<true, true>(context_.params(), pos, cPinger);
     if (cPinger <= 0.0f) {
       meas.status = RangeStatus::kSspSampleFailed;
-      SPDLOG_WARN("Ping dropped: SSP sample failed at pinger {:d}[{}]",
-                  link.pinger.index, pingerType);
+      SPDLOG_WARN("{} Ping dropped: SSP sample failed at pinger", tag);
       if (logAllMeasurements_) {
         measurements_.push_back(meas);
       }
@@ -259,9 +254,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     meas.tofEffectiveSec = tofRawSec * tofScale(mode_);
     meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
     meas.status = RangeStatus::kOk;
-    SPDLOG_INFO("Ping OK: {:d}[{}] -> {:d}[{}] range={:.2f}m tof={:.6f}s "
-                "ssp={:.1f}m/s",
-                link.pinger.index, pingerType, link.target.index, targetType,
+    SPDLOG_INFO("{} Ping OK: range={:.2f}m tof={:.6f}s ssp={:.1f}m/s", tag,
                 meas.rangeMeters, meas.tofEffectiveSec,
                 meas.soundSpeedAtPingerMps);
     measurements_.push_back(meas);
@@ -306,9 +299,9 @@ void AcousticPairwiseRangeSystem::markRobotDead(rb::RbWorld &world,
   }
   auto &robot = world.robots[robotIdx];
   if (robot->isAlive_) {
-    SPDLOG_INFO(
-        "Marking robot {} as dead due to out-of-bounds acoustic endpoint",
-        robotIdx);
+    const auto pos = world.dynamicsBodies.getPosition(robot->getBodyIdx());
+    SPDLOG_WARN("Marking robot {} as dead — position: [{}, {}, {}]", robotIdx,
+                pos.x(), pos.y(), pos.z());
   }
   robot->isAlive_ = false;
 }
