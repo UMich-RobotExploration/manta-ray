@@ -90,14 +90,14 @@ struct DynamicsBodies {
 void relativeTransform(const manif::SE3d &pose, const manif::SE3d &refPose,
                        manif::SE3d &outputPose);
 
-/* @brief Details namespace is for private internal use of the rb library
+/** @brief Details namespace is for private internal use of the rb library
  */
 namespace detail {
-/*
+/**
  * @brief Function utilized by RbWorld to add bodies. Don't use unless you
  * understand how the robots and world are actually built together!
  *
- * @detail Initializes position to zero,and rotation to identity
+ * @details Initializes position to zero, and rotation to identity
  */
 BodyIdx addDynamicsBody(DynamicsBodies &bodies);
 } // namespace detail

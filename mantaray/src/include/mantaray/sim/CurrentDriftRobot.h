@@ -1,3 +1,7 @@
+/** @file CurrentDriftRobot.h
+ * @brief Current-driven drifter robot implementation
+ */
+
 #pragma once
 
 #include "acoustics/Grid.h"
@@ -5,6 +9,9 @@
 #include "mantaray/utils/Logger.h"
 #include "rb/RbInterfaces.h"
 
+/** @namespace robots
+ * @brief Concrete robot implementations
+ */
 namespace robots {
 
 /**

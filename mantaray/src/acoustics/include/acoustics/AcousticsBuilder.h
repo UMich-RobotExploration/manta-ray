@@ -10,6 +10,9 @@
 #include <array>
 #include <bhc/bhc.hpp>
 
+/** @namespace acoustics
+ * @brief Acoustic simulation, Bellhop integration, and sound speed profiling
+ */
 namespace acoustics {
 constexpr int kNumAltimetryPts = 2;
 constexpr int kNumProvince = 1;

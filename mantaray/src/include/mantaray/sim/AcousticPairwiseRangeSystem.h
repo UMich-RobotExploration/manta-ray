@@ -9,6 +9,9 @@
 #include "rb/RbWorld.h"
 #include <vector>
 
+/** @namespace sim
+ * @brief Simulation systems, acoustic ranging, and robot factory utilities
+ */
 namespace sim {
 
 /** @brief Selects one-way or two-way time-of-flight scaling. */

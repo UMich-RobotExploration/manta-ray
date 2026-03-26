@@ -1,3 +1,7 @@
+/** @file BellhopContext.h
+ * @brief RAII wrapper for Bellhop params and outputs
+ */
+
 #pragma once
 #include <bhc/bhc.hpp>
 

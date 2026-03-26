@@ -263,6 +263,9 @@ void gridCheckViaPtr(const std::vector<const std::vector<double> *> &coords,
     throw std::invalid_argument("Grid data size mismatch");
   }
 }
+/** @namespace acoustics::detail
+ * @brief Internal helpers for grid interpolation
+ */
 namespace detail {
 
 /** @brief Finds the (lowerIdx, upperIdx) pair that brackets `value` in a sorted
