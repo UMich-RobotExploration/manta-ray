@@ -104,7 +104,7 @@ int main() {
   /// Need to figure out DT
 
   rb::RbWorld world{};
-  double endTime = 10 * 60.0 * 60.0;
+  double endTime = 60.0 * 60.0;
   world.simData.dt = 0.1;
   world.createRngEngine(10020);
   world.reserveRobots(4);
