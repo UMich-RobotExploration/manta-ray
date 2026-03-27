@@ -70,3 +70,74 @@ TEST_CASE("computeNumTimeSteps computes correct number of steps", "[helpers]") {
   // Large values
   REQUIRE(computeNumTimeSteps(10.0, 100.0) == 1001);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Floating point comparison helpers
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("isEqual handles exact and near-zero equality", "[fp]") {
+  using rb::detail::isEqual;
+
+  // Exact equality
+  CHECK(isEqual(1.0, 1.0));
+  CHECK(isEqual(0.0, 0.0));
+  CHECK(isEqual(-5.0, -5.0));
+
+  // Both near zero — within kFloatingPointToleranceNearZero
+  CHECK(isEqual(1e-13, 0.0));
+  CHECK(isEqual(0.0, 1e-13));
+  CHECK(isEqual(1e-13, -1e-13));
+
+  // Not near zero — outside tolerance
+  CHECK_FALSE(isEqual(1e-9, 0.0));
+  CHECK_FALSE(isEqual(0.0, 1e-9));
+}
+
+TEST_CASE("isEqual handles relative tolerance", "[fp]") {
+  using rb::detail::isEqual;
+
+  // Within relative tolerance (1e-10 * maxAbs)
+  // 1000 * 1e-10 = 1e-7, so 1e-8 diff is within tolerance
+  CHECK(isEqual(1000.0, 1000.0 + 1e-8));
+
+  // Outside relative tolerance
+  CHECK_FALSE(isEqual(1000.0, 1001.0));
+  CHECK_FALSE(isEqual(1.0, 2.0));
+}
+
+TEST_CASE("validDeltaTMultiple identifies correct multiples", "[fp]") {
+  using rb::detail::validDeltaTMultiple;
+
+  // Exact multiples
+  CHECK(validDeltaTMultiple(0.0, 0.1));   // 0 is a multiple of anything
+  CHECK(validDeltaTMultiple(100.0, 100.0)); // 1x
+  CHECK(validDeltaTMultiple(200.0, 100.0)); // 2x
+  CHECK(validDeltaTMultiple(1.0, 0.1));     // 10x
+
+  // Not multiples
+  CHECK_FALSE(validDeltaTMultiple(0.15, 0.1));
+  CHECK_FALSE(validDeltaTMultiple(50.0, 100.0));
+  CHECK_FALSE(validDeltaTMultiple(0.05, 0.1));
+}
+
+TEST_CASE("validDeltaTMultiple handles floating-point accumulation", "[fp]") {
+  using rb::detail::validDeltaTMultiple;
+
+  // Simulate the advanceWorld bug: 100 subtractions of 0.1 from 10.0
+  // In IEEE 754, 0.1 is not exact, so the residual may not be exactly 0.0
+  double accumulated = 10.0;
+  for (int i = 0; i < 100; ++i) {
+    accumulated -= 0.1;
+  }
+  // accumulated is ~0 but may be a tiny positive or negative residual
+  CAPTURE(accumulated);
+
+  // The function should recognize this as effectively 0 (a valid multiple)
+  CHECK(validDeltaTMultiple(accumulated, 0.1));
+
+  // Sensor timing: 0.01 Hz sensor → period = 100s
+  // After accumulating steps, t=100 should be a valid multiple
+  CHECK(validDeltaTMultiple(100.0, 100.0));
+  // t=99.9 should NOT be a valid multiple of 100
+  CHECK_FALSE(validDeltaTMultiple(99.9, 100.0));
+}

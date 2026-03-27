@@ -59,6 +59,11 @@ rb::PositionalXYOdometry *findOdomSensor(const rb::RobotI &robot) {
   return s ? static_cast<rb::PositionalXYOdometry *>(s) : nullptr;
 }
 
+rb::GpsPosition *findGpsSensor(const rb::RobotI &robot) {
+  auto *s = findSensor(robot, rb::SensorType::kGpsPosition);
+  return s ? static_cast<rb::GpsPosition *>(s) : nullptr;
+}
+
 // Builds manif::SE3d from a 7-element VectorXd [x,y,z,qx,qy,qz,qw]
 manif::SE3d se3FromGtData(const Eigen::VectorXd &data) {
   Eigen::Quaterniond q(data[6], data[3], data[4], data[5]); // w,x,y,z ctor
@@ -170,12 +175,6 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
   const size_t numRobots = world.robots.size();
   const size_t numLandmarks = world.landmarks.size();
 
-  // TODO: GPS Measurements need to be included as priors
-  /* TODO: Need to ensure rotations sigma is very low to prevent rotations
-   * from influencing solver
-   */
-  // TODO: Double check mapping between factors, variables, and edges
-
   //////////////////////////////////////////////////////////////////////////////
   // VERTEX_SE3:QUAT — pose variables
   //////////////////////////////////////////////////////////////////////////////
@@ -220,6 +219,46 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
          << robotName(i, 0) << ' ' << formatTranslation(data[0]) << ' '
          << formatPoseQuaternion(data[0]) << ' '
          << formatUpperTri(config.defaultPosePriorCov) << '\n';
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // VERTEX_SE3:QUAT:PRIOR — GPS pose priors
+  //////////////////////////////////////////////////////////////////////////////
+  for (size_t i = 0; i < numRobots; ++i) {
+    auto *gpsSensor = findGpsSensor(*world.robots[i]);
+    if (!gpsSensor)
+      continue;
+    const auto &gpsData = gpsSensor->getSensorData();
+    const auto &gpsTimestamps = gpsSensor->getSensorTimesteps();
+    if (gpsData.empty())
+      continue;
+
+    // Need GT timestamps for mapping GPS time → pose vertex name
+    auto *gt = findGtSensor(*world.robots[i]);
+    if (!gt || gt->getSensorTimesteps().empty()) {
+      SPDLOG_WARN("Robot {} has GPS but no GT sensor, skipping GPS priors", i);
+      continue;
+    }
+    const auto &gtTimestamps = gt->getSensorTimesteps();
+
+    // Per-robot GPS covariance from sensor noise model
+    double xyVar =
+        gpsSensor->getXyNoiseStddev() * gpsSensor->getXyNoiseStddev();
+    double zVar = gpsSensor->getZNoiseStddev() * gpsSensor->getZNoiseStddev();
+    auto gpsCov = makeDiagUpperTri6x6(
+        xyVar, xyVar, zVar, config.gpsRotationVariance,
+        config.gpsRotationVariance, config.gpsRotationVariance);
+
+    for (size_t g = 0; g < gpsData.size(); ++g) {
+      size_t nearestGtIdx =
+          findNearestTimeIndex(gtTimestamps, gpsTimestamps[g]);
+      // GPS data is [x, y, z], write with identity quaternion
+      file << "VERTEX_SE3:QUAT:PRIOR " << fmtT(gpsTimestamps[g]) << ' '
+           << robotName(i, nearestGtIdx) << ' ' << fmtT(gpsData[g][0]) << ' '
+           << fmtT(gpsData[g][1]) << ' ' << fmtT(gpsData[g][2]) << ' '
+           << fmtQ(0.0) << ' ' << fmtQ(0.0) << ' ' << fmtQ(0.0) << ' '
+           << fmtQ(1.0) << ' ' << formatUpperTri(gpsCov) << '\n';
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////

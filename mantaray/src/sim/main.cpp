@@ -114,7 +114,7 @@ int main() {
 
   auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
       world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
-      Eigen::Vector3d(0.1, 0.3, 0.0));
+      Eigen::Vector3d(0.1, -0.3, 0.0));
 
   constexpr double kOneHour = 60.0 * 60.0;
   auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
