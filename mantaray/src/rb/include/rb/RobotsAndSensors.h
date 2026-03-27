@@ -99,6 +99,9 @@ public:
   void updateSensor(const DynamicsBodies &bodies, double simTime,
                     std::mt19937 &rngEngine) override;
 
+  double getXyNoiseStddev() const { return xyNoiseDist_.stddev(); }
+  double getZNoiseStddev() const { return zNoiseDist_.stddev(); }
+
 private:
   std::normal_distribution<double> xyNoiseDist_;
   std::normal_distribution<double> zNoiseDist_;

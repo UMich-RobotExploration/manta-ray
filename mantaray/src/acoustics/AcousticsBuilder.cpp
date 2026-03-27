@@ -173,9 +173,7 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->alpha.inDegrees = false;
   params_.Angles->beta.inDegrees = false;
   Eigen::Vector3d delta = agentsConfig_.receiver - agentsConfig_.source;
-  double horizontalDistance =
-      std::sqrt((delta(0) * delta(0)) + (delta(1) * delta(1)));
-  double elevationAngle = std::atan2(delta(2), horizontalDistance);
+  double elevationAngle = utils::computeElevationAngle(delta);
   if (!beamBuilt_) {
     bhc::extsetup_raybearings(params_, kNumBeams);
     bhc::extsetup_rayelevations(params_, kNumBeams);
@@ -192,27 +190,21 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   constexpr double boxScale = 1.50;
   beam->rangeInKm = false;
   double kmScaler = bathymetryConfig_.isKm ? 1000.0 : 1.0;
-  beam->deltas = delta.norm() * kBeamStepSizeRatio;
-  // Ensure beam box is large enough for rays to refract across the full
-  // range even when one axis component is small (e.g., nearly-aligned pairs).
-  double minBoxDim = std::max(delta.norm() * boxScale * 0.5, 100.0);
-  delta = boxScale * delta;
-  double deltaX = std::max(std::abs(delta(0)), minBoxDim);
-  double deltaY = std::max(std::abs(delta(1)), minBoxDim);
+
+  auto beamBox = utils::computeBeamBox(delta, boxScale, kBeamStepSizeRatio);
+  beam->deltas = beamBox.stepSize;
   CHECK(
-      (deltaX > 0.0) || (deltaY > 0.0),
+      (beamBox.boxX > 0.0) || (beamBox.boxY > 0.0),
       fmt::format("Beam Box Size needs to be positive in bellhop box. Size is "
                   "deltaX: {}, deltaY: {}",
-                  deltaX, deltaY));
+                  beamBox.boxX, beamBox.boxY));
 
   // Beam box is centered around source coord sys. Reference bellhop docs
-  // if needed
-  // adjustBeamBox(agentsConfig_.source, bathymetryConfig_, deltaX, deltaY);
-  checkReceiverInBox(agentsConfig_.source, agentsConfig_.receiver, deltaX,
-                     deltaY);
-  beam->Box.x = deltaX;
-  beam->Box.y = deltaY;
-  SPDLOG_TRACE("Beam box set to: x: {}, y: {}", deltaX, deltaY);
+  checkReceiverInBox(agentsConfig_.source, agentsConfig_.receiver, beamBox.boxX,
+                     beamBox.boxY);
+  beam->Box.x = beamBox.boxX;
+  beam->Box.y = beamBox.boxY;
+  SPDLOG_TRACE("Beam box set to: x: {}, y: {}", beamBox.boxX, beamBox.boxY);
   double max = *std::max_element(bathymetryConfig_.Grid.data.begin(),
                                  bathymetryConfig_.Grid.data.end());
   // Adding a 10 meter buffer to the beam box to ensure that values can rebound

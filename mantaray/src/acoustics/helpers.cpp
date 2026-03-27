@@ -96,5 +96,20 @@ AxisAlignedBox boxFromMidpoint(const Eigen::Vector3d &center, double deltaX,
 
   return output;
 }
+double computeElevationAngle(const Eigen::Vector3d &delta) {
+  double horizontalDistance =
+      std::sqrt(delta(0) * delta(0) + delta(1) * delta(1));
+  return std::atan2(delta(2), horizontalDistance);
+}
+
+BeamBoxParams computeBeamBox(const Eigen::Vector3d &delta, double boxScale,
+                             double stepSizeRatio, double absoluteFloorMeters) {
+  double range = delta.norm();
+  double minDim = std::max(range * boxScale * 0.5, absoluteFloorMeters);
+  Eigen::Vector3d scaled = boxScale * delta;
+  return {std::max(std::abs(scaled(0)), minDim),
+          std::max(std::abs(scaled(1)), minDim), range * stepSizeRatio};
+}
+
 } // namespace utils
 } // namespace acoustics

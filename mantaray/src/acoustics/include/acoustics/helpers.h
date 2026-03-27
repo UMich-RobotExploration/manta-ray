@@ -149,5 +149,36 @@ struct AxisAlignedBox {
 AxisAlignedBox boxFromMidpoint(const Eigen::Vector3d &center, double deltaX,
                                double deltaY);
 
+/**
+ * @brief Computes elevation angle from a 3D displacement vector.
+ * @param delta Vector from source to receiver
+ * @return Elevation angle in radians (positive = downward)
+ */
+double computeElevationAngle(const Eigen::Vector3d &delta);
+
+/**
+ * @brief Computes beam box dimensions from source-to-receiver delta.
+ *
+ * @details Ensures the box is large enough for rays to refract across the
+ * full range even when one axis component is small (nearly-aligned pairs).
+ * Returns (boxX, boxY, stepSize).
+ *
+ * @param delta Vector from source to receiver
+ * @param boxScale Scale factor applied to delta for box sizing (e.g. 1.5)
+ * @param stepSizeRatio Fraction of total distance per ray step
+ * @param absoluteFloorMeters Absolute floor for box dimensions in meters.
+ *        Only dominates when range is very short; otherwise the proportional
+ *        term (range * boxScale * 0.5) sets the minimum.
+ */
+struct BeamBoxParams {
+  double boxX;
+  double boxY;
+  double stepSize;
+};
+
+BeamBoxParams computeBeamBox(const Eigen::Vector3d &delta, double boxScale,
+                             double stepSizeRatio,
+                             double absoluteFloorMeters = 100.0);
+
 } // namespace utils
 } // namespace acoustics
