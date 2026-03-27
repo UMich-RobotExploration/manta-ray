@@ -1,0 +1,43 @@
+<map id="src/include/mantaray/sim/RobotFactory.h" name="src/include/mantaray/sim/RobotFactory.h">
+<area shape="rect" id="Node000001" title="Convenience functions for creating robots with standard sensor suites." alt="" coords="488,5,647,45"/>
+<area shape="rect" id="Node000002" href="$RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="352,93,457,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="529,48,442,90,440,85,527,43"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="129,313,201,339"/>
+<area shape="poly" id="edge26_Node000001_Node000003" title=" " alt="" coords="488,38,364,55,222,82,155,99,96,120,49,143,19,168,9,188,10,207,20,226,36,245,81,279,128,305,125,310,78,284,32,249,15,229,5,208,4,187,14,165,46,138,94,115,154,94,221,77,363,49,487,32"/>
+<area shape="rect" id="Node000011" href="$RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="481,167,653,192"/>
+<area shape="poly" id="edge23_Node000001_Node000011" title=" " alt="" coords="570,46,570,153,565,153,565,46"/>
+<area shape="rect" id="Node000014" href="$rb_2include_2rb_2helpers_8h.html" title="Few critical helpers for floating point comparison." alt="" coords="973,240,1071,265"/>
+<area shape="poly" id="edge24_Node000001_Node000014" title=" " alt="" coords="606,43,988,231,985,236,604,48"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="780,93,872,119"/>
+<area shape="poly" id="edge25_Node000001_Node000015" title=" " alt="" coords="630,43,776,87,774,92,628,48"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="386,121,352,142,316,169,241,241,184,304,180,301,237,237,312,165,349,138,383,117"/>
+<area shape="rect" id="Node000004" href="$Integrator_8h.html" title="Manages all pose integration." alt="" coords="29,167,127,192"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="353,121,141,167,140,162,351,116"/>
+<area shape="rect" id="Node000006" href="$PhysicsBodies_8h.html" title="An AoS format for storing kinematic data and accessing it." alt="" coords="225,313,352,339"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="391,121,340,169,314,203,294,241,287,271,288,300,282,300,282,270,289,239,309,200,336,165,388,117"/>
+<area shape="rect" id="Node000007" href="$checkAssert_8h.html" title="CHECK macro for runtime assertions." alt="" coords="461,240,673,265"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="414,117,437,152,472,190,502,213,532,231,530,236,499,217,468,194,433,155,409,120"/>
+<area shape="rect" id="Node000010" href="$RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="303,240,437,265"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="404,120,378,227,373,226,399,118"/>
+<area shape="poly" id="edge14_Node000002_Node000011" title=" " alt="" coords="432,116,529,159,527,163,430,121"/>
+<area shape="poly" id="edge22_Node000002_Node000014" title=" " alt="" coords="458,114,556,134,667,164,696,177,724,189,959,237,958,242,722,195,693,182,665,169,555,139,457,119"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="283,387,396,412"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="80,192,80,221,84,260,96,301,105,320,118,337,151,362,190,379,230,389,269,395,269,400,229,395,188,384,149,367,115,341,101,323,91,303,78,261,74,221,74,192"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="299,337,325,374,321,377,295,341"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="571,313,636,339"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="575,264,593,300,589,302,571,267"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="466,313,546,339"/>
+<area shape="poly" id="edge9_Node000007_Node000009" title=" " alt="" coords="559,267,527,305,523,301,555,264"/>
+<area shape="poly" id="edge11_Node000010_Node000003" title=" " alt="" coords="338,268,212,311,210,306,336,263"/>
+<area shape="poly" id="edge12_Node000010_Node000005" title=" " alt="" coords="373,266,373,299,367,339,354,375,349,374,362,338,367,299,368,266"/>
+<area shape="poly" id="edge13_Node000010_Node000006" title=" " alt="" coords="359,267,314,306,310,302,355,263"/>
+<area shape="poly" id="edge18_Node000011_Node000003" title=" " alt="" coords="481,193,388,212,339,225,292,242,236,273,190,307,187,302,233,269,290,238,338,220,387,206,480,188"/>
+<area shape="poly" id="edge16_Node000011_Node000005" title=" " alt="" coords="618,190,656,208,674,221,688,239,693,253,693,269,682,300,665,325,650,341,608,360,546,375,410,394,409,389,544,370,606,355,647,336,661,322,678,297,688,268,688,254,684,241,670,225,654,212,616,195"/>
+<area shape="poly" id="edge20_Node000011_Node000007" title=" " alt="" coords="570,192,570,226,565,226,565,192"/>
+<area shape="poly" id="edge19_Node000011_Node000010" title=" " alt="" coords="536,195,416,238,414,233,535,190"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="748,240,851,265"/>
+<area shape="poly" id="edge15_Node000011_Node000012" title=" " alt="" coords="605,189,750,233,748,239,604,195"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="875,240,948,265"/>
+<area shape="poly" id="edge17_Node000011_Node000013" title=" " alt="" coords="627,189,861,237,860,242,626,195"/>
+<area shape="poly" id="edge21_Node000011_Node000014" title=" " alt="" coords="648,189,959,237,959,242,647,195"/>
+</map>

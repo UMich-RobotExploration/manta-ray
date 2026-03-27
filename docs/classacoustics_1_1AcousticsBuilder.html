@@ -1,0 +1,407 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: acoustics::AcousticsBuilder Class Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('classacoustics_1_1AcousticsBuilder.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="classacoustics_1_1AcousticsBuilder-members.html">List of all members</a>  </div>
+  <div class="headertitle"><div class="title">acoustics::AcousticsBuilder Class Reference</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>Builder class for constructing Bellhop acoustic simulations.  
+ <a href="classacoustics_1_1AcousticsBuilder.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="AcousticsBuilder_8h_source.html">AcousticsBuilder.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:af1a6765dedf72d907206b28274c3ac4e" id="r_af1a6765dedf72d907206b28274c3ac4e"><td class="memItemLeft" align="right" valign="top"><a id="af1a6765dedf72d907206b28274c3ac4e" name="af1a6765dedf72d907206b28274c3ac4e"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>AcousticsBuilder</b> (const <a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;)=delete</td></tr>
+<tr class="separator:af1a6765dedf72d907206b28274c3ac4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a66ab12737077dabd84ec76c0451798ce" id="r_a66ab12737077dabd84ec76c0451798ce"><td class="memItemLeft" align="right" valign="top"><a id="a66ab12737077dabd84ec76c0451798ce" name="a66ab12737077dabd84ec76c0451798ce"></a>
+<a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (const <a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;)=delete</td></tr>
+<tr class="separator:a66ab12737077dabd84ec76c0451798ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89504234d7426ac701e9e8326b8e98fd" id="r_a89504234d7426ac701e9e8326b8e98fd"><td class="memItemLeft" align="right" valign="top"><a id="a89504234d7426ac701e9e8326b8e98fd" name="a89504234d7426ac701e9e8326b8e98fd"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>AcousticsBuilder</b> (<a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;&amp;other) noexcept=delete</td></tr>
+<tr class="separator:a89504234d7426ac701e9e8326b8e98fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfd4d872e22727f5b299ac2f266df5d3" id="r_abfd4d872e22727f5b299ac2f266df5d3"><td class="memItemLeft" align="right" valign="top"><a id="abfd4d872e22727f5b299ac2f266df5d3" name="abfd4d872e22727f5b299ac2f266df5d3"></a>
+<a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a> &amp;&amp;)=delete</td></tr>
+<tr class="separator:abfd4d872e22727f5b299ac2f266df5d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b242b5aa30c0375fee0bffc7854df81" id="r_a9b242b5aa30c0375fee0bffc7854df81"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classacoustics_1_1AcousticsBuilder.html#a9b242b5aa30c0375fee0bffc7854df81">AcousticsBuilder</a> (bhc::bhcParams&lt; true &gt; &amp;params, <a class="el" href="structacoustics_1_1BathymetryConfig.html">BathymetryConfig</a> &amp;bathConfig, <a class="el" href="structacoustics_1_1SSPConfig.html">SSPConfig</a> &amp;sspConfig, <a class="el" href="structacoustics_1_1AgentsConfig.html">AgentsConfig</a> &amp;agentsConfig)</td></tr>
+<tr class="memdesc:a9b242b5aa30c0375fee0bffc7854df81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simulation builder constructor that takes ownership of ssp, bath, and agents.  <br /></td></tr>
+<tr class="separator:a9b242b5aa30c0375fee0bffc7854df81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab208728470eaf796e20f5e9ed3f4627a" id="r_ab208728470eaf796e20f5e9ed3f4627a"><td class="memItemLeft" align="right" valign="top"><a id="ab208728470eaf796e20f5e9ed3f4627a" name="ab208728470eaf796e20f5e9ed3f4627a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>build</b> ()</td></tr>
+<tr class="memdesc:ab208728470eaf796e20f5e9ed3f4627a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates bathymetry, altimetry, SSP, and agent configurations in Bellhop. <br /></td></tr>
+<tr class="separator:ab208728470eaf796e20f5e9ed3f4627a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a31574e2aff86c3a50c470420c83621da" id="r_a31574e2aff86c3a50c470420c83621da"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classacoustics_1_1AcousticsBuilder.html#a31574e2aff86c3a50c470420c83621da">updateSource</a> (double x, double y, double z)</td></tr>
+<tr class="memdesc:a31574e2aff86c3a50c470420c83621da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updates source position (MUST USE SAME UNITS AS CONFIG)  <br /></td></tr>
+<tr class="separator:a31574e2aff86c3a50c470420c83621da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cf40ebce1780364691596c075301741" id="r_a9cf40ebce1780364691596c075301741"><td class="memItemLeft" align="right" valign="top"><a id="a9cf40ebce1780364691596c075301741" name="a9cf40ebce1780364691596c075301741"></a>
+<a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a>&#160;</td><td class="memItemRight" valign="bottom"><b>updateSource</b> (const Eigen::Vector3d &amp;position)</td></tr>
+<tr class="separator:a9cf40ebce1780364691596c075301741"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7649dff10135a663636e60fef8c28650" id="r_a7649dff10135a663636e60fef8c28650"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classacoustics_1_1AcousticsBuilder.html#a7649dff10135a663636e60fef8c28650">updateReceiver</a> (double x, double y, double z)</td></tr>
+<tr class="memdesc:a7649dff10135a663636e60fef8c28650"><td class="mdescLeft">&#160;</td><td class="mdescRight">Updates receiver position (MUST USE SAME UNITS AS CONFIG)  <br /></td></tr>
+<tr class="separator:a7649dff10135a663636e60fef8c28650"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae10cfa5ee2c55573e0887c693abe1c2d" id="r_ae10cfa5ee2c55573e0887c693abe1c2d"><td class="memItemLeft" align="right" valign="top"><a id="ae10cfa5ee2c55573e0887c693abe1c2d" name="ae10cfa5ee2c55573e0887c693abe1c2d"></a>
+<a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a>&#160;</td><td class="memItemRight" valign="bottom"><b>updateReceiver</b> (const Eigen::Vector3d &amp;position)</td></tr>
+<tr class="separator:ae10cfa5ee2c55573e0887c693abe1c2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86d243f682d71b6c9cac96036f7533b3" id="r_a86d243f682d71b6c9cac96036f7533b3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classacoustics_1_1AcousticsBuilder.html#a86d243f682d71b6c9cac96036f7533b3">validateSPPandBathymetryBox</a> (const <a class="el" href="classacoustics_1_1Grid2D.html">Grid2D</a> &amp;bathGrid, const <a class="el" href="classacoustics_1_1Grid3D.html">Grid3D</a> &amp;sspGrid) const</td></tr>
+<tr class="memdesc:a86d243f682d71b6c9cac96036f7533b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Validates that bathymetry is completely enclosed by ssp grid.  <br /></td></tr>
+<tr class="separator:a86d243f682d71b6c9cac96036f7533b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad7ae0cb52f1f9380e4a15e5b45572270" id="r_ad7ae0cb52f1f9380e4a15e5b45572270"><td class="memItemLeft" align="right" valign="top"><a id="ad7ae0cb52f1f9380e4a15e5b45572270" name="ad7ae0cb52f1f9380e4a15e5b45572270"></a>
+<a class="el" href="structacoustics_1_1AgentsConfig.html">AgentsConfig</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getAgentsConfig</b> ()</td></tr>
+<tr class="separator:ad7ae0cb52f1f9380e4a15e5b45572270"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a98f53099651fea34b41727d5a728be46" id="r_a98f53099651fea34b41727d5a728be46"><td class="memItemLeft" align="right" valign="top"><a id="a98f53099651fea34b41727d5a728be46" name="a98f53099651fea34b41727d5a728be46"></a>
+const <a class="el" href="structacoustics_1_1SSPConfig.html">SSPConfig</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getSSPConfig</b> () const</td></tr>
+<tr class="separator:a98f53099651fea34b41727d5a728be46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:ae69dc35df9db1dd38d0ad3c27b7e1836" id="r_ae69dc35df9db1dd38d0ad3c27b7e1836"><td class="memItemLeft" align="right" valign="top"><a id="ae69dc35df9db1dd38d0ad3c27b7e1836" name="ae69dc35df9db1dd38d0ad3c27b7e1836"></a>
+static void&#160;</td><td class="memItemRight" valign="bottom"><b>quadraticBathymetry3D</b> (const std::vector&lt; double &gt; &amp;gridX, const std::vector&lt; double &gt; &amp;gridY, std::vector&lt; double &gt; &amp;data, double depth)</td></tr>
+<tr class="separator:ae69dc35df9db1dd38d0ad3c27b7e1836"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Builder class for constructing Bellhop acoustic simulations. </p>
+<dl class="section note"><dt>Note</dt><dd>All positions and dimensions must use consistent units as specified in the configuration structs (e.g., meters vs kilometers). </dd></dl>
+<dl class="section user"><dt>Details:</dt><dd>Constructs bathymetry, altimetry, SSP, and agents based on input configurations. Provides methods to update source and receiver positions after initial construction.</dd></dl>
+<dl class="section user"><dt>Bellhop integration:</dt><dd>Although not my preferred design, I attempt to minimize the potential foot guns we could run into with the bellhop coupling and construction order</dd></dl>
+<dl class="section user"><dt>Invariants:</dt><dd>-Bathymetry must be completely enclosed by SSP grid -The build order is important and needs to be followed. See the current build class </dd></dl>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a9b242b5aa30c0375fee0bffc7854df81" name="a9b242b5aa30c0375fee0bffc7854df81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b242b5aa30c0375fee0bffc7854df81">&#9670;&#160;</a></span>AcousticsBuilder()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">acoustics::AcousticsBuilder::AcousticsBuilder </td>
+          <td>(</td>
+          <td class="paramtype">bhc::bhcParams&lt; true &gt; &amp;&#160;</td>
+          <td class="paramname"><em>params</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structacoustics_1_1BathymetryConfig.html">BathymetryConfig</a> &amp;&#160;</td>
+          <td class="paramname"><em>bathConfig</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structacoustics_1_1SSPConfig.html">SSPConfig</a> &amp;&#160;</td>
+          <td class="paramname"><em>sspConfig</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structacoustics_1_1AgentsConfig.html">AgentsConfig</a> &amp;&#160;</td>
+          <td class="paramname"><em>agentsConfig</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Simulation builder constructor that takes ownership of ssp, bath, and agents. </p>
+<p>Access configurations through getters </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">params</td><td></td></tr>
+    <tr><td class="paramname">bathConfig</td><td></td></tr>
+    <tr><td class="paramname">sspConfig</td><td></td></tr>
+    <tr><td class="paramname">agentsConfig</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a7649dff10135a663636e60fef8c28650" name="a7649dff10135a663636e60fef8c28650"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7649dff10135a663636e60fef8c28650">&#9670;&#160;</a></span>updateReceiver()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a> acoustics::AcousticsBuilder::updateReceiver </td>
+          <td>(</td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>y</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>z</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Updates receiver position (MUST USE SAME UNITS AS CONFIG) </p>
+<p>UNITS WARNING AGAIN</p>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::out_of_range</td><td>if new positions are out of bounds of the simulation box </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a31574e2aff86c3a50c470420c83621da" name="a31574e2aff86c3a50c470420c83621da"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a31574e2aff86c3a50c470420c83621da">&#9670;&#160;</a></span>updateSource()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="namespaceacoustics.html#ab78bf6942c80afa44188a0eada6cb4ef">BoundaryCheck</a> acoustics::AcousticsBuilder::updateSource </td>
+          <td>(</td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>y</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>z</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Updates source position (MUST USE SAME UNITS AS CONFIG) </p>
+<p>UNITS WARNING AGAIN</p>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::out_of_range</td><td>if new positions are out of bounds of the simulation box </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a86d243f682d71b6c9cac96036f7533b3" name="a86d243f682d71b6c9cac96036f7533b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a86d243f682d71b6c9cac96036f7533b3">&#9670;&#160;</a></span>validateSPPandBathymetryBox()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void acoustics::AcousticsBuilder::validateSPPandBathymetryBox </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classacoustics_1_1Grid2D.html">Grid2D</a> &amp;&#160;</td>
+          <td class="paramname"><em>bathGrid</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classacoustics_1_1Grid3D.html">Grid3D</a> &amp;&#160;</td>
+          <td class="paramname"><em>sspGrid</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Validates that bathymetry is completely enclosed by ssp grid. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">bathGrid</td><td></td></tr>
+    <tr><td class="paramname">sspGrid</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following files:<ul>
+<li>src/acoustics/include/acoustics/<a class="el" href="AcousticsBuilder_8h_source.html">AcousticsBuilder.h</a></li>
+<li>src/acoustics/<b>AcousticsBuilder.cpp</b></li>
+</ul>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="namespaceacoustics.html">acoustics</a></li><li class="navelem"><a class="el" href="classacoustics_1_1AcousticsBuilder.html">AcousticsBuilder</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>

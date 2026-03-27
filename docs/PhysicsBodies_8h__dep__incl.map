@@ -1,0 +1,21 @@
+<map id="src/rb/include/rb/PhysicsBodies.h" name="src/rb/include/rb/PhysicsBodies.h">
+<area shape="rect" id="Node000001" title="An AoS format for storing kinematic data and accessing it." alt="" coords="118,5,297,45"/>
+<area shape="rect" id="Node000002" href="$RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="185,93,409,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="241,52,285,91,282,95,237,56"/>
+<area shape="rect" id="Node000004" href="$RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="181,255,377,280"/>
+<area shape="poly" id="edge11_Node000001_Node000004" title=" " alt="" coords="190,58,175,94,170,126,172,152,182,177,200,205,227,233,257,252,255,257,224,237,196,208,177,179,167,154,165,126,170,93,185,56"/>
+<area shape="rect" id="Node000003" href="$CurrentDriftRobot_8h.html" title="Current&#45;driven drifter robot implementation." alt="" coords="221,167,401,207"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="304,132,310,166,305,167,299,133"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="255,127,230,145,211,168,205,187,211,205,232,233,259,252,256,257,229,237,206,208,200,187,206,165,227,141,252,123"/>
+<area shape="rect" id="Node000008" href="$RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="425,167,600,207"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="342,121,462,164,460,169,340,126"/>
+<area shape="rect" id="Node000005" href="$AcousticPairwiseRangeSystem_8h.html" title="Pairwise acoustic range measurement system using Bellhop ray tracing." alt="" coords="5,328,271,368"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="248,289,173,330,171,326,245,285"/>
+<area shape="rect" id="Node000006" href="$PfgWriter_8h.html" title="Writer for the PyFactorGraphs (.pfg) text format." alt="" coords="144,416,303,456"/>
+<area shape="poly" id="edge7_Node000004_Node000006" title=" " alt="" coords="288,293,292,329,291,349,286,369,270,396,249,418,245,414,266,393,281,367,286,349,287,329,283,294"/>
+<area shape="rect" id="Node000007" href="$RobotFactory_8h.html" title="Convenience functions for creating robots with standard sensor suites." alt="" coords="356,328,515,368"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="315,284,399,325,396,330,313,288"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="168,376,206,414,203,418,165,380"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="445,214,314,257,313,252,443,208"/>
+<area shape="poly" id="edge9_Node000008_Node000007" title=" " alt="" coords="500,220,447,329,442,327,495,218"/>
+</map>

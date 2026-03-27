@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: src/include/mantaray/sim/CurrentDriftRobot.h File Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('CurrentDriftRobot_8h.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#namespaces">Namespaces</a>  </div>
+  <div class="headertitle"><div class="title">CurrentDriftRobot.h File Reference</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>Current-driven drifter robot implementation.  
+<a href="#details">More...</a></p>
+<div class="textblock"><code>#include &quot;<a class="el" href="Grid_8h_source.html">acoustics/Grid.h</a>&quot;</code><br />
+<code>#include &quot;acoustics/fmt_eigen.h&quot;</code><br />
+<code>#include &quot;<a class="el" href="Logger_8h_source.html">mantaray/utils/Logger.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="RbInterfaces_8h_source.html">rb/RbInterfaces.h</a>&quot;</code><br />
+</div><div class="textblock"><div class="dynheader">
+Include dependency graph for CurrentDriftRobot.h:</div>
+<div class="dyncontent">
+<div class="center"><img src="CurrentDriftRobot_8h__incl.png" border="0" usemap="#asrc_2include_2mantaray_2sim_2CurrentDriftRobot_8h" alt=""/></div>
+<map name="asrc_2include_2mantaray_2sim_2CurrentDriftRobot_8h" id="asrc_2include_2mantaray_2sim_2CurrentDriftRobot_8h">
+<area shape="rect" title="Current&#45;driven drifter robot implementation." alt="" coords="938,5,1118,45"/>
+<area shape="rect" href="Grid_8h.html" title="Library internal data structures for representing 2 and 3D grids." alt="" coords="495,93,622,119"/>
+<area shape="poly" title=" " alt="" coords="938,44,636,95,635,89,937,39"/>
+<area shape="rect" href="fmt__eigen_8h_source.html" title=" " alt="" coords="1073,93,1239,119"/>
+<area shape="poly" title=" " alt="" coords="1060,43,1127,84,1124,88,1058,48"/>
+<area shape="rect" href="Logger_8h.html" title="Global and Bellhop logger initialization." alt="" coords="843,93,1019,119"/>
+<area shape="poly" title=" " alt="" coords="1006,48,957,87,954,82,1003,43"/>
+<area shape="rect" href="RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="1464,93,1597,119"/>
+<area shape="poly" title=" " alt="" coords="1119,38,1451,90,1450,95,1118,43"/>
+<area shape="rect" title=" " alt="" coords="602,240,694,265"/>
+<area shape="poly" title=" " alt="" coords="568,118,636,227,632,230,564,121"/>
+<area shape="rect" title=" " alt="" coords="719,240,804,265"/>
+<area shape="poly" title=" " alt="" coords="575,117,674,190,734,230,731,235,670,194,572,121"/>
+<area shape="rect" title=" " alt="" coords="5,240,64,265"/>
+<area shape="poly" title=" " alt="" coords="496,118,376,137,239,169,148,202,72,236,69,231,146,197,238,164,375,132,495,112"/>
+<area shape="rect" title=" " alt="" coords="685,167,809,192"/>
+<area shape="poly" title=" " alt="" coords="590,116,704,159,702,164,588,121"/>
+<area shape="rect" title=" " alt="" coords="484,167,559,192"/>
+<area shape="poly" title=" " alt="" coords="555,120,536,156,531,153,550,118"/>
+<area shape="rect" title=" " alt="" coords="89,240,175,265"/>
+<area shape="poly" title=" " alt="" coords="496,120,403,140,302,169,227,202,164,236,161,231,224,197,300,164,402,135,495,115"/>
+<area shape="rect" href="acoustics_2include_2acoustics_2helpers_8h.html" title="Helpers for floating point, boundary box, monotonic, and vector creation." alt="" coords="313,167,460,192"/>
+<area shape="poly" title=" " alt="" coords="532,121,428,164,426,159,530,116"/>
+<area shape="poly" title=" " alt="" coords="429,189,593,234,592,239,428,195"/>
+<area shape="poly" title=" " alt="" coords="450,189,706,237,706,237,705,243,705,243,449,195"/>
+<area shape="poly" title=" " alt="" coords="319,195,210,215,78,242,77,237,209,209,318,189"/>
+<area shape="poly" title=" " alt="" coords="346,195,187,239,185,234,345,189"/>
+<area shape="rect" title=" " alt="" coords="286,240,386,265"/>
+<area shape="poly" title=" " alt="" coords="380,194,354,230,350,227,376,191"/>
+<area shape="rect" title=" " alt="" coords="410,240,473,265"/>
+<area shape="poly" title=" " alt="" coords="398,191,426,228,422,231,394,194"/>
+<area shape="rect" title=" " alt="" coords="497,240,577,265"/>
+<area shape="poly" title=" " alt="" coords="412,190,501,232,499,236,410,194"/>
+<area shape="rect" title=" " alt="" coords="199,240,262,265"/>
+<area shape="poly" title=" " alt="" coords="363,194,270,237,268,232,361,190"/>
+<area shape="rect" title=" " alt="" coords="1137,167,1239,192"/>
+<area shape="poly" title=" " alt="" coords="1164,118,1180,153,1175,155,1159,120"/>
+<area shape="rect" title=" " alt="" coords="1263,167,1369,192"/>
+<area shape="poly" title=" " alt="" coords="1183,116,1278,159,1276,163,1181,121"/>
+<area shape="rect" title=" " alt="" coords="1053,167,1112,192"/>
+<area shape="poly" title=" " alt="" coords="1146,121,1106,159,1103,155,1142,117"/>
+<area shape="poly" title=" " alt="" coords="902,121,791,164,789,159,900,116"/>
+<area shape="rect" title=" " alt="" coords="833,167,1029,192"/>
+<area shape="poly" title=" " alt="" coords="933,119,933,153,928,153,928,119"/>
+<area shape="rect" title=" " alt="" coords="1561,167,1633,192"/>
+<area shape="poly" title=" " alt="" coords="1544,117,1579,155,1575,158,1540,121"/>
+<area shape="rect" title=" " alt="" coords="1511,240,1625,265"/>
+<area shape="poly" title=" " alt="" coords="1579,116,1617,135,1634,148,1648,166,1652,186,1643,205,1626,222,1605,236,1602,231,1622,218,1639,202,1647,185,1643,168,1630,152,1614,139,1576,121"/>
+<area shape="rect" href="PhysicsBodies_8h.html" title="An AoS format for storing kinematic data and accessing it." alt="" coords="1393,167,1537,192"/>
+<area shape="poly" title=" " alt="" coords="1522,121,1487,158,1483,155,1518,117"/>
+<area shape="poly" title=" " alt="" coords="1483,190,1541,230,1538,234,1480,194"/>
+</map>
+</div>
+</div>
+<p><a href="CurrentDriftRobot_8h_source.html">Go to the source code of this file.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classrobots_1_1CurrentDriftRobot.html">robots::CurrentDriftRobot</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Robot whose commanded twist is determined by the water current.  <a href="classrobots_1_1CurrentDriftRobot.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="namespaces" name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespacerobots" id="r_namespacerobots"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacerobots.html">robots</a></td></tr>
+<tr class="memdesc:namespacerobots"><td class="mdescLeft">&#160;</td><td class="mdescRight">Concrete robot implementations. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Current-driven drifter robot implementation. </p>
+</div></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_f571563e73abc9c07f0cb049318d13f8.html">mantaray</a></li><li class="navelem"><a class="el" href="dir_ba6cd4d7c6106cdcfe99798bca820d41.html">sim</a></li><li class="navelem"><a class="el" href="CurrentDriftRobot_8h.html">CurrentDriftRobot.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>
