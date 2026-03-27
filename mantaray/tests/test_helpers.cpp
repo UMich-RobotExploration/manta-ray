@@ -8,7 +8,10 @@
 
 #include <Eigen/Dense>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <cmath>
+using Catch::Approx;
 
 TEST_CASE("Linspace generates correct number of points", "[linspace]") {
   auto result = acoustics::utils::linspace(0.0, 1.0, 5);
@@ -140,4 +143,86 @@ TEST_CASE("validDeltaTMultiple handles floating-point accumulation", "[fp]") {
   CHECK(validDeltaTMultiple(100.0, 100.0));
   // t=99.9 should NOT be a valid multiple of 100
   CHECK_FALSE(validDeltaTMultiple(99.9, 100.0));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Beam geometry utilities
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("computeElevationAngle - horizontal", "[beam]") {
+  using acoustics::utils::computeElevationAngle;
+
+  // Purely horizontal: delta in X only → elevation = 0
+  Eigen::Vector3d horizontal(1000, 0, 0);
+  CHECK(computeElevationAngle(horizontal) == Approx(0.0).margin(1e-10));
+
+  // Horizontal in XY plane
+  Eigen::Vector3d diagonal(1000, 1000, 0);
+  CHECK(computeElevationAngle(diagonal) == Approx(0.0).margin(1e-10));
+}
+
+TEST_CASE("computeElevationAngle - vertical", "[beam]") {
+  using acoustics::utils::computeElevationAngle;
+
+  // Straight down: +Z only → elevation = +π/2
+  Eigen::Vector3d down(0, 0, 500);
+  CHECK(computeElevationAngle(down) == Approx(M_PI / 2.0).margin(1e-10));
+
+  // Straight up: -Z only → elevation = -π/2
+  Eigen::Vector3d up(0, 0, -500);
+  CHECK(computeElevationAngle(up) == Approx(-M_PI / 2.0).margin(1e-10));
+}
+
+TEST_CASE("computeElevationAngle - 45 degrees", "[beam]") {
+  using acoustics::utils::computeElevationAngle;
+
+  // Equal horizontal and vertical → 45°
+  Eigen::Vector3d diag(1000, 0, 1000);
+  CHECK(computeElevationAngle(diag) == Approx(M_PI / 4.0).margin(1e-10));
+}
+
+TEST_CASE("computeBeamBox - symmetric case", "[beam]") {
+  using acoustics::utils::computeBeamBox;
+
+  // Equal X and Y displacement, no Z
+  Eigen::Vector3d delta(1000, 1000, 0);
+  auto box = computeBeamBox(delta, 1.5, 1.0 / 150.0);
+
+  // scaled delta = 1.5 * 1000 = 1500 each axis
+  // range = sqrt(2)*1000 ≈ 1414
+  // minDim = max(1414 * 1.5 * 0.5, 100) = max(1060, 100) = 1060
+  // boxX = max(1500, 1060) = 1500
+  CHECK(box.boxX == Approx(1500.0));
+  CHECK(box.boxY == Approx(1500.0));
+  CHECK(box.stepSize == Approx(delta.norm() / 150.0));
+}
+
+TEST_CASE("computeBeamBox - nearly aligned pair uses proportional floor",
+          "[beam]") {
+  using acoustics::utils::computeBeamBox;
+
+  // Almost pure Y displacement — tiny X component
+  // This is the bug case: without floor, boxX would be tiny
+  Eigen::Vector3d delta(10, 10000, 0);
+  auto box = computeBeamBox(delta, 1.5, 1.0 / 150.0);
+
+  // range ≈ 10000
+  // minDim = max(10000 * 1.5 * 0.5, 100) = max(7500, 100) = 7500
+  // scaled X = 1.5 * 10 = 15 → boxX = max(15, 7500) = 7500
+  CHECK(box.boxX == Approx(7500.0).margin(1.0));
+  // scaled Y = 1.5 * 10000 = 15000 → boxY = max(15000, 7500) = 15000
+  CHECK(box.boxY == Approx(15000.0));
+}
+
+TEST_CASE("computeBeamBox - very short range uses absolute floor", "[beam]") {
+  using acoustics::utils::computeBeamBox;
+
+  // Very short range: 10m
+  Eigen::Vector3d delta(10, 0, 0);
+  auto box = computeBeamBox(delta, 1.5, 1.0 / 150.0);
+
+  // range = 10, minDim = max(10 * 1.5 * 0.5, 100) = max(7.5, 100) = 100
+  // scaled X = 15 → boxX = max(15, 100) = 100
+  CHECK(box.boxX == Approx(100.0));
+  CHECK(box.boxY == Approx(100.0));
 }
