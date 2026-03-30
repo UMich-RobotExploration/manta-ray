@@ -16,6 +16,8 @@ target_include_directories(${TARGET_NAME} PRIVATE
         ${INCLUDE_GLM})
 target_include_directories(${TARGET_NAME} PRIVATE
         ${ACOUSTICS_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} PRIVATE
+        ${FMT_EIGEN_INCLUDE_DIRS})
 
 # App public headers
 target_include_directories(${TARGET_NAME} PRIVATE

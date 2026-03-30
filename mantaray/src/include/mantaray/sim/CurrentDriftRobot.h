@@ -5,7 +5,7 @@
 #pragma once
 
 #include "acoustics/Grid.h"
-#include "acoustics/fmt_eigen.h"
+#include "fmt_eigen.h"
 #include "mantaray/utils/Logger.h"
 #include "rb/RbInterfaces.h"
 

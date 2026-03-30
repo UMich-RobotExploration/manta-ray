@@ -8,5 +8,5 @@
 	path = mantaray/deps/Catch2
 	url = git@github.com:catchorg/Catch2.git
 [submodule "oceanbench"]
-	path = pymantaray/deps
+	path = pymantaray/deps/oceanbench
 	url = git@github.com:shafezi/oceanbench.git

@@ -20,6 +20,7 @@ set(LIBS_DIR ${CMAKE_SOURCE_DIR}/deps)
 set(EIGEN3_INCLUDE_DIRS ${LIBS_DIR}/eigen)
 set(JSON_INCLUDE_DIRS ${LIBS_DIR}/json)
 set(LIBNPY_INCLUDE_DIRS ${LIBS_DIR}/libnpy)
+set(FMT_EIGEN_INCLUDE_DIRS ${LIBS_DIR}/fmt_eigen)
 
 # BHC dependencies
 set(INCLUDE_BHC ${LIBS_DIR}/bellhopcuda/include/)

@@ -3,8 +3,8 @@
  */
 #pragma once
 #include "acoustics/SimulationConfig.h"
-#include "acoustics/fmt_eigen.h"
 #include "acoustics/helpers.h"
+#include "fmt_eigen.h"
 #include "mantaray/utils/checkAssert.h"
 #include <algorithm>
 #include <array>
