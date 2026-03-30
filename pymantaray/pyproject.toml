@@ -18,6 +18,7 @@ dependencies = [
 [tool.uv.workspace]
 members = [
     "deps/oceanbench-data-provider",
+    "deps/PyFactorGraph",
 ]
 
 [tool.uv.sources]
