@@ -8,18 +8,13 @@ dependencies = [
     "aubellhop>=0.1.8",
     "bottleneck>=1.6.0",
     "matplotlib>=3.10.8",
-    "oceanbench-data-provider",
     "open3d>=0.19.0",
     "pandas-stubs~=2.3.3",
     "pykrige>=1.7.3",
     "pyproj>=3.7.2",
+    "oceanbench-data-provider",
 ]
 
-[tool.uv.workspace]
-members = [
-    "deps/oceanbench-data-provider",
-    "deps/PyFactorGraph",
-]
 
 [tool.uv.sources]
-oceanbench-data-provider = { workspace = true }
+oceanbench-data-provider = {path = "deps/oceanbench/oceanbench-data-provider"}
