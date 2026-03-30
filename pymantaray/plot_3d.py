@@ -21,7 +21,7 @@ from py_factor_graph.modifiers import make_all_ranges_perfect
 
 
 # ============ CONFIGURATION ============
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"  # <-- SET YOUR FILE PATH HERE
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
 
 
 # ======================================
