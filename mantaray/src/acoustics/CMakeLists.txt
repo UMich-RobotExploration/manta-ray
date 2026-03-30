@@ -14,6 +14,7 @@ target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${INCLUDE_GLM})
 target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${EIGEN3_INCLUDE_DIRS})
 target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src/include)  # For app public headers (e.g., checkAssert)
 target_include_directories(${ACOUSTIC_LIB_NAME} PUBLIC ${ACOUSTICS_INCLUDE_DIRS}) # Library Includes
+target_include_directories(${ACOUSTIC_LIB_NAME} PRIVATE ${FMT_EIGEN_INCLUDE_DIRS})
 
 # Apply compiler options based on build type
 target_compile_options(${ACOUSTIC_LIB_NAME} PUBLIC
