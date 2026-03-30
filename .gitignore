@@ -267,8 +267,8 @@ mantaray/deps/lib/libbellhopcxxlib.so
 
 */.idea
 mantaray/.idea
-pymantaray/arrivalDataDebug
-pymantaray/arrivalDataDebugHigherPrecision
+pymantaray/acoustics/arrivalDataDebug
+pymantaray/acoustics/arrivalDataDebugHigherPrecision
 
 *.npy
 *.npz

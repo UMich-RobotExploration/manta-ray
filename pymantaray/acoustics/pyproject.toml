@@ -1,8 +1,8 @@
 [project]
-name = "pymantaray"
+name = "pymantaray-acoustics"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Acoustics environment for manta-ray"
+readme = "../README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aubellhop>=0.1.8",
@@ -13,10 +13,7 @@ dependencies = [
     "pykrige>=1.7.3",
     "pyproj>=3.7.2",
     "oceanbench-data-provider",
-    "py-factor-graph",
 ]
 
-
 [tool.uv.sources]
-oceanbench-data-provider = {path = "deps/oceanbench/oceanbench-data-provider"}
-py-factor-graph = { git = "https://github.com/MarineRoboticsGroup/PyFactorGraph" }
+oceanbench-data-provider = {path = "../deps/oceanbench/oceanbench-data-provider"}
