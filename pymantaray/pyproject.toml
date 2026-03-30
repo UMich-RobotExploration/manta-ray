@@ -13,8 +13,10 @@ dependencies = [
     "pykrige>=1.7.3",
     "pyproj>=3.7.2",
     "oceanbench-data-provider",
+    "py-factor-graph",
 ]
 
 
 [tool.uv.sources]
 oceanbench-data-provider = {path = "deps/oceanbench/oceanbench-data-provider"}
+py-factor-graph = { git = "https://github.com/MarineRoboticsGroup/PyFactorGraph" }
