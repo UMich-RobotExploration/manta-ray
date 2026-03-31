@@ -266,6 +266,7 @@ mantaray/deps/lib/libbellhopcudastatic.a
 mantaray/deps/lib/libbellhopcxxlib.so
 
 */.idea
+*.idea
 mantaray/.idea
 pymantaray/acoustics/arrivalDataDebug
 pymantaray/acoustics/arrivalDataDebugHigherPrecision
