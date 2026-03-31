@@ -168,7 +168,7 @@ int main() {
   pfgConfig.useGroundTruthOdometry = true;
   pfgConfig.rangeVariance = 0.1 * 0.1;
   pfgConfig.defaultPosePriorCov =
-      pyfg::makeDiagUpperTri6x6(0.01, 0.01, 0.01, 0.04, 0.04, 0.04);
+      pyfg::makeDiagUpperTri6x6(0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001);
   pfgConfig.landmarkPriorCovs.push_back(
       pyfg::makeDiagUpperTri3x3(0.001, 0.001, 0.001));
   pfgConfig.odomRotationVariance = 0.00001;
