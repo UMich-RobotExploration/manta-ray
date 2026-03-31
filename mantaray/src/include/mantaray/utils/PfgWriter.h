@@ -41,7 +41,7 @@ struct PfgWriterConfig {
 
   /// Rotation variance for odometry edges.
   /// Translation variance is derived per-robot from PositionalXYOdometry noise.
-  double odomRotationVariance{0.04};
+  double odomRotationVariance{0.0001 * 0.0001};
 
   /// Rotation variance for GPS pose priors. Should be very large since GPS
   /// provides no rotation information. Translation covariance is derived

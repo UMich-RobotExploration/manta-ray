@@ -14,6 +14,7 @@ Supports 3D factor graphs with:
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 import gtsam
 import numpy as np
@@ -54,7 +55,7 @@ def _pose3_from_pyfg(pose: PoseVariable3D) -> gtsam.Pose3:
     return gtsam.Pose3(R, t)
 
 
-def _point3_from_pyfg(landmark: LandmarkVariable3D) -> np.ndarray:
+def _position_array_from_pyfg(landmark: LandmarkVariable3D) -> np.ndarray:
     """Build a GTSAM Point3 (ndarray) from a PyFG LandmarkVariable3D."""
     return np.array(landmark.true_position, dtype=np.float64)
 
@@ -143,7 +144,7 @@ def convert(fg: FactorGraphData, use_odom_initial: bool = False):
     for landmark in fg.landmark_variables:
         key = _name_to_key(landmark.name)
         key_map[landmark.name] = key
-        initial.insert(key, _point3_from_pyfg(landmark))
+        initial.insert(key, _position_array_from_pyfg(landmark))
 
     for prior in fg.pose_priors:
         key = key_map[prior.name]
@@ -180,32 +181,33 @@ def convert(fg: FactorGraphData, use_odom_initial: bool = False):
         noise = _pose3_noise(lc.translation_precision, lc.rotation_precision)
         graph.add(gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
-    pose_keys = fg.pose_variables_dict
-    for rm in fg.range_measurements:
-        """Range factor type depends on endpoint variable types:
-            RangeFactorPose3:  Pose3 <-> Pose3
-            RangeFactor3D:     Pose3 <-> Point3
-            RangeFactor3:      Point3 <-> Point3
-        """
-        name_a, name_b = rm.association
-        if name_a not in key_map or name_b not in key_map:
-            continue
-
-        key_a = key_map[name_a]
-        key_b = key_map[name_b]
-        noise = _range_noise(rm.stddev)
-
-        a_is_pose = name_a in pose_keys
-        b_is_pose = name_b in pose_keys
-
-        if a_is_pose and b_is_pose:
-            graph.add(gtsam.RangeFactorPose3(key_a, key_b, rm.dist, noise))
-        elif a_is_pose:
-            graph.add(gtsam.RangeFactor3D(key_a, key_b, rm.dist, noise))
-        elif b_is_pose:
-            graph.add(gtsam.RangeFactor3D(key_b, key_a, rm.dist, noise))
-        else:
-            graph.add(gtsam.RangeFactor3(key_a, key_b, rm.dist, noise))
+    # pose_keys = fg.pose_variables_dict
+    # for rm in fg.range_measurements:
+    #     """Range factor type depends on endpoint variable types:
+    #         RangeFactorPose3:  Pose3 <-> Pose3
+    #         RangeFactor3D:     Pose3 <-> Point3
+    #         RangeFactor3:      Point3 <-> Point3
+    #     """
+    #     name_a, name_b = rm.association
+    #     if name_a not in key_map or name_b not in key_map:
+    #         continue
+    #
+    #     key_a = key_map[name_a]
+    #     key_b = key_map[name_b]
+    #     # noise = _range_noise(rm.stddev)
+    #     noise = _range_noise(1.0)
+    #
+    #     a_is_pose = name_a in pose_keys
+    #     b_is_pose = name_b in pose_keys
+    #
+    #     if a_is_pose and b_is_pose:
+    #         graph.add(gtsam.RangeFactorPose3(key_a, key_b, rm.dist, noise))
+    #     elif a_is_pose:
+    #         graph.add(gtsam.RangeFactor3D(key_a, key_b, rm.dist, noise))
+    #     elif b_is_pose:
+    #         graph.add(gtsam.RangeFactor3D(key_b, key_a, rm.dist, noise))
+    #     else:
+    #         graph.add(gtsam.RangeFactor3(key_a, key_b, rm.dist, noise))
 
     return graph, initial, key_map
 
@@ -235,7 +237,7 @@ def _build_gt_values(fg: FactorGraphData, key_map: dict[str, int]) -> gtsam.Valu
         for pose in pose_chain:
             gt.insert(key_map[pose.name], _pose3_from_pyfg(pose))
     for landmark in fg.landmark_variables:
-        gt.insert(key_map[landmark.name], _point3_from_pyfg(landmark))
+        gt.insert(key_map[landmark.name], _position_array_from_pyfg(landmark))
     return gt
 
 
@@ -306,7 +308,8 @@ def visualize(fg: FactorGraphData,
 if __name__ == "__main__":
     from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
-    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+    # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
 
     print(f"Reading {FILE_PATH} ...")
     fg_data = read_from_pyfg_text(FILE_PATH)
@@ -321,7 +324,7 @@ if __name__ == "__main__":
     print(f"\nGTSAM graph: {graph.size()} factors, {initial.size()} variables")
 
     params = gtsam.LevenbergMarquardtParams()
-    optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initial, params)
+    optimizer = gtsam.LevenbergMarquardtOptimizer(graph, deepcopy(initial), params)
     result = optimizer.optimize()
 
     print(f"Initial error: {graph.error(initial):.4f}")

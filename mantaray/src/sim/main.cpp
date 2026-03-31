@@ -110,7 +110,9 @@ int main() {
   world.reserveRobots(4);
   world.reserveLandmarks(1);
 
-  sim::StandardSensorConfig sensorCfg{};
+  sim::StandardSensorConfig sensorCfg{
+      0.01, 0.01, 0.01, 0.01, 0.1 / 3.0, 0.01,
+  };
 
   auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
       world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
@@ -164,12 +166,12 @@ int main() {
   // Write PFG factor graph file
   pyfg::PfgWriterConfig pfgConfig{};
   pfgConfig.useGroundTruthOdometry = true;
-  pfgConfig.rangeVariance = 1.0;
+  pfgConfig.rangeVariance = 0.1 * 0.1;
   pfgConfig.defaultPosePriorCov =
       pyfg::makeDiagUpperTri6x6(0.01, 0.01, 0.01, 0.04, 0.04, 0.04);
   pfgConfig.landmarkPriorCovs.push_back(
-      pyfg::makeDiagUpperTri3x3(0.01, 0.01, 0.01));
-  pfgConfig.odomRotationVariance = 0.04;
+      pyfg::makeDiagUpperTri3x3(0.001, 0.001, 0.001));
+  pfgConfig.odomRotationVariance = 0.00001;
   pyfg::writePfg("output.pfg", world, rangeSystem.getMeasurements(), pfgConfig);
 
   bhc::writeenv(context.params(), runName);

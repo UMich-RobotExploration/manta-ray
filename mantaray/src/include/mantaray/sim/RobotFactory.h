@@ -17,12 +17,18 @@ namespace sim {
  * sensor suite (GroundTruthPose, PositionalXYOdometry, GpsPosition).
  */
 struct StandardSensorConfig {
-  double gtFreqHz{0.01};        ///< Ground truth pose sample rate
-  double odomFreqHz{0.01};      ///< Odometry sample rate
-  double gpsFreqHz{0.5};        ///< GPS sample rate
-  double odomNoiseStddev{0.01}; ///< Odometry XY noise standard deviation
-  double gpsXyNoiseStddev{0.5}; ///< GPS XY noise standard deviation
-  double gpsZNoiseStddev{2.0};  ///< GPS Z noise standard deviation
+  /// Ground truth pose sample rate
+  double gtFreqHz{0.01};
+  /// Odometry sample rate
+  double odomFreqHz{0.01};
+  /// GPS sample rate
+  double gpsFreqHz{0.5};
+  /// Odometry XY noise standard deviation
+  double odomNoiseStddev{0.01};
+  /// GPS XY noise standard deviation
+  double gpsXyNoiseStddev{0.5};
+  /// GPS Z noise standard deviation
+  double gpsZNoiseStddev{2.0};
 };
 
 /**
