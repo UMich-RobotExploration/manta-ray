@@ -1,0 +1,15 @@
+[project]
+name = "pymantaray-localization"
+version = "0.1.0"
+description = "Localization environment for manta-ray"
+readme = "../README.md"
+requires-python = "<3.12, >=3.11"
+dependencies = [
+    "gtsam>=4.2",
+    "matplotlib>=3.10.8",
+    "numpy<2",
+    "py-factor-graph",
+]
+
+[tool.uv.sources]
+py-factor-graph = { git = "https://github.com/MarineRoboticsGroup/PyFactorGraph" }
