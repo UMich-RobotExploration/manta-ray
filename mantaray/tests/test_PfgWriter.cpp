@@ -4,6 +4,7 @@
 
 #include "mantaray/utils/Logger.h"
 #include "mantaray/utils/PfgWriter.h"
+#include <mantaray/sim/RobotFactory.h>
 #include "rb/RbWorld.h"
 #include "rb/RobotsAndSensors.h"
 
@@ -27,6 +28,56 @@ std::vector<std::string> readLines(const std::string &path) {
   }
   return lines;
 }
+// Counts PFG line types from a file
+struct PfgLineCounts {
+  size_t vertexPose{0};
+  size_t vertexLandmark{0};
+  size_t priorPose{0};
+  size_t priorLandmark{0};
+  size_t edgeOdom{0};
+  size_t edgeRange{0};
+};
+
+PfgLineCounts countPfgLines(const std::vector<std::string> &lines) {
+  PfgLineCounts c;
+  for (const auto &l : lines) {
+    if (l.rfind("VERTEX_SE3:QUAT:PRIOR", 0) == 0) c.priorPose++;
+    else if (l.rfind("VERTEX_SE3:QUAT", 0) == 0) c.vertexPose++;
+    else if (l.rfind("VERTEX_XYZ:PRIOR", 0) == 0) c.priorLandmark++;
+    else if (l.rfind("VERTEX_XYZ", 0) == 0) c.vertexLandmark++;
+    else if (l.rfind("EDGE_SE3:QUAT", 0) == 0) c.edgeOdom++;
+    else if (l.rfind("EDGE_RANGE", 0) == 0) c.edgeRange++;
+  }
+  return c;
+}
+
+// Reusable fixture: single ConstantVelRobot on the surface with standard sensors
+struct SingleRobotFixture {
+  rb::RbWorld world{};
+  sim::StandardSensorConfig sensorCfg{};
+  pyfg::PfgWriterConfig pfgConfig{};
+  double endTime{3.0};
+
+  SingleRobotFixture() {
+    init_logger();
+    world.simData.dt = 1.0;
+    world.createRngEngine(42);
+
+    sensorCfg.gtFreqHz = 1.0;
+    sensorCfg.odomFreqHz = 1.0;
+    sensorCfg.gpsFreqHz = 1.0;
+    sensorCfg.odomNoiseStddev = 0.01;
+    sensorCfg.gpsXyNoiseStddev = 0.1;
+    sensorCfg.gpsZNoiseStddev = 0.1;
+
+    pfgConfig.useGroundTruthOdometry = true;
+    pfgConfig.rangeVariance = 1.0;
+    pfgConfig.defaultPosePriorCov =
+        pyfg::makeDiagUpperTri6x6(0.01, 0.01, 0.01, 0.04, 0.04, 0.04);
+    pfgConfig.odomRotationVariance = 0.04;
+  }
+};
+
 } // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,52 +161,28 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
   auto lines = readLines(testFile);
   REQUIRE(!lines.empty());
 
-  // Count lines by type
-  size_t vertexPose = 0, vertexLandmark = 0, priorPose = 0, priorLandmark = 0;
-  size_t edgeOdom = 0, edgeRange = 0;
-  size_t lastVertexPose = 0, firstVertexLandmark = 0;
-  size_t lastPrior = 0, firstEdge = 0;
+  auto c = countPfgLines(lines);
 
-  for (size_t i = 0; i < lines.size(); ++i) {
-    const auto &l = lines[i];
-    if (l.rfind("VERTEX_SE3:QUAT:PRIOR", 0) == 0) {
-      priorPose++;
-      lastPrior = i;
-    } else if (l.rfind("VERTEX_SE3:QUAT", 0) == 0) {
-      vertexPose++;
-      lastVertexPose = i;
-    } else if (l.rfind("VERTEX_XYZ:PRIOR", 0) == 0) {
-      priorLandmark++;
-      lastPrior = i;
-    } else if (l.rfind("VERTEX_XYZ", 0) == 0) {
-      vertexLandmark++;
-      if (firstVertexLandmark == 0)
-        firstVertexLandmark = i;
-    } else if (l.rfind("EDGE_SE3:QUAT", 0) == 0) {
-      edgeOdom++;
-      if (firstEdge == 0)
-        firstEdge = i;
-    } else if (l.rfind("EDGE_RANGE", 0) == 0) {
-      edgeRange++;
-    }
-  }
-
-  // 2 robots × 3 GT samples = 6 pose vertices
-  CHECK(vertexPose == 6);
-  // 1 landmark
-  CHECK(vertexLandmark == 1);
-  // 2 initial pose priors (one per robot)
-  CHECK(priorPose == 2);
-  // 1 landmark prior
-  CHECK(priorLandmark == 1);
-  // 2 robots × 2 odom edges (3 poses → 2 edges each)
-  CHECK(edgeOdom == 4);
-  // No range measurements
-  CHECK(edgeRange == 0);
+  CHECK(c.vertexPose == 6);       // 2 robots × 3 GT samples
+  CHECK(c.vertexLandmark == 1);
+  CHECK(c.priorPose == 2);        // 2 initial pose priors (one per robot)
+  CHECK(c.priorLandmark == 1);
+  CHECK(c.edgeOdom == 4);         // 2 robots × 2 odom edges
+  CHECK(c.edgeRange == 0);
 
   // Section ordering: vertices before landmarks before priors before edges
+  size_t lastVertexPose = 0, firstVertexLandmark = 0;
+  size_t lastPrior = 0, firstEdge = 0;
+  for (size_t i = 0; i < lines.size(); ++i) {
+    const auto &l = lines[i];
+    if (l.rfind("VERTEX_SE3:QUAT:PRIOR", 0) == 0) lastPrior = i;
+    else if (l.rfind("VERTEX_SE3:QUAT", 0) == 0) lastVertexPose = i;
+    else if (l.rfind("VERTEX_XYZ:PRIOR", 0) == 0) lastPrior = i;
+    else if (l.rfind("VERTEX_XYZ", 0) == 0 && firstVertexLandmark == 0) firstVertexLandmark = i;
+    else if (l.rfind("EDGE_SE3:QUAT", 0) == 0 && firstEdge == 0) firstEdge = i;
+  }
   CHECK(lastVertexPose < firstVertexLandmark);
-  CHECK(firstVertexLandmark < lastPrior);  // landmarks before priors
+  CHECK(firstVertexLandmark < lastPrior);
   CHECK(lastPrior < firstEdge);
 
   // Check first line has correct field count (VERTEX_SE3:QUAT = 10 fields)
@@ -203,4 +230,34 @@ TEST_CASE("writePfg skips landmark priors when config is empty",
   }
 
   std::remove(testFile.c_str());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Minimal single-robot debug PFG (file kept on disk for Python debugging)
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE_METHOD(SingleRobotFixture,
+                 "writePfg minimal single-robot debug file",
+                 "[pfgwriter][debug]") {
+  sim::addStandardRobot<rb::ConstantVelRobot>(
+      world, endTime, Eigen::Vector3d(0, 0, 0), sensorCfg,
+      Eigen::Vector3d(1, 0, 0));
+
+  world.advanceWorld(endTime);
+
+  std::string testFile = "debug_single_robot.pfg";
+  std::vector<sim::RangeMeasurement> noMeasurements;
+  pyfg::writePfg(testFile, world, noMeasurements, pfgConfig);
+
+  auto lines = readLines(testFile);
+  REQUIRE(!lines.empty());
+
+  auto c = countPfgLines(lines);
+  CHECK(c.vertexPose == 3);   // GT poses at t=0,1,2
+  CHECK(c.priorPose == 4);    // 1 initial + 3 GPS
+  CHECK(c.edgeOdom == 2);     // 2 odom edges
+  CHECK(c.edgeRange == 0);
+
+  // File intentionally kept for Python-side debugging
+  SPDLOG_INFO("Debug PFG written to: {}", testFile);
 }
