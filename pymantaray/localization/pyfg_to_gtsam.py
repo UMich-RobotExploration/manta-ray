@@ -13,16 +13,12 @@ Supports 3D factor graphs with:
 
 from __future__ import annotations
 
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 from copy import deepcopy
+from dataclasses import dataclass, field
 
 import gtsam
 import numpy as np
 from evo.core.trajectory import PosePath3D
-from evo.core import metrics
-from evo.tools import plot as evo_plot
 
 from py_factor_graph.factor_graph import FactorGraphData
 from py_factor_graph.modifiers import make_all_ranges_perfect
@@ -100,6 +96,45 @@ def extract_trajectory(values: gtsam.Values,
     return PosePath3D(poses_se3=matrices)
 
 
+@dataclass
+class SolverConfig:
+    """Configuration for FactorGraphSolver.
+
+    Args:
+        use_odom_initial:    Dead-reckon from odometry instead of ground truth.
+        use_true_ranges:     Replace measured ranges with ground-truth distances.
+        include_gps_priors:  Include GPS pose priors (all except first-pose priors).
+        include_ranges:      Include range measurement factors.
+        range_noise_stddev:  Stddev (meters) for range factor noise model.
+        odom_noise_sigmas:   6-element stddev array in GTSAM Pose3 tangent order:
+                                 [rot_x (rad), rot_y (rad), rot_z (rad),
+                                  tx (m), ty (m), tz (m)]
+                             When set, BetweenFactors use Expmap-perturbed deltas
+                             and initial estimate defaults to ground truth.
+        seed:                RNG seed for all random number generation
+                             (odom perturbation).
+    """
+    use_odom_initial: bool = False
+    use_true_ranges: bool = False
+    include_gps_priors: bool = True
+    include_ranges: bool = True
+    range_noise_stddev: float = 4.0
+    odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
+    seed: int = 42
+
+    def __post_init__(self):
+        if self.odom_noise_sigmas is not None:
+            self.odom_noise_sigmas = np.asarray(
+                self.odom_noise_sigmas, dtype=np.float64).flatten()
+            if self.odom_noise_sigmas.shape != (6,):
+                raise ValueError(
+                    f"odom_noise_sigmas must have 6 elements, "
+                    f"got shape {self.odom_noise_sigmas.shape}")
+        if self.range_noise_stddev <= 0:
+            raise ValueError(
+                f"range_noise_stddev must be positive, got {self.range_noise_stddev}")
+
+
 class FactorGraphSolver:
     """Builds a GTSAM factor graph from PyFG data and solves it.
 
@@ -107,23 +142,18 @@ class FactorGraphSolver:
     attributes that can be modified directly before calling solve().
     """
 
-    def __init__(self, fg: FactorGraphData, *,
-                 use_odom_initial: bool = False,
-                 use_true_ranges: bool = False,
-                 odom_noise_sigmas: np.ndarray | None = None):
+    def __init__(self, fg: FactorGraphData,
+                 config: SolverConfig | None = None):
         """
         Args:
-            fg:                 Source PyFG data (must be 3D).
-            use_odom_initial:   Dead-reckon from odometry instead of ground truth.
-            use_true_ranges:    Replace measured ranges with ground-truth distances.
-            odom_noise_sigmas:  6-element stddev array in GTSAM Pose3 tangent order:
-                                [rot_x, rot_y, rot_z, tx, ty, tz].
-                                Perturbs both BetweenFactors and initial estimate.
+            fg:     Source PyFG data (must be 3D).
+            config: Solver configuration. Uses defaults if not provided.
         """
         if fg.dimension != 3:
             raise ValueError(f"Expected 3D factor graph, got {fg.dimension}D")
 
         self.fg = fg
+        self.config = config or SolverConfig()
         self.result: gtsam.Values | None = None
 
         self.key_map: dict[str, int] = {}
@@ -134,17 +164,15 @@ class FactorGraphSolver:
             self.key_map[landmark.name] = _name_to_key(landmark.name)
 
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
-        if odom_noise_sigmas is not None:
-            odom_noise_sigmas = np.asarray(odom_noise_sigmas, dtype=np.float64)
-            if odom_noise_sigmas.shape != (6,):
-                raise ValueError("odom_noise_sigmas must have shape (6,)")
-            self._odom_deltas = self._perturb_odom_deltas(odom_noise_sigmas)
+        if self.config.odom_noise_sigmas is not None:
+            self._odom_deltas = self._perturb_odom_deltas(
+                self.config.odom_noise_sigmas)
 
         self.graph = gtsam.NonlinearFactorGraph()
         self.initial = gtsam.Values()
 
-        self._build_initial(use_odom_initial)
-        self._build_graph(use_true_ranges)
+        self._build_initial(self.config.use_odom_initial)
+        self._build_graph()
 
         self.gt_values = self._build_gt_values()
 
@@ -155,7 +183,7 @@ class FactorGraphSolver:
         [rot_x, rot_y, rot_z, tx, ty, tz], then composes:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
-        rng = np.random.default_rng(seed=42)
+        rng = np.random.default_rng(seed=self.config.seed)
         noisy_deltas: list[list[gtsam.Pose3]] = []
         for odom_chain in self.fg.odom_measurements:
             chain: list[gtsam.Pose3] = []
@@ -174,8 +202,12 @@ class FactorGraphSolver:
         return _odom_to_pose3(odom)
 
     def _build_initial(self, use_odom_initial: bool) -> None:
-        """Populate self.initial with ground truth or dead-reckoned poses."""
-        if use_odom_initial:
+        """Populate self.initial with ground truth or dead-reckoned poses.
+
+        When odom_noise_sigmas is set, initial is always ground truth
+        (noise only affects BetweenFactors in the graph).
+        """
+        if use_odom_initial and self._odom_deltas is None:
             for robot_idx, pose_chain in enumerate(self.fg.pose_variables):
                 if not pose_chain:
                     continue
@@ -184,7 +216,7 @@ class FactorGraphSolver:
                 self.initial.insert(first_key, current)
 
                 for i, odom in enumerate(self.fg.odom_measurements[robot_idx]):
-                    delta = self._get_odom_delta(robot_idx, i, odom)
+                    delta = _odom_to_pose3(odom)
                     current = current.compose(delta)
                     key = self.key_map[odom.to_pose]
                     if not self.initial.exists(key):
@@ -199,11 +231,20 @@ class FactorGraphSolver:
             self.initial.insert(self.key_map[landmark.name],
                                 _position_array_from_pyfg(landmark))
 
-    def _build_graph(self, use_true_ranges: bool) -> None:
+    def _build_graph(self) -> None:
         """Populate self.graph with all factors."""
         fg = self.fg
+        cfg = self.config
+
+        first_pose_names = set()
+        for pose_chain in fg.pose_variables:
+            if pose_chain:
+                first_pose_names.add(pose_chain[0].name)
 
         for prior in fg.pose_priors:
+            is_first_pose = prior.name in first_pose_names
+            if not is_first_pose and not cfg.include_gps_priors:
+                continue
             key = self.key_map[prior.name]
             R = _rot3(prior.rotation_matrix)
             t = np.array(prior.position, dtype=np.float64)
@@ -239,8 +280,11 @@ class FactorGraphSolver:
             self.graph.add(
                 gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
+        if not cfg.include_ranges:
+            return
+
         pose_keys = fg.pose_variables_dict
-        if use_true_ranges:
+        if cfg.use_true_ranges:
             true_fg = make_all_ranges_perfect(fg)
             range_source = true_fg.range_measurements
         else:
@@ -253,8 +297,7 @@ class FactorGraphSolver:
 
             key_a = self.key_map[name_a]
             key_b = self.key_map[name_b]
-            # noise = _range_noise(rm.stddev)
-            noise = _range_noise(4.0)
+            noise = _range_noise(cfg.range_noise_stddev)
 
             a_is_pose = name_a in pose_keys
             b_is_pose = name_b in pose_keys
@@ -292,99 +335,3 @@ class FactorGraphSolver:
             self.graph, deepcopy(self.initial), params)
         self.result = optimizer.optimize()
         return self.result
-
-
-def visualize(solver: FactorGraphSolver):
-    """Plot ground-truth, initial, and optimized trajectories with APE."""
-    if solver.result is None:
-        raise RuntimeError("Call solver.solve() before visualize()")
-
-    for robot_idx, pose_chain in enumerate(solver.fg.pose_variables):
-        if not pose_chain:
-            continue
-
-        keys_ordered = [solver.key_map[p.name] for p in pose_chain]
-        robot_char = pose_chain[0].name[0]
-
-        traj_gt = extract_trajectory(solver.gt_values, keys_ordered)
-        traj_init = extract_trajectory(solver.initial, keys_ordered)
-        traj_opt = extract_trajectory(solver.result, keys_ordered)
-
-        ape_init = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_init.process_data((traj_gt, traj_init))
-
-        ape_opt = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_opt.process_data((traj_gt, traj_opt))
-
-        print(f"\nRobot {robot_char} — APE (translation, {len(pose_chain)} poses):")
-        print(f"  {'':20s} {'Initial':>12s}  {'Optimized':>12s}")
-        for stat_name in ape_init.get_all_statistics():
-            val_i = ape_init.get_all_statistics()[stat_name]
-            val_o = ape_opt.get_all_statistics()[stat_name]
-            print(f"  {stat_name:20s} {val_i:12.6f}  {val_o:12.6f}")
-
-        fig = plt.figure(figsize=(12, 8))
-        ax = evo_plot.prepare_axis(fig, evo_plot.PlotMode.xyz)
-        evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_gt,
-                      style='-', color='green', label='Ground Truth')
-        evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_init,
-                      style='--', color='red', label='Dead Reckoning (initial)')
-        evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_opt,
-                      style='-', color='blue', label='Optimized')
-        ax.legend()
-        ax.set_title(f"Robot {robot_char} — Trajectory Comparison")
-
-        fig2 = plt.figure(figsize=(10, 4))
-        ax2 = fig2.add_subplot(111)
-        ax2.plot(ape_init.error, color='red', linewidth=0.8,
-                 alpha=0.6, label='Initial (dead reckoning)')
-        ax2.plot(ape_opt.error, color='blue', linewidth=0.8,
-                 label='Optimized')
-        ax2.set_xlabel("Pose index")
-        ax2.set_ylabel("APE (m)")
-        ax2.set_title(f"Robot {robot_char} — Absolute Pose Error")
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        fig2.tight_layout()
-
-    plt.show()
-
-
-if __name__ == "__main__":
-    from py_factor_graph.io.pyfg_text import read_from_pyfg_text
-
-    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
-    # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
-
-    print(f"Reading {FILE_PATH} ...")
-    fg_data = read_from_pyfg_text(FILE_PATH)
-
-    print(f"  {fg_data.dimension}D, {fg_data.num_poses} poses, "
-          f"{fg_data.num_landmarks} landmarks, "
-          f"{fg_data.num_odom_measurements} odom, "
-          f"{len(fg_data.range_measurements)} range")
-
-    # Run 1: measured ranges
-    print("\n=== Run 1: Measured Ranges ===")
-    solver_measured = FactorGraphSolver(fg_data, use_odom_initial=True)
-    solver_measured.solve()
-    print(f"GTSAM graph: {solver_measured.graph.size()} factors, "
-          f"{solver_measured.initial.size()} variables")
-    print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f}")
-    print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
-
-    # Run 2: true ranges
-    print("\n=== Run 2: True Ranges ===")
-    solver_true = FactorGraphSolver(fg_data, use_odom_initial=True,
-                                    use_true_ranges=True)
-    solver_true.solve()
-    print(f"GTSAM graph: {solver_true.graph.size()} factors, "
-          f"{solver_true.initial.size()} variables")
-    print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
-    print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
-
-    # Visualize both
-    print("\n--- Measured Ranges ---")
-    visualize(solver_measured)
-    print("\n--- True Ranges ---")
-    visualize(solver_true)
