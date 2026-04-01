@@ -9,6 +9,7 @@
 #include <mantaray/sim/RobotFactory.h>
 
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -263,9 +264,14 @@ TEST_CASE_METHOD(SingleRobotFixture, "writePfg minimal single-robot debug file",
   REQUIRE(!lines.empty());
 
   auto c = countPfgLines(lines);
-  CHECK(c.vertexPose == 4); // GT poses at t=0,1,2,3
-  CHECK(c.priorPose == 5);  // 1 initial + 4 GPS
-  CHECK(c.edgeOdom == 3);   // 3 odom edges
+  const size_t expectedGtPoses =
+      static_cast<size_t>(std::floor(endTime / world.simData.dt)) + 1;
+  const size_t expectedGpsPriors = expectedGtPoses;
+  const size_t expectedOdomEdges = expectedGtPoses - 1;
+
+  CHECK(c.vertexPose == expectedGtPoses);
+  CHECK(c.priorPose == (1 + expectedGpsPriors)); // 1 initial + GPS priors
+  CHECK(c.edgeOdom == expectedOdomEdges);
   CHECK(c.edgeRange == 0);
 
   // File intentionally kept for Python-side debugging
