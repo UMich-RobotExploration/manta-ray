@@ -181,33 +181,33 @@ def convert(fg: FactorGraphData, use_odom_initial: bool = False):
         noise = _pose3_noise(lc.translation_precision, lc.rotation_precision)
         graph.add(gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
-    # pose_keys = fg.pose_variables_dict
-    # for rm in fg.range_measurements:
-    #     """Range factor type depends on endpoint variable types:
-    #         RangeFactorPose3:  Pose3 <-> Pose3
-    #         RangeFactor3D:     Pose3 <-> Point3
-    #         RangeFactor3:      Point3 <-> Point3
-    #     """
-    #     name_a, name_b = rm.association
-    #     if name_a not in key_map or name_b not in key_map:
-    #         continue
-    #
-    #     key_a = key_map[name_a]
-    #     key_b = key_map[name_b]
-    #     # noise = _range_noise(rm.stddev)
-    #     noise = _range_noise(1.0)
-    #
-    #     a_is_pose = name_a in pose_keys
-    #     b_is_pose = name_b in pose_keys
-    #
-    #     if a_is_pose and b_is_pose:
-    #         graph.add(gtsam.RangeFactorPose3(key_a, key_b, rm.dist, noise))
-    #     elif a_is_pose:
-    #         graph.add(gtsam.RangeFactor3D(key_a, key_b, rm.dist, noise))
-    #     elif b_is_pose:
-    #         graph.add(gtsam.RangeFactor3D(key_b, key_a, rm.dist, noise))
-    #     else:
-    #         graph.add(gtsam.RangeFactor3(key_a, key_b, rm.dist, noise))
+    pose_keys = fg.pose_variables_dict
+    for rm in fg.range_measurements:
+        """Range factor type depends on endpoint variable types:
+            RangeFactorPose3:  Pose3 <-> Pose3
+            RangeFactor3D:     Pose3 <-> Point3
+            RangeFactor3:      Point3 <-> Point3
+        """
+        name_a, name_b = rm.association
+        if name_a not in key_map or name_b not in key_map:
+            continue
+
+        key_a = key_map[name_a]
+        key_b = key_map[name_b]
+        # noise = _range_noise(rm.stddev)
+        noise = _range_noise(4.0)
+
+        a_is_pose = name_a in pose_keys
+        b_is_pose = name_b in pose_keys
+
+        if a_is_pose and b_is_pose:
+            graph.add(gtsam.RangeFactorPose3(key_a, key_b, rm.dist, noise))
+        elif a_is_pose:
+            graph.add(gtsam.RangeFactor3D(key_a, key_b, rm.dist, noise))
+        elif b_is_pose:
+            graph.add(gtsam.RangeFactor3D(key_b, key_a, rm.dist, noise))
+        else:
+            graph.add(gtsam.RangeFactor3(key_a, key_b, rm.dist, noise))
 
     return graph, initial, key_map
 
@@ -308,8 +308,8 @@ def visualize(fg: FactorGraphData,
 if __name__ == "__main__":
     from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
-    # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
-    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
+    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+    # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
 
     print(f"Reading {FILE_PATH} ...")
     fg_data = read_from_pyfg_text(FILE_PATH)
