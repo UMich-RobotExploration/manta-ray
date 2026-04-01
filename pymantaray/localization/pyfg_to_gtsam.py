@@ -23,6 +23,7 @@ from evo.core import metrics
 from evo.tools import plot as evo_plot
 
 from py_factor_graph.factor_graph import FactorGraphData
+from py_factor_graph.modifiers import make_all_ranges_perfect
 from py_factor_graph.variables import PoseVariable3D, LandmarkVariable3D
 
 
@@ -97,7 +98,8 @@ def _odom_to_pose3(odom) -> gtsam.Pose3:
     return gtsam.Pose3(R, t)
 
 
-def convert(fg: FactorGraphData, use_odom_initial: bool = False):
+def convert(fg: FactorGraphData, use_odom_initial: bool = False,
+            use_true_ranges: bool = False):
     """Convert a 3D PyFactorGraph to GTSAM.
 
     Args:
@@ -105,6 +107,8 @@ def convert(fg: FactorGraphData, use_odom_initial: bool = False):
         use_odom_initial:   If True, initialize pose estimates by composing
                             odometry (dead reckoning) instead of ground truth.
                             The first pose per robot still uses ground truth.
+        use_true_ranges:    If True, replace measured range distances with
+                            ground-truth distances computed from variable positions.
 
     Returns:
         graph:          gtsam.NonlinearFactorGraph
@@ -182,7 +186,13 @@ def convert(fg: FactorGraphData, use_odom_initial: bool = False):
         graph.add(gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
     pose_keys = fg.pose_variables_dict
-    for rm in fg.range_measurements:
+    if use_true_ranges:
+        true_fg = make_all_ranges_perfect(fg)
+        range_source = true_fg.range_measurements
+    else:
+        range_source = fg.range_measurements
+
+    for rm in range_source:
         """Range factor type depends on endpoint variable types:
             RangeFactorPose3:  Pose3 <-> Pose3
             RangeFactor3D:     Pose3 <-> Point3
@@ -319,15 +329,29 @@ if __name__ == "__main__":
           f"{fg_data.num_odom_measurements} odom, "
           f"{len(fg_data.range_measurements)} range")
 
-    graph, initial, key_map = convert(fg_data, use_odom_initial=True)
-
-    print(f"\nGTSAM graph: {graph.size()} factors, {initial.size()} variables")
-
+    # Run 1: measured ranges
+    print("\n=== Run 1: Measured Ranges ===")
+    graph, initial, key_map = convert(fg_data, use_odom_initial=True,
+                                      use_true_ranges=False)
+    print(f"GTSAM graph: {graph.size()} factors, {initial.size()} variables")
     params = gtsam.LevenbergMarquardtParams()
-    optimizer = gtsam.LevenbergMarquardtOptimizer(graph, deepcopy(initial), params)
-    result = optimizer.optimize()
-
+    result = gtsam.LevenbergMarquardtOptimizer(
+        graph, deepcopy(initial), params).optimize()
     print(f"Initial error: {graph.error(initial):.4f}")
     print(f"Final   error: {graph.error(result):.4f}")
 
+    # Run 2: true ranges
+    print("\n=== Run 2: True Ranges ===")
+    graph_true, initial_true, _ = convert(fg_data, use_odom_initial=True,
+                                          use_true_ranges=True)
+    print(f"GTSAM graph: {graph_true.size()} factors, {initial_true.size()} variables")
+    result_true = gtsam.LevenbergMarquardtOptimizer(
+        graph_true, deepcopy(initial_true), params).optimize()
+    print(f"Initial error: {graph_true.error(initial_true):.4f}")
+    print(f"Final   error: {graph_true.error(result_true):.4f}")
+
+    # Visualize both
+    print("\n--- Measured Ranges ---")
     visualize(fg_data, graph, initial, result, key_map)
+    print("\n--- True Ranges ---")
+    visualize(fg_data, graph_true, initial_true, result_true, key_map)
