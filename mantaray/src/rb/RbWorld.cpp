@@ -131,6 +131,8 @@ void RbWorld::advanceWorld(double time) {
   if (detail::isEqual(simData.time, 0.0)) {
     validateWorld();
     SPDLOG_INFO("Validated Rigid Body World");
+    // Record initial sensor state once at simulation start.
+    updateSensors(*this);
   }
   if (detail::isEqual(time, simData.time)) {
     SPDLOG_DEBUG("Requested no advancement of sim.");
@@ -173,8 +175,9 @@ void RbWorld::advanceWorld(double time) {
     // iteration to avoid floating-point accumulation in a separate counter.
     while (!detail::isEqual(simData.time, time) && simData.time < time) {
       double dt = std::min(simData.dt, time - simData.time);
-      updateSensors(*this);
       stepWorld(dt);
+      // Sample after stepping so the target endpoint time is included.
+      updateSensors(*this);
       SPDLOG_TRACE("Simulation time is {}", simData.time);
     }
     return;

@@ -64,7 +64,7 @@ struct SingleRobotFixture {
   rb::RbWorld world{};
   sim::StandardSensorConfig sensorCfg{};
   pyfg::PfgWriterConfig pfgConfig{};
-  double endTime{4.0};
+  double endTime{100.0};
 
   SingleRobotFixture() {
     init_logger();
@@ -149,7 +149,7 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
   }
   world.addLandmark(Eigen::Vector3d(500, 500, 100));
 
-  // Advance 3 seconds → GT records at t=0,1,2 = 3 samples per robot
+  // Advance 3 seconds → GT records at t=0,1,2,3 = 4 samples per robot
   world.advanceWorld(3.0);
 
   pyfg::PfgWriterConfig config{};
@@ -171,11 +171,15 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
 
   auto c = countPfgLines(lines);
 
-  CHECK(c.vertexPose == 6); // 2 robots × 3 GT samples
+  const size_t numRobots = world.robots.size();
+  const size_t samplesPerRobot =
+      static_cast<size_t>(std::floor(3.0 / world.simData.dt)) + 1;
+
+  CHECK(c.vertexPose == numRobots * samplesPerRobot);
   CHECK(c.vertexLandmark == 1);
-  CHECK(c.priorPose == 2); // 2 initial pose priors (one per robot)
+  CHECK(c.priorPose == numRobots); // 1 initial pose prior per robot
   CHECK(c.priorLandmark == 1);
-  CHECK(c.edgeOdom == 4); // 2 robots × 2 odom edges
+  CHECK(c.edgeOdom == numRobots * (samplesPerRobot - 1));
   CHECK(c.edgeRange == 0);
 
   // Section ordering: vertices before landmarks before priors before edges

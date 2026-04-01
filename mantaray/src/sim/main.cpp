@@ -97,12 +97,6 @@ int main() {
   // Simulation Setup
   //////////////////////////////////////////////////////////////////////////////
 
-  /// How long do we want to run?
-  /// Multiple days
-  /// Every few hours on ranging?
-  /// Odometry I'll do hours
-  /// Need to figure out DT
-
   rb::RbWorld world{};
   double endTime = 8.0 * 60.0 * 60.0;
   world.simData.dt = 0.1;
@@ -111,7 +105,7 @@ int main() {
   world.reserveLandmarks(1);
 
   sim::StandardSensorConfig sensorCfg{
-      0.01, 0.01, 0.01, 0.01, 0.1 / 3.0, 0.01,
+      0.01, 0.01, 0.01, 0.01, 0.1 / 3.0, 0.01 / 3.0,
   };
 
   auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
@@ -132,6 +126,8 @@ int main() {
       importedCurrentGrid, 400.0, kOneHour, kOneHour);
 
   world.addLandmark(Eigen::Vector3d(-2001.0, 100.0, 0.1));
+  world.addLandmark(Eigen::Vector3d(2001.0, 100.0, 0.1));
+  world.addLandmark(Eigen::Vector3d(2001.0, -1000.0, 0.1));
 
   sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
                                                sim::GlobalTofMode::kOneWay);

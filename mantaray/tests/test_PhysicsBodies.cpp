@@ -183,10 +183,10 @@ TEST_CASE("GroundTruthPose records at correct frequency", "[sensors]") {
   const auto &data = gt->getSensorData();
   const auto &timestamps = gt->getSensorTimesteps();
 
-  // 1 Hz over 5 seconds: records at t=0,1,2,3,4 = 5 samples
-  // (t=5 is the post-step time, sensor fires at start of step)
+  // 1 Hz over 5 seconds: records at t=0,1,2,3,4,5 = 6 samples
+  // (sensor updates after each integration step and includes endpoint)
   REQUIRE(data.size() == timestamps.size());
-  CHECK(data.size() == 5);
+  CHECK(data.size() == 6);
 
   // Each entry is 7 elements: [x, y, z, qx, qy, qz, qw]
   CHECK(data[0].size() == 7);
@@ -266,8 +266,8 @@ TEST_CASE("GpsPosition records when at surface", "[sensors]") {
 
   auto *gps = world.robots[idx]->sensors_[0].get();
   const auto &data = gps->getSensorData();
-  // At surface, should record at 1 Hz for 3 seconds
-  CHECK(data.size() == 3);
+  // At surface, should record at t=0,1,2,3 (inclusive endpoint)
+  CHECK(data.size() == 4);
   // Each entry is 3 elements, zero noise → matches position
   CHECK(data[0].size() == 3);
   CHECK(data[0][0] == Approx(5.0).margin(1e-6));
