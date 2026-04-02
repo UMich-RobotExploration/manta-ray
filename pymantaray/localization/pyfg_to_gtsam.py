@@ -175,6 +175,7 @@ class FactorGraphSolver:
         self._build_graph()
 
         self.gt_values = self._build_gt_values()
+        self.odom_values = self._build_odom_values()
 
     def _perturb_odom_deltas(self, sigmas: np.ndarray) -> list[list[gtsam.Pose3]]:
         """Sample noisy odom deltas via Pose3 tangent-space perturbation.
@@ -314,6 +315,31 @@ class FactorGraphSolver:
             else:
                 self.graph.add(
                     gtsam.RangeFactor3(key_a, key_b, rm.dist, noise))
+
+    def _build_odom_values(self) -> gtsam.Values:
+        """Build GTSAM Values by dead-reckoning from (possibly perturbed) odom deltas.
+
+        First pose per robot uses ground truth, then composes odom deltas.
+        When odom_noise_sigmas is set, this shows the perturbed trajectory.
+        """
+        odom = gtsam.Values()
+        for robot_idx, pose_chain in enumerate(self.fg.pose_variables):
+            if not pose_chain:
+                continue
+            current = _pose3_from_pyfg(pose_chain[0])
+            odom.insert(self.key_map[pose_chain[0].name], current)
+
+            for i, meas in enumerate(self.fg.odom_measurements[robot_idx]):
+                delta = self._get_odom_delta(robot_idx, i, meas)
+                current = current.compose(delta)
+                key = self.key_map[meas.to_pose]
+                if not odom.exists(key):
+                    odom.insert(key, current)
+
+        for landmark in self.fg.landmark_variables:
+            odom.insert(self.key_map[landmark.name],
+                        _position_array_from_pyfg(landmark))
+        return odom
 
     def _build_gt_values(self) -> gtsam.Values:
         """Build GTSAM Values from ground-truth poses and landmarks."""

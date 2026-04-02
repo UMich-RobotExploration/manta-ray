@@ -14,11 +14,12 @@ FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:
 #   [rot_x (rad), rot_y (rad), rot_z (rad), tx (m), ty (m), tz (m)]
-angular_noise = np.radians(1 / 3)
-positional_noise = 0.1 * 1 / 3
+angular_noise = 1E-8
+positional_noise = 2
+z_positional_noise = 1E-8
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
-     positional_noise, positional_noise, positional_noise])
+     positional_noise, positional_noise, z_positional_noise])
 
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
@@ -41,6 +42,9 @@ print(f"GTSAM graph: {solver_measured.graph.size()} factors, "
 print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f}")
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
+print("\n--- Measured Ranges ---")
+# visualize(solver_measured)
+
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)
 config_true.use_true_ranges = True
@@ -51,7 +55,5 @@ print(f"GTSAM graph: {solver_true.graph.size()} factors, "
 print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
 
-print("\n--- Measured Ranges ---")
-visualize(solver_measured)
 print("\n--- True Ranges ---")
 visualize(solver_true)

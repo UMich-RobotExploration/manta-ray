@@ -18,7 +18,7 @@ constexpr int kNumSources = 1;
 // Code only supports 1 receiver
 constexpr int kNumRecievers = 1;
 // Total number of beams requested from Bellhop
-constexpr int kNumBeams = 150;
+constexpr int kNumBeams = 300;
 // Conversion constant
 constexpr double kDegree2Radians = M_PI / 180.0;
 // Conversion constant
