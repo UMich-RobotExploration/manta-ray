@@ -18,13 +18,13 @@ constexpr int kNumSources = 1;
 // Code only supports 1 receiver
 constexpr int kNumRecievers = 1;
 // Total number of beams requested from Bellhop
-constexpr int kNumBeams = 150;
+constexpr int kNumBeams = 80;
 // Conversion constant
 constexpr double kDegree2Radians = M_PI / 180.0;
 // Conversion constant
 constexpr double kRadians2Degree = 1.0 / kDegree2Radians;
 // Cone angle that will be swept by bellhop beam
-constexpr double kBeamSpreadRadians = 45.0 * kDegree2Radians;
+constexpr double kBeamSpreadRadians = 20.0 * kDegree2Radians;
 // Ratio of distance between source and receiver each ray will ds step by
 constexpr double kBeamStepSizeRatio = 1.0 / 150.0;
 
