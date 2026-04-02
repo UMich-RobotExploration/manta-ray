@@ -107,6 +107,7 @@ struct SimConfig {
   double boundsCheckIntervalSec{100.0};
 
   std::string tofMode{"one_way"};
+  double debugRangeErrorPct{0.0};
 
   sim::StandardSensorConfig sensors{};
 
@@ -135,6 +136,8 @@ inline void from_json(const json &j, SimConfig &c) {
   if (j.contains("acoustics")) {
     const auto &a = j.at("acoustics");
     c.tofMode = a.value("tof_mode", c.tofMode);
+    c.debugRangeErrorPct =
+        a.value("debug_range_error_pct", c.debugRangeErrorPct);
   }
 
   if (j.contains("sensors")) {

@@ -22,7 +22,8 @@ from py_factor_graph.modifiers import make_all_ranges_perfect
 
 
 # ============ CONFIGURATION ============
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/output.pfg"
 
 
 # ======================================
@@ -163,6 +164,47 @@ def plot_range_diagnostics(fg_data):
     plt.show()
 
 
+def print_worst_ranges(fg_data, n: int = 20):
+    """Print a table of range measurements with the largest percent error.
+
+    Columns: timestamp, source, receiver, measured, true, abs_err, pct_err
+    Sorted by descending absolute percent error.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements.")
+        return
+
+    true_fg = make_all_ranges_perfect(fg_data)
+
+    rows = []
+    for meas, true_meas in zip(fg_data.range_measurements, true_fg.range_measurements):
+        if true_meas.dist == 0:
+            continue
+        abs_err = meas.dist - true_meas.dist
+        pct_err = 100.0 * abs_err / true_meas.dist
+        rows.append((
+            meas.timestamp if meas.timestamp is not None else float('nan'),
+            meas.association[0],
+            meas.association[1],
+            meas.dist,
+            true_meas.dist,
+            abs_err,
+            pct_err,
+        ))
+
+    rows.sort(key=lambda r: abs(r[6]), reverse=True)
+
+    print(f"\nTop {min(n, len(rows))} range measurements by percent error:")
+    print(f"  {'Time':>10s}  {'Source':>8s}  {'Receiver':>8s}  "
+          f"{'Measured':>10s}  {'True':>10s}  {'AbsErr':>10s}  {'PctErr':>8s}")
+    print(f"  {'─' * 10}  {'─' * 8}  {'─' * 8}  "
+          f"{'─' * 10}  {'─' * 10}  {'─' * 10}  {'─' * 8}")
+    for row in rows[:n]:
+        ts, src, rcv, measured, true, abs_e, pct_e = row
+        print(f"  {ts:10.3f}  {src:>8s}  {rcv:>8s}  "
+              f"{measured:10.4f}  {true:10.4f}  {abs_e:+10.4f}  {pct_e:+7.2f}%")
+
+
 def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True):
     """
     Plot 3D factor graph data.
@@ -276,6 +318,9 @@ if __name__ == "__main__":
     print(f"  Landmarks: {len(fg_data.landmark_variables)}")
     print(f"  Poses: {sum(len(poses) for poses in fg_data.pose_variables)}")
     print(f"  Range measurements: {len(fg_data.range_measurements)}")
+
+    # Print worst range measurements
+    print_worst_ranges(fg_data)
 
     # Plot range comparison histogram
     plot_range_histogram(fg_data)

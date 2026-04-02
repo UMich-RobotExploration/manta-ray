@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
   init.maxMemory = config.bellhopMemoryMib * 1024ull * 1024ull;
+  // init.maxMemory = 4ull * 1024ull * 1024ull * 1024ull;
   init.numThreads = -1;
 
   auto envConfig = config::EnvironmentConfig(config.envConfigFile);
@@ -77,9 +78,9 @@ int main(int argc, char *argv[]) {
   auto importedCurrentGrid = envConfig.readCurrent();
 
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "A");
-  // Important to set to I for irregular grid tracking
-  context.params().Beam->RunType[4] = 'I';
+  // Full RunType: [0]=Arrivals [1]=Geometric [2-3]=unused [4]=Irregular grid
+  // [5]=3D
+  strcpy(context.params().Beam->RunType, "AG  I3");
   strncpy(context.params().Title, config.runName.c_str(),
           sizeof(context.params().Title) - 1);
 
@@ -132,7 +133,9 @@ int main(int argc, char *argv[]) {
                                    ? sim::GlobalTofMode::kTwoWay
                                    : sim::GlobalTofMode::kOneWay;
 
-  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context, tofMode);
+  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context, tofMode,
+                                               false, config.debugRangeErrorPct,
+                                               config.outputDir);
   rangeSystem.rebuildPairs(world);
 
   double boundsCheckInterval = config.boundsCheckIntervalSec;

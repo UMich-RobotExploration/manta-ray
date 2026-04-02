@@ -1,5 +1,8 @@
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 
+#include <cmath>
+#include <cstring>
+
 namespace {
 /// Compact composite key for correlating general and bellhop logs.
 /// Format: "[t=<time> <pingerIdx>[R|L]-><targetIdx>[R|L]]"
@@ -17,11 +20,14 @@ namespace sim {
 AcousticPairwiseRangeSystem::AcousticPairwiseRangeSystem(
     acoustics::AcousticsBuilder &builder,
     acoustics::BhContext<true, true> &context, GlobalTofMode mode,
-    bool logAllMeasurements)
+    bool logAllMeasurements, double debugRangeErrorPct,
+    std::string debugOutputDir)
     : builder_(builder),
       context_(context),
       mode_(mode),
-      logAllMeasurements_(logAllMeasurements) {}
+      logAllMeasurements_(logAllMeasurements),
+      debugRangeErrorPct_(debugRangeErrorPct),
+      debugOutputDir_(std::move(debugOutputDir)) {}
 
 void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
   links_.clear();
@@ -254,9 +260,49 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     meas.tofEffectiveSec = tofRawSec * tofScale(mode_);
     meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
     meas.status = RangeStatus::kOk;
-    SPDLOG_INFO("{} Ping OK: range={:.2f}m tof={:.6f}s ssp={:.1f}m/s", tag,
-                meas.rangeMeters, meas.tofEffectiveSec,
-                meas.soundSpeedAtPingerMps);
+    double trueRange = (pingerPos - targetPos).norm();
+    SPDLOG_INFO("{} Ping OK: range={:.2f}m true={:.2f}m err={:.2f}m "
+                "tof={:.6f}s ssp={:.1f}m/s",
+                tag, meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
+                meas.tofEffectiveSec, meas.soundSpeedAtPingerMps);
+
+    // Debug ray trace on high error
+    if (debugRangeErrorPct_ > 0.0 && trueRange > 0.0) {
+      double errorPct =
+          std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
+      if (errorPct > debugRangeErrorPct_) {
+        SPDLOG_WARN("{} Error {:.1f}% exceeds threshold {:.1f}%, "
+                    "re-running ray trace",
+                    tag, errorPct, debugRangeErrorPct_);
+
+        // Switch to ray trace mode, preserving all other RunType flags
+        char savedRunType[7];
+        std::strcpy(savedRunType, context_.params().Beam->RunType);
+        savedRunType[0] = 'R';
+        std::strcpy(context_.params().Beam->RunType, savedRunType);
+        savedRunType[0] = 'A'; // prepare restore value
+
+        // Ray Preprocess allocates ray data alongside existing arrivals data.
+        // Both fit in memory as long as maxMemory is sufficient.
+        bhc::run(context_.params(), context_.outputs());
+
+        auto filename =
+            fmt::format("{}/debug_{}{}_to_{}{}_{:.0f}s", debugOutputDir_,
+                        link.pinger.type == EndpointType::kRobot ? "R" : "L",
+                        link.pinger.index,
+                        link.target.type == EndpointType::kRobot ? "R" : "L",
+                        link.target.index, simTimeSec);
+        // writeenv captures the environment snapshot
+        // (source/receiver/SSP/bathy) writeout for ray mode segfaults in
+        // bellhop's Ray::Writeout (null ray ptr) NOTE: THis is a fundamental
+        // bug in bellhop that we cannot fix
+        bhc::writeenv(context_.params(), filename.c_str());
+
+        // Restore arrivals mode — next bhc::run() re-preprocesses for arrivals
+        std::strcpy(context_.params().Beam->RunType, savedRunType);
+      }
+    }
+
     measurements_.push_back(meas);
   }
 }

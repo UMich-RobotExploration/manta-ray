@@ -109,7 +109,9 @@ public:
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
                               acoustics::BhContext<true, true> &context,
                               GlobalTofMode mode,
-                              bool logAllMeasurements = false);
+                              bool logAllMeasurements = false,
+                              double debugRangeErrorPct = 0.0,
+                              std::string debugOutputDir = "");
 
   /**
    * @brief Builds full pairwise links with each robot as pinger.
@@ -165,6 +167,8 @@ private:
   acoustics::BhContext<true, true> &context_;
   GlobalTofMode mode_{GlobalTofMode::kOneWay};
   bool logAllMeasurements_{false};
+  double debugRangeErrorPct_{0.0};
+  std::string debugOutputDir_;
   std::vector<RangeLink> links_{};
   std::vector<RangeMeasurement> measurements_{};
 
