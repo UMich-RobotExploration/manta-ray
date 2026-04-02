@@ -1,0 +1,64 @@
+{
+  "run_name": "overhaul",
+  "output_dir": "results/lbl",
+  "env_config_file": "../../sim_config/monterey.json",
+  "rng_seed": 10020,
+  "bellhop_memory_mib": 80,
+  "timing": {
+    "end_time_hours": 8.0,
+    "physics_dt": 0.1,
+    "ping_interval_min": 30.0,
+    "bounds_check_interval_sec": 100.0
+  },
+  "acoustics": {
+    "tof_mode": "one_way"
+  },
+  "sensors": {
+    "gt_freq_hz": 0.01,
+    "odom_freq_hz": 0.01,
+    "gps_freq_hz": 0.01,
+    "odom_noise_stddev": 0.01,
+    "gps_xy_noise_stddev": 0.033,
+    "gps_z_noise_stddev": 0.0033
+  },
+  "robots": [
+    {
+      "type": "constant_vel",
+      "position": [1.0, 1.0, 50.0],
+      "velocity": [0.1, -0.3, 0.0]
+    },
+    {
+      "type": "current_drift",
+      "position": [3000.0, -3000.0, 0.01],
+      "target_depth": 300.0,
+      "hold_seconds": 3600.0,
+      "surface_hold_seconds": 3600.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-100.0, 1000.0, 0.01],
+      "target_depth": 1000.0,
+      "hold_seconds": 3600.0,
+      "surface_hold_seconds": 3600.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-1000.0, -4000.0, 0.01],
+      "target_depth": 400.0,
+      "hold_seconds": 3600.0,
+      "surface_hold_seconds": 3600.0
+    }
+  ],
+  "landmarks": [
+    [-2001.0, 100.0, 0.1],
+    [2001.0, 100.0, 0.1],
+    [2001.0, -1000.0, 0.1]
+  ],
+  "pfg": {
+    "use_ground_truth_odometry": true,
+    "range_variance": 0.01,
+    "odom_rotation_variance": 0.00001,
+    "pose_prior_cov_diag": [0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001],
+    "landmark_prior_cov_diag": [0.001, 0.001, 0.001]
+  }
+}

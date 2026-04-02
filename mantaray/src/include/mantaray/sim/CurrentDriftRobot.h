@@ -15,6 +15,18 @@
 namespace robots {
 
 /**
+ * @brief Configuration for CurrentDriftRobot
+ */
+struct CurrentDriftConfig {
+  Eigen::Vector3d position;
+  double targetDepth{50.0};
+  double holdSeconds{60.0};
+  double surfaceHoldSeconds{60.0};
+  double verticalSpeed{0.5};
+  double surfaceDepth{0.01};
+};
+
+/**
  * @brief Robot whose commanded twist is determined by the water current.
  *
  * @details This robot is a simple "drifter": it queries the provided current
@@ -26,20 +38,8 @@ namespace robots {
  */
 class CurrentDriftRobot final : public rb::RobotI {
 public:
-  /**
-   * @param currentGrid Reference to current field (lifetime managed elsewhere)
-   * @param targetDepth Depth to dive to (world z, typically meters, +down)
-   * @param holdSeconds Time to hold at targetDepth before ascending
-   * @param surfaceHoldSeconds Time to hold at the surface before descending
-   * @param verticalSpeed Magnitude of vertical speed during descent/ascent
-   * @param surfaceDepth Depth considered "surface" for ending ascent
-   */
   explicit CurrentDriftRobot(const acoustics::GridVec &currentGrid,
-                             double targetDepth = 50.0,
-                             double holdSeconds = 60.0,
-                             double surfaceHoldSeconds = 60.0,
-                             double verticalSpeed = 0.5,
-                             double surfaceDepth = 0.01);
+                             const CurrentDriftConfig &cfg);
 
   manif::SE3Tangentd computeLocalTwist(const rb::DynamicsBodies &bodies,
                                        double simTime, double dt) override;

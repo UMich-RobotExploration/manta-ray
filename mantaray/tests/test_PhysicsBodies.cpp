@@ -172,7 +172,7 @@ TEST_CASE("GroundTruthPose records at correct frequency", "[sensors]") {
   world.createRngEngine(42);
 
   // GT at 1 Hz → should record every 1 second
-  auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1, 0, 0));
+  auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {1, 0, 0}});
   world.robots[idx]->addSensor(
       std::make_unique<rb::GroundTruthPose>(1.0, 100));
   world.dynamicsBodies.setPosition(idx, Eigen::Vector3d(10, 20, 30));
@@ -203,7 +203,7 @@ TEST_CASE("PositionalXYOdometry with zero noise matches GT position",
   world.simData.dt = 0.1;
   world.createRngEngine(42);
 
-  auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(1, 0, 0));
+  auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {1, 0, 0}});
   world.robots[idx]->addSensor(
       std::make_unique<rb::GroundTruthPose>(1.0, 100));
   // Zero-noise odometry at 1 Hz
@@ -237,7 +237,7 @@ TEST_CASE("GpsPosition only records near surface", "[sensors]") {
   world.createRngEngine(42);
 
   // Robot with zero velocity at depth z=100 (well below surface)
-  auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0, 0, 0));
+  auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {0, 0, 0}});
   world.robots[idx]->addSensor(std::make_unique<rb::GpsPosition>(
       1.0, 100, std::normal_distribution<double>{0.0, 0.0},
       std::normal_distribution<double>{0.0, 0.0}, 0.1, 0.0));
@@ -256,7 +256,7 @@ TEST_CASE("GpsPosition records when at surface", "[sensors]") {
   world.createRngEngine(42);
 
   // Robot at z=0 (at surface), zero velocity
-  auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0, 0, 0));
+  auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {0, 0, 0}});
   world.robots[idx]->addSensor(std::make_unique<rb::GpsPosition>(
       1.0, 100, std::normal_distribution<double>{0.0, 0.0},
       std::normal_distribution<double>{0.0, 0.0}, 0.1, 0.0));

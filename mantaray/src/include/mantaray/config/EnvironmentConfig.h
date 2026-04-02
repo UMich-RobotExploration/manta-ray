@@ -1,4 +1,4 @@
-/** @file ConfigReader.h
+/** @file EnvironmentConfig.h
  * @brief Configuration reading and validation
  */
 
@@ -16,17 +16,17 @@ namespace config {
 constexpr char kSourceKey[] = "source_dir";
 
 /**
- * @brief ConfigReader is responsible for reading and parsing configuration
+ * @brief EnvironmentConfig is responsible for reading and parsing configuration
  * files.
  *
  * This class provides methods to load and validate configuration data from JSON
  * files. It supports reading bathymetry and sound speed profile (SSP) data,
  * ensuring that required keys are present and the data is properly formatted.
  */
-class ConfigReader {
+class EnvironmentConfig {
 public:
   /**
-   * @brief Constructs a ConfigReader with the specified configuration file
+   * @brief Constructs a EnvironmentConfig with the specified configuration file
    * path.
    *
    * This constructor validates the existence of the configuration file and
@@ -36,12 +36,12 @@ public:
    * @throws std::invalid_argument if the file does not exist or cannot be
    * parsed.
    */
-  ConfigReader(std::string configPath);
+  EnvironmentConfig(std::string configPath);
 
   /**
-   * @brief Default destructor for ConfigReader.
+   * @brief Default destructor for EnvironmentConfig.
    */
-  ~ConfigReader();
+  ~EnvironmentConfig();
 
   /**
    * @brief Reads and constructs a 2D bathymetry grid from the configuration

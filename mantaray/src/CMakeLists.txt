@@ -3,7 +3,7 @@ add_executable(${TARGET_NAME}
         sim/main.cpp
         sim/AcousticPairwiseRangeSystem.cpp
         sim/CurrentDriftRobot.cpp
-        config/ConfigReader.cpp
+        config/EnvironmentConfig.cpp
         utils/Logger.cpp
         utils/PfgWriter.cpp
 )

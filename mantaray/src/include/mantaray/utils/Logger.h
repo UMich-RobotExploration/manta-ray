@@ -24,4 +24,4 @@ extern std::shared_ptr<spdlog::logger> bellhop_logger;
  * normal log use. It should only receive logs from the bellhop callbacks. It
  * does not stream to stdout
  */
-void init_logger();
+void init_logger(const std::string &logDir = ".");

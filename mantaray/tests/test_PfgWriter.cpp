@@ -139,7 +139,7 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
 
   // 2 stationary robots with GT at 1 Hz, odom at 1 Hz (zero noise)
   for (int r = 0; r < 2; ++r) {
-    auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0, 0, 0));
+    auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {0, 0, 0}});
     world.robots[idx]->addSensor(
         std::make_unique<rb::GroundTruthPose>(1.0, 10));
     world.robots[idx]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
@@ -224,7 +224,7 @@ TEST_CASE("writePfg skips landmark priors when config is empty",
   rb::RbWorld world{};
   world.simData.dt = 1.0;
   world.createRngEngine(42);
-  auto idx = world.addRobot<rb::ConstantVelRobot>(Eigen::Vector3d(0, 0, 0));
+  auto idx = world.addRobot<rb::ConstantVelRobot>(rb::ConstantVelConfig{{}, {0, 0, 0}});
   world.robots[idx]->addSensor(std::make_unique<rb::GroundTruthPose>(1.0, 10));
   world.robots[idx]->addSensor(std::make_unique<rb::PositionalXYOdometry>(
       1.0, 10, std::normal_distribution<double>{0.0, 0.01}));
@@ -254,9 +254,9 @@ TEST_CASE("writePfg skips landmark priors when config is empty",
 
 TEST_CASE_METHOD(SingleRobotFixture, "writePfg minimal single-robot debug file",
                  "[pfgwriter][debug]") {
+  rb::ConstantVelConfig cvCfg{{0, 0, 0}, {1, 0, 0}};
   sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(0, 0, 0), sensorCfg,
-      Eigen::Vector3d(1, 0, 0));
+      world, endTime, cvCfg.position, sensorCfg, cvCfg);
 
   world.advanceWorld(endTime);
 
