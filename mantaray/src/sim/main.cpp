@@ -52,6 +52,11 @@ config::SimConfig parseArgs(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
+  // TODO: Notes and lessons learned:
+  // - Insufficient beam spacing and we are only getting multipath results
+  // - Need to write an interative convergence strategy that looks for direct
+  //  paths to the AUV, if no direct path is provided, the multipath result
+  //  could be accepted as good.
 
   auto config = parseArgs(argc, argv);
   auto outDir = std::filesystem::path(config.outputDir);
