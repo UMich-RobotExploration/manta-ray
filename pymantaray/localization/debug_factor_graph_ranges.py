@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
 # Import parsing function
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
@@ -70,6 +71,95 @@ def plot_range_histogram(fg_data):
     ax3.set_title('Range Measurement Percent Error')
 
     plt.tight_layout()
+    plt.show()
+
+
+def plot_range_diagnostics(fg_data):
+    """Plot range measurement error diagnostics broken down by association type.
+
+    Categorizes range measurements into pose↔pose (robot-robot) and
+    pose↔landmark (robot-landmark), then plots absolute error, percent error,
+    and error vs measurement index for each category.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements to diagnose.")
+        return
+
+    true_fg = make_all_ranges_perfect(fg_data)
+    pose_keys = set(fg_data.pose_variables_dict.keys())
+
+    categories = {
+        "Robot ↔ Robot": {"measured": [], "true": []},
+        "Robot ↔ Landmark": {"measured": [], "true": []},
+    }
+
+    for meas, true_meas in zip(fg_data.range_measurements, true_fg.range_measurements):
+        name_a, name_b = meas.association
+        a_is_pose = name_a in pose_keys
+        b_is_pose = name_b in pose_keys
+
+        if a_is_pose and b_is_pose:
+            cat = "Robot ↔ Robot"
+        elif a_is_pose or b_is_pose:
+            cat = "Robot ↔ Landmark"
+        else:
+            continue
+
+        categories[cat]["measured"].append(meas.dist)
+        categories[cat]["true"].append(true_meas.dist)
+
+    active_cats = {k: v for k, v in categories.items()
+                   if len(v["measured"]) > 0}
+
+    if not active_cats:
+        print("No classifiable range measurements found.")
+        return
+
+    nrows = len(active_cats)
+    fig, axes = plt.subplots(nrows, 3, figsize=(18, 5 * nrows))
+    if nrows == 1:
+        axes = axes[np.newaxis, :]
+
+    for row, (cat_name, data) in enumerate(active_cats.items()):
+        measured = np.array(data["measured"])
+        true = np.array(data["true"])
+        abs_err = measured - true
+        pct_err = 100.0 * abs_err / true
+
+        # Print summary
+        print(f"\n{'=' * 50}")
+        print(f"  {cat_name}  ({len(measured)} measurements)")
+        print(f"{'=' * 50}")
+        print(f"  Absolute error (m):  mean={np.mean(abs_err):.4f}  "
+              f"std={np.std(abs_err):.4f}  max={np.max(np.abs(abs_err)):.4f}")
+        print(f"  Percent error  (%):  mean={np.mean(pct_err):.2f}  "
+              f"std={np.std(pct_err):.2f}  max={np.max(np.abs(pct_err)):.2f}")
+
+        # Absolute error histogram
+        ax = axes[row, 0]
+        ax.hist(abs_err, bins=30, alpha=0.7, color='red')
+        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
+        ax.set_xlabel("Absolute Error (m)")
+        ax.set_ylabel("Count")
+        ax.set_title(f"{cat_name} — Absolute Error")
+
+        # Percent error histogram
+        ax = axes[row, 1]
+        ax.hist(pct_err, bins=30, alpha=0.7, color='orange')
+        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
+        ax.set_xlabel("Percent Error (%)")
+        ax.set_ylabel("Count")
+        ax.set_title(f"{cat_name} — Percent Error")
+
+        # Absolute error vs index
+        ax = axes[row, 2]
+        ax.scatter(range(len(abs_err)), abs_err, s=4, alpha=0.5, color='blue')
+        ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        ax.set_xlabel("Measurement Index")
+        ax.set_ylabel("Absolute Error (m)")
+        ax.set_title(f"{cat_name} — Error vs Index")
+
+    fig.tight_layout()
     plt.show()
 
 
@@ -189,6 +279,9 @@ if __name__ == "__main__":
 
     # Plot range comparison histogram
     plot_range_histogram(fg_data)
+
+    # Plot range diagnostics by association type
+    plot_range_diagnostics(fg_data)
 
     # Plot the data
     plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True)
