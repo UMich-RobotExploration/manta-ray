@@ -16,6 +16,12 @@ namespace robots {
 
 /**
  * @brief Configuration for CurrentDriftRobot
+ * @param currentGrid Reference to current field (lifetime managed elsewhere)
+ * @param targetDepth Depth to dive to (world z, typically meters, +down)
+ * @param holdSeconds Time to hold at targetDepth before ascending
+ * @param surfaceHoldSeconds Time to hold at the surface before descending
+ * @param verticalSpeed Magnitude of vertical speed during descent/ascent
+ * @param surfaceDepth Depth considered "surface" for ending ascent
  */
 struct CurrentDriftConfig {
   Eigen::Vector3d position;

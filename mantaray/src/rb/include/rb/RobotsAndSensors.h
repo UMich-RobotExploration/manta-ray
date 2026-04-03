@@ -24,6 +24,8 @@ namespace rb {
 
 /**
  * @brief Configuration for ConstantVelRobot
+ * @param position initial position
+ * @param velocity constant velocity robot will follow
  */
 struct ConstantVelConfig {
   Eigen::Vector3d position;
