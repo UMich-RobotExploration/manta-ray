@@ -45,10 +45,12 @@ public:
    * arrival. Utilize getIdx to map 3D receiver indices to flattened vector
    * index.
    *
-   * @return Flat3D Vector of earliest arrival times, kNoArrival denotes no
-   * arrivals
+   * @param directPathOnly When true, only consider arrivals with zero
+   *        surface and bottom bounces (direct path). Returns kNoArrival
+   *        if no direct path exists.
+   * @return Earliest arrival delay in seconds, or kNoArrival (-1) if none
    */
-  float getFastestArrival();
+  float getFastestArrival(bool directPathOnly = false);
 
   /**
    * @brief Returns largest amplitude arrival (not the shortest flight time)

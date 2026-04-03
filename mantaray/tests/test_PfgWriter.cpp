@@ -42,17 +42,17 @@ struct PfgLineCounts {
 PfgLineCounts countPfgLines(const std::vector<std::string> &lines) {
   PfgLineCounts c;
   for (const auto &l : lines) {
-    if (l.rfind("VERTEX_SE3:QUAT:PRIOR", 0) == 0)
+    if (l.rfind(pyfg::kVertexSe3QuatPrior, 0) == 0)
       c.priorPose++;
-    else if (l.rfind("VERTEX_SE3:QUAT", 0) == 0)
+    else if (l.rfind(pyfg::kVertexSe3Quat, 0) == 0)
       c.vertexPose++;
-    else if (l.rfind("VERTEX_XYZ:PRIOR", 0) == 0)
+    else if (l.rfind(pyfg::kVertexXyzPrior, 0) == 0)
       c.priorLandmark++;
-    else if (l.rfind("VERTEX_XYZ", 0) == 0)
+    else if (l.rfind(pyfg::kVertexXyz, 0) == 0)
       c.vertexLandmark++;
-    else if (l.rfind("EDGE_SE3:QUAT", 0) == 0)
+    else if (l.rfind(pyfg::kEdgeSe3Quat, 0) == 0)
       c.edgeOdom++;
-    else if (l.rfind("EDGE_RANGE", 0) == 0)
+    else if (l.rfind(pyfg::kEdgeRange, 0) == 0)
       c.edgeRange++;
   }
   return c;
@@ -187,15 +187,15 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
   size_t lastPrior = 0, firstEdge = 0;
   for (size_t i = 0; i < lines.size(); ++i) {
     const auto &l = lines[i];
-    if (l.rfind("VERTEX_SE3:QUAT:PRIOR", 0) == 0)
+    if (l.rfind(pyfg::kVertexSe3QuatPrior, 0) == 0)
       lastPrior = i;
-    else if (l.rfind("VERTEX_SE3:QUAT", 0) == 0)
+    else if (l.rfind(pyfg::kVertexSe3Quat, 0) == 0)
       lastVertexPose = i;
-    else if (l.rfind("VERTEX_XYZ:PRIOR", 0) == 0)
+    else if (l.rfind(pyfg::kVertexXyzPrior, 0) == 0)
       lastPrior = i;
-    else if (l.rfind("VERTEX_XYZ", 0) == 0 && firstVertexLandmark == 0)
+    else if (l.rfind(pyfg::kVertexXyz, 0) == 0 && firstVertexLandmark == 0)
       firstVertexLandmark = i;
-    else if (l.rfind("EDGE_SE3:QUAT", 0) == 0 && firstEdge == 0)
+    else if (l.rfind(pyfg::kEdgeSe3Quat, 0) == 0 && firstEdge == 0)
       firstEdge = i;
   }
   CHECK(lastVertexPose < firstVertexLandmark);
@@ -209,7 +209,7 @@ TEST_CASE("writePfg produces correct section ordering and field counts",
   while (firstLine >> field)
     fields.push_back(field);
   CHECK(fields.size() == 10);
-  CHECK(fields[0] == "VERTEX_SE3:QUAT");
+  CHECK(fields[0] == pyfg::kVertexSe3Quat);
   // Pose name should be A0
   CHECK(fields[2] == "A0");
 
@@ -242,7 +242,7 @@ TEST_CASE("writePfg skips landmark priors when config is empty",
 
   auto lines = readLines(testFile);
   for (const auto &l : lines) {
-    CHECK(l.rfind("VERTEX_XYZ:PRIOR", 0) != 0);
+    CHECK(l.rfind(pyfg::kVertexXyzPrior, 0) != 0);
   }
 
   std::remove(testFile.c_str());
