@@ -23,15 +23,23 @@ namespace rb {
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * @brief Configuration for ConstantVelRobot
+ * @param position initial position
+ * @param velocity constant velocity robot will follow
+ */
+struct ConstantVelConfig {
+  Eigen::Vector3d position;
+  Eigen::Vector3d velocity;
+};
+
+/**
  * @brief Constant Velocity Robot in prescribed vector direction
  */
 class ConstantVelRobot : public RobotI {
 public:
   const Eigen::Vector3d constantVel_;
-  /** @brief Constructs constant linear velocity
-   */
-  explicit ConstantVelRobot(Eigen::Vector3d constantVel)
-      : constantVel_(constantVel){};
+  explicit ConstantVelRobot(const ConstantVelConfig &cfg)
+      : constantVel_(cfg.velocity){};
   manif::SE3Tangentd computeLocalTwist(const DynamicsBodies &bodies,
                                        double simTime, double dt) override;
 };

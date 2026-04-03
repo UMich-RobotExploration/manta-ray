@@ -38,9 +38,17 @@ def export_bathymetry(dataset, x_filename="x_coords.npy", y_filename="y_coords.n
         x_filename = output_dir + x_filename
         y_filename = output_dir + y_filename
         bathy_filename = output_dir + bathy_filename
+    bathy_da = dataset['bathymetry']
+    print(f"Bathymetry dims: {bathy_da.dims}, shape: {bathy_da.shape}")
     x_coords = dataset.coords['x_m'].values.astype(np.float64)
     y_coords = dataset.coords['y_m'].values.astype(np.float64)
-    bathymetry_flat = dataset['bathymetry'].values.flatten(order='C').astype(np.float64)
+    print(f"x_m size: {len(x_coords)}, y_m size: {len(y_coords)}")
+    print(f"Expected C-flatten index order: {bathy_da.dims[0]} * {len(dataset.coords[bathy_da.dims[1]])} + {bathy_da.dims[1]}")
+    print(f"Grid2D expects: ix * ny + iy  (x-major)")
+    if bathy_da.dims[0] != 'x_m':
+        print(f"WARNING: first dim is '{bathy_da.dims[0]}', not 'x_m' — data may be transposed vs Grid2D expectation!")
+    # Transpose so first axis is x_m (lon), matching Grid2D's ix * ny + iy indexing
+    bathymetry_flat = bathy_da.transpose('lon', 'lat').values.flatten(order='C').astype(np.float64)
     np.save(x_filename, x_coords, allow_pickle=False)
     np.save(y_filename, y_coords, allow_pickle=False)
     np.save(bathy_filename, bathymetry_flat, allow_pickle=False)
@@ -73,10 +81,16 @@ def export_ssp(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", z_
         y_filename = output_dir + y_filename
         z_filename = output_dir + z_filename
         sound_speed_filename = output_dir + sound_speed_filename
+    ssp_da = dataset['sound_speed']
+    print(f"SSP dims: {ssp_da.dims}, shape: {ssp_da.shape}")
     x_coords = dataset.coords['x_m'].values.astype(np.float64)
     y_coords = dataset.coords['y_m'].values.astype(np.float64)
     depths = dataset.coords['depth'].values.astype(np.float64)
-    sound_speed_flat = dataset['sound_speed'].values.flatten(order='C').astype(np.float64)
+    print(f"x_m size: {len(x_coords)}, y_m size: {len(y_coords)}, depth size: {len(depths)}")
+    if ssp_da.dims[0] != 'x_m':
+        print(f"WARNING: first dim is '{ssp_da.dims[0]}', not 'x_m' — transposing to (lon, lat, depth) for Grid3D")
+    # Transpose so first axis is x (lon), matching Grid3D's ix * ny*nz + iy * nz + iz
+    sound_speed_flat = ssp_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
     np.save(x_filename, x_coords, allow_pickle=False)
     np.save(y_filename, y_coords, allow_pickle=False)
     np.save(z_filename, depths, allow_pickle=False)
@@ -109,8 +123,14 @@ def export_uv(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", u_f
     y_coords = dataset.coords['y_m'].values.astype(np.float64)
     depths = dataset.coords['depth'].values.astype(np.float64)
 
-    u = dataset['u'].values.flatten(order='C').astype(np.float64)
-    v = dataset['v'].values.flatten(order='C').astype(np.float64)
+    u_da = dataset['u']
+    v_da = dataset['v']
+    print(f"Current u dims: {u_da.dims}, shape: {u_da.shape}")
+    if u_da.dims[0] != 'x_m':
+        print(f"WARNING: first dim is '{u_da.dims[0]}', not 'x_m' — transposing to (lon, lat, depth) for GridVec")
+    # Transpose so first axis is x (lon), matching GridVec's ix * ny*nz + iy * nz + iz
+    u = u_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
+    v = v_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
 
     # Replace missing current data with zeros to avoid interpolating gaps downstream.
     # Important to prevent bugs in C++ interpolation scheme

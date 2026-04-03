@@ -9,7 +9,8 @@ from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 from pyfg_to_gtsam import FactorGraphSolver, SolverConfig
 from visualize_solver import visualize
 
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:

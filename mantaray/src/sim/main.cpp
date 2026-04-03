@@ -14,7 +14,8 @@
 #include "acoustics/BellhopContext.h"
 #include "acoustics/acousticsConstants.h"
 #include "acoustics/helpers.h"
-#include <mantaray/config/ConfigReader.h>
+#include <mantaray/config/EnvironmentConfig.h>
+#include <mantaray/config/SimConfig.h>
 
 #include "acoustics/AcousticsBuilder.h"
 #include "acoustics/Grid.h"
@@ -31,112 +32,121 @@ void OutputCallback(const char *message) {
   bellhop_logger->debug("{}", message);
 }
 
-int main() {
+config::SimConfig parseArgs(int argc, char *argv[]) {
+  if (argc < 2) {
+    fmt::print(stderr, "Usage: {} <sim_config.json>\n", argv[0]);
+    std::exit(1);
+  }
 
-  init_logger();
-  auto init = bhc::bhcInit();
-  // Set the global logger as the default logger
+  auto config = config::loadSimConfig(argv[1]);
+
+  auto outDir = std::filesystem::path(config.outputDir);
+  if (std::filesystem::exists(outDir) && !std::filesystem::is_empty(outDir)) {
+    fmt::print(stderr, "Error: output directory is not empty: {}\n",
+               config.outputDir);
+    std::exit(1);
+  }
+  std::filesystem::create_directories(outDir);
+
+  return config;
+}
+
+int main(int argc, char *argv[]) {
+  // TODO: Notes and lessons learned:
+  // - Insufficient beam spacing and we are only getting multipath results
+  // - Need to write an interative convergence strategy that looks for direct
+  //  paths to the AUV, if no direct path is provided, the multipath result
+  //  could be accepted as good.
+
+  auto config = parseArgs(argc, argv);
+  auto outDir = std::filesystem::path(config.outputDir);
+
+  init_logger(config.outputDir);
   spdlog::set_default_logger(global_logger);
-  SPDLOG_INFO("Beginning Bellhop Robotics Sim");
 
-  char runName[] = "overhaul";
-  SPDLOG_INFO("Run name: {}", runName);
-  SPDLOG_INFO("Current run path is: {}",
-              std::filesystem::current_path().c_str());
+  SPDLOG_INFO("Loaded sim config: {}", argv[1]);
+  SPDLOG_INFO("Beginning Bellhop Robotics Sim");
+  SPDLOG_INFO("Run name: {}", config.runName);
+  SPDLOG_INFO("Output directory: {}", config.outputDir);
+
+  auto init = bhc::bhcInit();
   init.FileRoot = nullptr;
   init.prtCallback = PrtCallback;
   init.outputCallback = OutputCallback;
-  // Profiled memory to find PreProcess was the longest task in the sim
-  // Reducing memory is the only way to limit it's overhead.
-  init.maxMemory = 80ull * 1024ull * 1024ull; // 80 MiB
+  init.maxMemory = config.bellhopMemoryMib * 1024ull * 1024ull;
+  // init.maxMemory = 4ull * 1024ull * 1024ull * 1024ull;
   init.numThreads = -1;
-  // init.useRayCopyMode = true;
 
-  auto configFile = config::ConfigReader("../../sim_config/monterey.json");
-  auto importedBathGrid = configFile.readBathymetry();
-  auto importedSSPGrid = configFile.readSSP();
-  auto importedCurrentGrid = configFile.readCurrent();
+  auto envConfig = config::EnvironmentConfig(config.envConfigFile);
+  auto importedBathGrid = envConfig.readBathymetry();
+  auto importedSSPGrid = envConfig.readSSP();
+  auto importedCurrentGrid = envConfig.readCurrent();
 
   auto context = acoustics::BhContext<true, true>(init);
-  strcpy(context.params().Beam->RunType, "A");
-  // Important to set to I for irregular grid tracking
-  context.params().Beam->RunType[4] = 'I';
-  strcpy(context.params().Title, runName);
+  // Full RunType: [0]=Arrivals [1]=Geometric [2-3]=unused [4]=Irregular grid
+  // [5]=3D
+  strcpy(context.params().Beam->RunType, "AG  I3");
+  strncpy(context.params().Title, config.runName.c_str(),
+          sizeof(context.params().Title) - 1);
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Bathymetry Setup
-  //////////////////////////////////////////////////////////////////////////////
-
-  acoustics::BathymetryConfig bathConfig = acoustics::BathymetryConfig{
+  auto bathConfig = acoustics::BathymetryConfig{
       std::move(importedBathGrid), acoustics::BathyInterpolationType::kLinear,
       false};
 
-  //////////////////////////////////////////////////////////////////////////////
-  // SSP Setup
-  //////////////////////////////////////////////////////////////////////////////
-
   auto sspConfig = acoustics::SSPConfig{std::move(importedSSPGrid), false};
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Source / Receivers Setup
-  //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector3d sourcePos(0.0, 0.0, 1000.0);
-  Eigen::Vector3d receiverPos;
-  receiverPos(0) = 0.0;
-  receiverPos(1) = 0.0;
-  receiverPos(2) = 1.0;
-
-  acoustics::AgentsConfig agents =
-      acoustics::AgentsConfig{sourcePos, receiverPos};
-
-  acoustics::AcousticsBuilder simBuilder = acoustics::AcousticsBuilder(
-      context.params(), bathConfig, sspConfig, agents);
+  acoustics::AgentsConfig agents{{0, 0, 10}, {0, 0, 1}};
+  auto simBuilder = acoustics::AcousticsBuilder(context.params(), bathConfig,
+                                                sspConfig, agents);
   simBuilder.build();
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Simulation Setup
-  //////////////////////////////////////////////////////////////////////////////
-
+  // Simulation setup
+  double endTime = config.endTimeHours * 3600.0;
   rb::RbWorld world{};
-  double endTime = 8.0 * 60.0 * 60.0;
-  world.simData.dt = 0.1;
-  world.createRngEngine(10020);
-  world.reserveRobots(4);
-  world.reserveLandmarks(1);
+  world.simData.dt = config.physicsDt;
+  world.createRngEngine(config.rngSeed);
 
-  sim::StandardSensorConfig sensorCfg{
-      0.01, 0.01, 0.01, 0.01, 0.1 / 3.0, 0.01 / 3.0,
-  };
+  // Create robots from config
+  std::vector<rb::RobotIdx> robotIndices;
+  for (const auto &rj : config.robotsJson) {
+    auto type = config::robotTypeFromString(rj.at("type"));
+    rb::RobotIdx idx;
+    switch (type) {
+    case config::RobotType::kConstantVel: {
+      auto cfg = rj.get<rb::ConstantVelConfig>();
+      idx = sim::addStandardRobot<rb::ConstantVelRobot>(
+          world, endTime, cfg.position, config.sensors, cfg);
+      break;
+    }
+    case config::RobotType::kCurrentDrift: {
+      auto cfg = rj.get<robots::CurrentDriftConfig>();
+      idx = sim::addStandardRobot<robots::CurrentDriftRobot>(
+          world, endTime, cfg.position, config.sensors, importedCurrentGrid,
+          cfg);
+      break;
+    }
+    }
+    robotIndices.push_back(idx);
+  }
 
-  auto robotIdx1 = sim::addStandardRobot<rb::ConstantVelRobot>(
-      world, endTime, Eigen::Vector3d(1.0, 1.0, 50.00), sensorCfg,
-      Eigen::Vector3d(0.1, -0.3, 0.0));
+  for (const auto &lm : config.landmarks) {
+    world.addLandmark(lm);
+  }
 
-  constexpr double kOneHour = 60.0 * 60.0;
-  auto robotIdx2 = sim::addStandardRobot<robots::CurrentDriftRobot>(
-      world, endTime, Eigen::Vector3d(3000.0, -3000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 300.0, kOneHour, kOneHour);
+  // TOF mode
+  sim::GlobalTofMode tofMode = (config.tofMode == "two_way")
+                                   ? sim::GlobalTofMode::kTwoWay
+                                   : sim::GlobalTofMode::kOneWay;
 
-  sim::addStandardRobot<robots::CurrentDriftRobot>(
-      world, endTime, Eigen::Vector3d(-100.0, 1000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 1000.0, kOneHour, kOneHour);
-
-  sim::addStandardRobot<robots::CurrentDriftRobot>(
-      world, endTime, Eigen::Vector3d(-1000.0, -4000.0, 0.01), sensorCfg,
-      importedCurrentGrid, 400.0, kOneHour, kOneHour);
-
-  world.addLandmark(Eigen::Vector3d(-2001.0, 100.0, 0.1));
-  world.addLandmark(Eigen::Vector3d(2001.0, 100.0, 0.1));
-  world.addLandmark(Eigen::Vector3d(2001.0, -1000.0, 0.1));
-
-  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context,
-                                               sim::GlobalTofMode::kOneWay);
+  sim::AcousticPairwiseRangeSystem rangeSystem(simBuilder, context, tofMode,
+                                               false, config.debugRangeErrorPct,
+                                               config.outputDir);
   rangeSystem.rebuildPairs(world);
 
-  constexpr double kBoundsCheckInterval = 100.0;
-  constexpr double kPingInterval = 30 * 60.0;
-  double nextBoundsCheck = world.simData.time + kBoundsCheckInterval;
-  double nextPing = world.simData.time + kPingInterval;
+  double boundsCheckInterval = config.boundsCheckIntervalSec;
+  double pingInterval = config.pingIntervalMin * 60.0;
+  double nextBoundsCheck = world.simData.time + boundsCheckInterval;
+  double nextPing = world.simData.time + pingInterval;
 
   auto startTime = world.simData.time;
   while (startTime < endTime) {
@@ -146,31 +156,29 @@ int main() {
 
     if (startTime >= nextBoundsCheck) {
       rangeSystem.checkBounds(world);
-      nextBoundsCheck += kBoundsCheckInterval;
+      nextBoundsCheck += boundsCheckInterval;
     }
     if (startTime >= nextPing) {
       rangeSystem.update(startTime, world);
-      nextPing += kPingInterval;
+      nextPing += pingInterval;
     }
   }
   SPDLOG_INFO("Pairwise acoustic links: {}, measurements logged: {}",
               rangeSystem.getLinks().size(),
               rangeSystem.getMeasurements().size());
-  rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx1]);
-  rb::outputRobotSensorToCsv("simTest", *world.robots[robotIdx2]);
+
+  // Write sensor CSVs
+  for (size_t i = 0; i < robotIndices.size(); ++i) {
+    auto csvBase = (outDir / fmt::format("robot_{}", i)).string();
+    rb::outputRobotSensorToCsv(csvBase.c_str(), *world.robots[robotIndices[i]]);
+  }
 
   // Write PFG factor graph file
-  pyfg::PfgWriterConfig pfgConfig{};
-  pfgConfig.useGroundTruthOdometry = true;
-  pfgConfig.rangeVariance = 0.1 * 0.1;
-  pfgConfig.defaultPosePriorCov =
-      pyfg::makeDiagUpperTri6x6(0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001);
-  pfgConfig.landmarkPriorCovs.push_back(
-      pyfg::makeDiagUpperTri3x3(0.001, 0.001, 0.001));
-  pfgConfig.odomRotationVariance = 0.00001;
-  pyfg::writePfg("output.pfg", world, rangeSystem.getMeasurements(), pfgConfig);
+  auto pfgPath = (outDir / "output.pfg").string();
+  pyfg::writePfg(pfgPath, world, rangeSystem.getMeasurements(), config.pfg);
 
-  bhc::writeenv(context.params(), runName);
-  bhc::writeout(context.params(), context.outputs(), runName);
+  auto bellhopBase = (outDir / config.runName).string();
+  bhc::writeenv(context.params(), bellhopBase.c_str());
+  bhc::writeout(context.params(), context.outputs(), bellhopBase.c_str());
   return 0;
 }

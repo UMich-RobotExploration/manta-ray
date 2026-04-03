@@ -93,6 +93,14 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBNPY_INCLUDE_DIRS})
 # If you want extra debug options, you could also do something like:
 #target_compile_options(${TARGET_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${MY_DEBUG_OPTIONS}>")
 
+# Standalone bellhop runner tool
+add_executable(bhc_runner src/tools/bhc_runner.cpp)
+target_include_directories(bhc_runner PRIVATE ${INCLUDE_BHC})
+target_include_directories(bhc_runner PRIVATE ${INCLUDE_GLM})
+target_link_libraries(bhc_runner PRIVATE ${BELLHPCXXLIB})
+find_package(Threads REQUIRED)
+target_link_libraries(bhc_runner PRIVATE Threads::Threads)
+
 # Enable testing only if requested
 option(BUILD_TESTS "Build the tests" ON)
 

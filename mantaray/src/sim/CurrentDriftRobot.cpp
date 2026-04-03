@@ -11,15 +11,13 @@ void CurrentDriftRobot::transitionTo(Phase nextPhase, double &vzCmd) {
 }
 
 CurrentDriftRobot::CurrentDriftRobot(const acoustics::GridVec &currentGrid,
-                                     double targetDepth, double holdSeconds,
-                                     double surfaceHoldSeconds,
-                                     double verticalSpeed, double surfaceDepth)
+                                     const CurrentDriftConfig &cfg)
     : currentGrid_(currentGrid),
-      targetDepth_(targetDepth),
-      holdSeconds_(holdSeconds),
-      surfaceHoldSeconds_(surfaceHoldSeconds),
-      verticalSpeed_(verticalSpeed),
-      surfaceDepth_(surfaceDepth) {
+      targetDepth_(cfg.targetDepth),
+      holdSeconds_(cfg.holdSeconds),
+      surfaceHoldSeconds_(cfg.surfaceHoldSeconds),
+      verticalSpeed_(cfg.verticalSpeed),
+      surfaceDepth_(cfg.surfaceDepth) {
 
   if (verticalSpeed_ < 0.0) {
     throw std::invalid_argument("verticalSpeed must be non-negative");

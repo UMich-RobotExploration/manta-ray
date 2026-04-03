@@ -2,7 +2,7 @@
 // Created by tko on 2/24/26.
 //
 
-#include "mantaray/config/ConfigReader.h"
+#include <mantaray/config/EnvironmentConfig.h>
 
 #include "mantaray/utils/Logger.h"
 
@@ -17,7 +17,8 @@ using json = nlohmann::json;
 
 namespace config {
 
-ConfigReader::ConfigReader(std::string configPath) : configPath_(configPath) {
+EnvironmentConfig::EnvironmentConfig(std::string configPath)
+    : configPath_(configPath) {
   if (!std::filesystem::exists(configPath)) {
     auto msg = fmt::format("configPath does not exist at {}", configPath);
     throw std::invalid_argument(msg);
@@ -30,9 +31,9 @@ ConfigReader::ConfigReader(std::string configPath) : configPath_(configPath) {
   SPDLOG_DEBUG("Resulting output is {}", jsonData_.dump());
   f.close();
 }
-ConfigReader::~ConfigReader() = default;
+EnvironmentConfig::~EnvironmentConfig() = default;
 
-acoustics::Grid2D ConfigReader::readBathymetry() const {
+acoustics::Grid2D EnvironmentConfig::readBathymetry() const {
   const std::string subKey = "bathymetry";
   auto rootPath = validateJSON<3>(jsonData_, subKey, {"data", "x", "y"});
   auto &subJson = jsonData_[subKey];
@@ -64,7 +65,7 @@ acoustics::Grid2D ConfigReader::readBathymetry() const {
   return acoustics::Grid2D(xCoords, yCoords, bathymetry);
 }
 
-acoustics::Grid3D ConfigReader::readSSP() const {
+acoustics::Grid3D EnvironmentConfig::readSSP() const {
   const std::string subKey = "ssp";
   auto rootPath = validateJSON<4>(jsonData_, subKey, {"data", "x", "y", "z"});
   auto &subJson = jsonData_[subKey];
@@ -98,7 +99,7 @@ acoustics::Grid3D ConfigReader::readSSP() const {
   }
   return acoustics::Grid3D(xCoords, yCoords, zCoords, ssp);
 }
-acoustics::GridVec ConfigReader::readCurrent() const {
+acoustics::GridVec EnvironmentConfig::readCurrent() const {
   const std::string subKey = "current";
   auto rootPath = validateJSON<4>(jsonData_, subKey, {"x", "y", "u", "v"});
   auto &subJson = jsonData_[subKey];

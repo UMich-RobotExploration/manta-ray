@@ -4,14 +4,16 @@
 
 #pragma once
 
-#include "acoustics/Arrival.h"
-#include "acoustics/helpers.h"
-#include "fmt/format.h"
-#include "mantaray/utils/Logger.h"
-
 #include "acoustics/AcousticsBuilder.h"
+#include "acoustics/Arrival.h"
 #include "acoustics/BellhopContext.h"
+#include "acoustics/helpers.h"
+#include "mantaray/utils/Logger.h"
 #include "rb/RbWorld.h"
+
+#include "fmt/format.h"
+#include <cmath>
+#include <cstring>
 #include <map>
 #include <stdexcept>
 #include <vector>
@@ -109,7 +111,9 @@ public:
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
                               acoustics::BhContext<true, true> &context,
                               GlobalTofMode mode,
-                              bool logAllMeasurements = false);
+                              bool logAllMeasurements = false,
+                              double debugRangeErrorPct = 0.0,
+                              std::string debugOutputDir = "");
 
   /**
    * @brief Builds full pairwise links with each robot as pinger.
@@ -136,6 +140,18 @@ public:
    * @param world The simulation world (robots may be modified)
    */
   void checkBounds(rb::RbWorld &world);
+
+  /**
+   * @brief Dumps all necessary files to a text file to run with bellhop tool
+   * @details Can rerun these outputs with executable in
+   * src/tools/bhc_runner.cpp
+   * @param meas Populated measurement details
+   * @param link Ranging link
+   * @param simTimeSec Sim Time
+   * @param trueRange Actual range between rigid bodies (not bellhops)
+   */
+  void debugOutputRangeErrors(RangeMeasurement &meas, RangeLink &link,
+                              double simTimeSec, double trueRange);
 
   /**
    * @brief Runs Bellhop on every active pair and appends measurements to the
@@ -165,8 +181,30 @@ private:
   acoustics::BhContext<true, true> &context_;
   GlobalTofMode mode_{GlobalTofMode::kOneWay};
   bool logAllMeasurements_{false};
+  double debugRangeErrorPct_{0.0};
+  std::string debugOutputDir_;
   std::vector<RangeLink> links_{};
   std::vector<RangeMeasurement> measurements_{};
+
+  /// @brief Append measurement to the log if logAllMeasurements_ is enabled.
+  void maybeLog(const RangeMeasurement &meas);
+
+  /// @brief Check if either endpoint is dead and skip the link if so.
+  /// @param[in]  world  Simulation world
+  /// @param[in]  link   The link to check
+  /// @param[out] meas   Measurement to populate with skip status
+  /// @return true if the link should be skipped
+  bool skipIfDead(const rb::RbWorld &world, const RangeLink &link,
+                  RangeMeasurement &meas);
+
+  /// @brief Acquire time-of-flight for a link, using reciprocal cache when
+  /// possible.
+  /// @param[in]     link     The acoustic link
+  /// @param[in]     tag      Log tag for this measurement
+  /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
+  /// @return Raw TOF in seconds, or negative if no arrival
+  float acquireTof(const RangeLink &link, const std::string &tag,
+                   std::map<std::pair<size_t, size_t>, float> &tofCache);
 
   /**
    * @brief Returns the TOF multiplier for the given mode.
