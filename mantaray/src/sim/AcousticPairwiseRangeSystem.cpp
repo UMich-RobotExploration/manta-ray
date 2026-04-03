@@ -82,6 +82,48 @@ void AcousticPairwiseRangeSystem::checkBounds(rb::RbWorld &world) {
   }
 }
 
+void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
+                                                         RangeLink &link,
+                                                         double simTimeSec,
+                                                         double trueRange) {
+  // Debug ray trace on high error
+  if (debugRangeErrorPct_ > 0.0 && trueRange > 0.0) {
+    double errorPct =
+        std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
+    if (errorPct > debugRangeErrorPct_) {
+      SPDLOG_WARN("{} Error {:.1f}% exceeds threshold {:.1f}%, "
+                  "re-running ray trace",
+                  tag, errorPct, debugRangeErrorPct_);
+
+      // Switch to ray trace mode, preserving all other RunType flags
+      char savedRunType[7];
+      std::strcpy(savedRunType, context_.params().Beam->RunType);
+      savedRunType[0] = 'R';
+      std::strcpy(context_.params().Beam->RunType, savedRunType);
+      savedRunType[0] = 'A'; // prepare restore value
+
+      // Ray Preprocess allocates ray data alongside existing arrivals data.
+      // Both fit in memory as long as maxMemory is sufficient.
+      bhc::run(context_.params(), context_.outputs());
+
+      auto filename =
+          fmt::format("{}/debug_{}{}_to_{}{}_{:.0f}s", debugOutputDir_,
+                      link.pinger.type == EndpointType::kRobot ? "R" : "L",
+                      link.pinger.index,
+                      link.target.type == EndpointType::kRobot ? "R" : "L",
+                      link.target.index, simTimeSec);
+      // writeenv captures the environment snapshot
+      // (source/receiver/SSP/bathy) writeout for ray mode segfaults in
+      // bellhop's Ray::Writeout (null ray ptr) NOTE: THis is a fundamental
+      // bug in bellhop that we cannot fix
+      bhc::writeenv(context_.params(), filename.c_str());
+
+      // Restore arrivals mode — next bhc::run() re-preprocesses for arrivals
+      std::strcpy(context_.params().Beam->RunType, savedRunType);
+    }
+  }
+}
+
 void AcousticPairwiseRangeSystem::update(double simTimeSec,
                                          rb::RbWorld &world) {
   // Cache Bellhop TOF for robot-robot pairs — acoustic reciprocity means
@@ -266,44 +308,9 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
                 tag, meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
                 meas.tofEffectiveSec, meas.soundSpeedAtPingerMps);
 
-    // Debug ray trace on high error
-    if (debugRangeErrorPct_ > 0.0 && trueRange > 0.0) {
-      double errorPct =
-          std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
-      if (errorPct > debugRangeErrorPct_) {
-        SPDLOG_WARN("{} Error {:.1f}% exceeds threshold {:.1f}%, "
-                    "re-running ray trace",
-                    tag, errorPct, debugRangeErrorPct_);
-
-        // Switch to ray trace mode, preserving all other RunType flags
-        char savedRunType[7];
-        std::strcpy(savedRunType, context_.params().Beam->RunType);
-        savedRunType[0] = 'R';
-        std::strcpy(context_.params().Beam->RunType, savedRunType);
-        savedRunType[0] = 'A'; // prepare restore value
-
-        // Ray Preprocess allocates ray data alongside existing arrivals data.
-        // Both fit in memory as long as maxMemory is sufficient.
-        bhc::run(context_.params(), context_.outputs());
-
-        auto filename =
-            fmt::format("{}/debug_{}{}_to_{}{}_{:.0f}s", debugOutputDir_,
-                        link.pinger.type == EndpointType::kRobot ? "R" : "L",
-                        link.pinger.index,
-                        link.target.type == EndpointType::kRobot ? "R" : "L",
-                        link.target.index, simTimeSec);
-        // writeenv captures the environment snapshot
-        // (source/receiver/SSP/bathy) writeout for ray mode segfaults in
-        // bellhop's Ray::Writeout (null ray ptr) NOTE: THis is a fundamental
-        // bug in bellhop that we cannot fix
-        bhc::writeenv(context_.params(), filename.c_str());
-
-        // Restore arrivals mode — next bhc::run() re-preprocesses for arrivals
-        std::strcpy(context_.params().Beam->RunType, savedRunType);
-      }
-    }
-
     measurements_.push_back(meas);
+
+    debugOutputRangeErrors(meas, link, simTimeSec, trueRange);
   }
 }
 

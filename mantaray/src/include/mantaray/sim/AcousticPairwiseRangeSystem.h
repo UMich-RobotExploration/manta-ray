@@ -140,6 +140,18 @@ public:
   void checkBounds(rb::RbWorld &world);
 
   /**
+   * @brief Dumps all necessary files to a text file to run with bellhop tool
+   * @details Can rerun these outputs with executable in
+   * src/tools/bhc_runner.cpp
+   * @param meas Populated measurement details
+   * @param link Ranging link
+   * @param simTimeSec Sim Time
+   * @param trueRange Actual range between rigid bodies (not bellhops)
+   */
+  void debugOutputRangeErrors(RangeMeasurement &meas, RangeLink &link,
+                              double simTimeSec, double trueRange);
+
+  /**
    * @brief Runs Bellhop on every active pair and appends measurements to the
    * log.
    *
