@@ -1,0 +1,379 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: src/include/mantaray/utils/PfgWriter.h File Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('PfgWriter_8h.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#namespaces">Namespaces</a> &#124;
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
+  <div class="headertitle"><div class="title">PfgWriter.h File Reference</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>Writer for the PyFactorGraphs (.pfg) text format.  
+<a href="#details">More...</a></p>
+<div class="textblock"><code>#include &quot;<a class="el" href="AcousticPairwiseRangeSystem_8h_source.html">mantaray/sim/AcousticPairwiseRangeSystem.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="RbWorld_8h_source.html">rb/RbWorld.h</a>&quot;</code><br />
+<code>#include &lt;array&gt;</code><br />
+<code>#include &lt;string&gt;</code><br />
+<code>#include &lt;vector&gt;</code><br />
+</div><div class="textblock"><div class="dynheader">
+Include dependency graph for PfgWriter.h:</div>
+<div class="dyncontent">
+<div class="center"><img src="PfgWriter_8h__incl.png" border="0" usemap="#asrc_2include_2mantaray_2utils_2PfgWriter_8h" alt=""/></div>
+<map name="asrc_2include_2mantaray_2utils_2PfgWriter_8h" id="asrc_2include_2mantaray_2utils_2PfgWriter_8h">
+<area shape="rect" title="Writer for the PyFactorGraphs (.pfg) text format." alt="" coords="2193,5,2351,45"/>
+<area shape="rect" href="AcousticPairwiseRangeSystem_8h.html" title="Pairwise acoustic range measurement system using Bellhop ray tracing." alt="" coords="795,93,1021,133"/>
+<area shape="poly" title=" " alt="" coords="2192,34,1035,107,1035,101,2192,29"/>
+<area shape="rect" title=" " alt="" coords="1725,475,1787,500"/>
+<area shape="poly" title=" " alt="" coords="2279,45,2291,112,2303,203,2307,292,2304,328,2294,355,2281,371,2262,385,2211,410,2146,431,2073,449,1921,473,1801,485,1801,480,1921,467,2072,443,2145,426,2209,405,2260,381,2277,367,2290,352,2298,327,2302,292,2298,203,2285,113,2273,46"/>
+<area shape="rect" title=" " alt="" coords="2179,255,2235,280"/>
+<area shape="poly" title=" " alt="" coords="2269,47,2256,94,2216,242,2211,241,2251,93,2264,45"/>
+<area shape="rect" href="RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="2518,181,2623,207"/>
+<area shape="poly" title=" " alt="" coords="2283,44,2309,89,2327,112,2350,131,2387,152,2427,167,2505,184,2504,190,2425,172,2384,157,2346,136,2323,115,2304,92,2278,47"/>
+<area shape="rect" title=" " alt="" coords="2360,101,2419,126"/>
+<area shape="poly" title=" " alt="" coords="2300,43,2364,90,2361,95,2296,48"/>
+<area shape="rect" href="AcousticsBuilder_8h.html" title="See details of AcousticsBuilder." alt="" coords="994,181,1201,207"/>
+<area shape="poly" title=" " alt="" coords="954,131,1058,173,1056,178,952,136"/>
+<area shape="rect" title=" " alt="" coords="242,475,329,500"/>
+<area shape="poly" title=" " alt="" coords="795,120,626,130,533,140,443,154,362,173,296,198,271,213,253,229,241,247,237,266,237,342,241,375,250,408,274,462,269,464,245,410,236,376,232,342,232,266,236,245,249,226,268,209,294,193,360,168,442,149,533,135,626,125,794,114"/>
+<area shape="rect" href="acoustics_2include_2acoustics_2helpers_8h.html" title="Helpers for floating point, boundary box, monotonic, and vector creation." alt="" coords="723,401,869,427"/>
+<area shape="poly" title=" " alt="" coords="795,123,762,131,729,144,699,160,674,183,658,206,652,228,654,252,664,279,684,314,711,346,740,372,767,392,764,396,737,376,707,349,680,317,659,281,649,253,647,228,653,204,670,180,696,156,727,139,760,126,794,118"/>
+<area shape="rect" title=" " alt="" coords="154,475,217,500"/>
+<area shape="poly" title=" " alt="" coords="795,118,613,126,512,135,413,149,324,168,252,193,224,209,204,226,191,245,187,266,187,342,188,461,182,461,181,342,181,266,186,243,200,223,221,204,250,189,323,163,412,143,511,130,613,120,794,113"/>
+<area shape="poly" title=" " alt="" coords="1022,114,1295,125,1462,138,1635,157,1801,185,1949,221,2013,243,2068,267,2113,295,2146,326,2160,348,2165,368,2161,386,2150,403,2133,417,2111,429,2055,450,1989,465,1920,475,1801,486,1801,481,1919,470,1988,460,2053,444,2109,424,2130,412,2146,399,2156,384,2159,368,2155,350,2142,330,2110,299,2065,272,2011,248,1948,226,1800,190,1634,163,1462,143,1295,131,1022,119"/>
+<area shape="rect" href="Arrival_8h.html" title="Extract arrival data and arrival debug data from bellhop pointer struct." alt="" coords="1549,255,1691,280"/>
+<area shape="poly" title=" " alt="" coords="1022,130,1116,151,1213,179,1239,192,1265,204,1335,223,1406,238,1535,256,1534,261,1405,243,1333,228,1263,209,1237,197,1211,184,1115,156,1021,136"/>
+<area shape="rect" href="BellhopContext_8h.html" title="RAII wrapper for Bellhop params and outputs." alt="" coords="894,401,1093,427"/>
+<area shape="poly" title=" " alt="" coords="916,133,989,387,984,389,911,134"/>
+<area shape="rect" href="Logger_8h.html" title="Global and Bellhop logger initialization." alt="" coords="684,181,860,207"/>
+<area shape="poly" title=" " alt="" coords="877,136,805,177,803,172,874,131"/>
+<area shape="poly" title=" " alt="" coords="1022,117,2504,187,2504,192,1022,123"/>
+<area shape="rect" title=" " alt="" coords="1277,181,1382,207"/>
+<area shape="poly" title=" " alt="" coords="1009,131,1263,178,1262,183,1008,136"/>
+<area shape="rect" title=" " alt="" coords="5,181,72,207"/>
+<area shape="poly" title=" " alt="" coords="795,121,654,127,479,139,285,157,86,184,85,179,284,152,479,133,654,122,795,115"/>
+<area shape="rect" title=" " alt="" coords="96,181,147,207"/>
+<area shape="poly" title=" " alt="" coords="795,122,508,141,337,159,166,184,161,185,160,180,165,179,336,154,508,136,794,116"/>
+<area shape="rect" href="SimulationConfig_8h.html" title="All acoustics related configuration structs." alt="" coords="1223,255,1433,280"/>
+<area shape="poly" title=" " alt="" coords="1135,204,1279,248,1277,253,1134,209"/>
+<area shape="rect" title=" " alt="" coords="753,475,839,500"/>
+<area shape="poly" title=" " alt="" coords="1080,209,1056,229,1037,256,1035,267,1037,279,1045,301,1054,317,1078,352,1094,375,1106,400,1110,415,1106,428,1089,442,1064,453,997,470,922,480,853,486,853,481,921,475,996,465,1062,448,1086,437,1102,425,1105,415,1102,402,1090,378,1074,355,1050,319,1040,303,1032,281,1029,267,1032,254,1052,225,1077,205"/>
+<area shape="poly" title=" " alt="" coords="1076,209,992,257,895,330,821,394,817,390,892,326,989,252,1073,204"/>
+<area shape="rect" title=" " alt="" coords="1037,475,1137,500"/>
+<area shape="poly" title=" " alt="" coords="1118,205,1136,219,1154,237,1164,258,1165,270,1161,281,1153,292,1143,300,1122,307,1102,313,1094,319,1086,329,1083,341,1086,352,1100,368,1117,375,1135,383,1150,400,1154,420,1147,438,1134,454,1119,468,1115,464,1130,451,1142,435,1148,419,1146,402,1132,387,1115,380,1097,372,1082,355,1077,341,1082,327,1090,316,1100,308,1120,301,1140,295,1149,289,1156,279,1160,269,1159,260,1150,240,1133,223,1114,209"/>
+<area shape="rect" title=" " alt="" coords="1047,255,1147,280"/>
+<area shape="poly" title=" " alt="" coords="1100,207,1100,241,1095,241,1095,207"/>
+<area shape="rect" href="checkAssert_8h.html" title="CHECK macro for runtime assertions." alt="" coords="1921,328,2133,353"/>
+<area shape="poly" title=" " alt="" coords="1201,201,1472,225,1606,239,1703,252,1854,286,1978,321,1977,326,1853,291,1702,257,1605,244,1472,230,1201,206"/>
+<area shape="poly" title=" " alt="" coords="1201,200,1264,204,2165,261,2165,266,1264,209,1201,205"/>
+<area shape="rect" href="Grid_8h.html" title="Library internal data structures for representing 2 and 3D grids." alt="" coords="435,328,562,353"/>
+<area shape="poly" title=" " alt="" coords="1223,280,576,335,576,330,1222,275"/>
+<area shape="poly" title=" " alt="" coords="1350,278,1487,351,1721,466,1719,471,1484,356,1347,283"/>
+<area shape="rect" href="acousticsConstants_8h.html" title="Defines constants for bellhop and wrapper library." alt="" coords="1097,328,1322,353"/>
+<area shape="poly" title=" " alt="" coords="1310,282,1242,323,1239,318,1308,278"/>
+<area shape="rect" title=" " alt="" coords="1794,328,1897,353"/>
+<area shape="poly" title=" " alt="" coords="1411,277,1780,328,1780,333,1411,283"/>
+<area shape="rect" title=" " alt="" coords="403,475,495,500"/>
+<area shape="poly" title=" " alt="" coords="441,356,401,373,384,386,370,403,366,420,375,437,392,452,413,466,410,470,389,457,371,440,361,421,366,400,380,383,399,369,439,351"/>
+<area shape="poly" title=" " alt="" coords="506,353,528,389,544,408,563,424,594,439,640,452,740,474,739,479,638,457,592,444,560,429,540,412,523,392,502,355"/>
+<area shape="rect" title=" " alt="" coords="620,475,679,500"/>
+<area shape="poly" title=" " alt="" coords="473,356,446,369,423,387,410,406,409,415,414,425,426,435,445,444,495,460,607,479,606,484,494,465,443,449,423,440,410,428,404,416,405,404,419,383,443,365,470,351"/>
+<area shape="rect" title=" " alt="" coords="574,401,698,427"/>
+<area shape="poly" title=" " alt="" coords="522,351,603,393,600,397,520,356"/>
+<area shape="rect" title=" " alt="" coords="424,401,499,427"/>
+<area shape="poly" title=" " alt="" coords="495,355,476,391,471,388,490,352"/>
+<area shape="poly" title=" " alt="" coords="460,356,410,375,360,403,328,433,303,465,299,461,324,430,357,399,408,370,458,351"/>
+<area shape="poly" title=" " alt="" coords="547,351,735,395,734,401,546,356"/>
+<area shape="poly" title=" " alt="" coords="741,429,509,477,508,471,740,424"/>
+<area shape="poly" title=" " alt="" coords="799,427,799,461,793,461,793,427"/>
+<area shape="poly" title=" " alt="" coords="774,429,687,471,684,466,771,424"/>
+<area shape="poly" title=" " alt="" coords="723,428,343,481,342,475,722,423"/>
+<area shape="poly" title=" " alt="" coords="843,424,1027,469,1026,474,842,429"/>
+<area shape="poly" title=" " alt="" coords="723,428,710,429,577,442,471,449,366,458,231,477,230,472,365,452,471,443,576,436,709,424,722,422"/>
+<area shape="rect" title=" " alt="" coords="1437,475,1517,500"/>
+<area shape="poly" title=" " alt="" coords="870,423,882,424,1188,456,1424,479,1423,484,1188,462,881,429,869,428"/>
+<area shape="poly" title=" " alt="" coords="870,423,882,424,1127,446,1367,462,1711,481,1711,487,1367,468,1126,451,881,429,869,428"/>
+<area shape="poly" title=" " alt="" coords="1984,356,1531,475,1530,469,1982,351"/>
+<area shape="rect" title=" " alt="" coords="1994,401,2059,427"/>
+<area shape="poly" title=" " alt="" coords="2029,354,2029,388,2024,388,2024,354"/>
+<area shape="poly" title=" " alt="" coords="1589,283,1477,319,1334,356,1210,376,1111,386,1011,392,883,404,883,399,1011,387,1111,380,1209,371,1333,351,1476,314,1587,278"/>
+<area shape="poly" title=" " alt="" coords="1593,283,1128,472,1126,467,1591,278"/>
+<area shape="poly" title=" " alt="" coords="1661,278,1699,296,1718,310,1733,326,1750,360,1759,396,1762,432,1761,461,1756,461,1756,432,1753,397,1745,362,1728,330,1714,314,1697,301,1659,282"/>
+<area shape="poly" title=" " alt="" coords="1686,277,1948,323,1947,328,1685,283"/>
+<area shape="rect" title=" " alt="" coords="1498,328,1619,353"/>
+<area shape="poly" title=" " alt="" coords="1612,282,1580,319,1576,316,1608,279"/>
+<area shape="rect" title=" " alt="" coords="2207,328,2281,353"/>
+<area shape="poly" title=" " alt="" coords="1692,274,2144,325,2194,331,2193,336,2144,331,1691,279"/>
+<area shape="rect" title=" " alt="" coords="1644,328,1719,353"/>
+<area shape="poly" title=" " alt="" coords="1632,279,1664,316,1660,319,1628,282"/>
+<area shape="poly" title=" " alt="" coords="1010,425,1062,464,1059,468,1007,429"/>
+<area shape="poly" title=" " alt="" coords="733,209,695,227,678,240,664,256,647,288,639,324,636,359,636,388,631,388,630,358,633,323,642,287,659,253,674,236,693,223,731,204"/>
+<area shape="rect" title=" " alt="" coords="674,255,870,280"/>
+<area shape="poly" title=" " alt="" coords="775,207,775,241,769,241,769,207"/>
+<area shape="poly" title=" " alt="" coords="2528,209,2083,327,2082,322,2527,204"/>
+<area shape="rect" title=" " alt="" coords="2585,401,2657,427"/>
+<area shape="poly" title=" " alt="" coords="2576,206,2618,387,2613,388,2571,208"/>
+<area shape="rect" href="Integrator_8h.html" title="Manages all pose integration." alt="" coords="2867,255,2965,280"/>
+<area shape="poly" title=" " alt="" coords="2624,204,2854,251,2853,256,2623,209"/>
+<area shape="rect" href="PhysicsBodies_8h.html" title="An AoS format for storing kinematic data and accessing it." alt="" coords="2751,401,2878,427"/>
+<area shape="poly" title=" " alt="" coords="2614,204,2661,221,2713,246,2764,281,2787,302,2806,327,2818,357,2820,388,2815,388,2813,358,2802,329,2783,306,2761,285,2711,251,2659,226,2612,209"/>
+<area shape="rect" href="RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="2659,328,2792,353"/>
+<area shape="poly" title=" " alt="" coords="2586,205,2642,253,2706,316,2703,320,2638,257,2583,209"/>
+<area shape="rect" href="RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="2361,255,2533,280"/>
+<area shape="poly" title=" " alt="" coords="2552,209,2480,250,2477,245,2549,204"/>
+<area shape="rect" href="rb_2include_2rb_2helpers_8h.html" title="Few critical helpers for floating point comparison." alt="" coords="2485,328,2584,353"/>
+<area shape="poly" title=" " alt="" coords="2570,208,2543,315,2538,314,2565,206"/>
+<area shape="rect" title=" " alt="" coords="2707,475,2821,500"/>
+<area shape="poly" title=" " alt="" coords="2920,280,2922,309,2920,348,2911,390,2891,428,2862,455,2827,472,2825,468,2859,450,2887,425,2906,388,2915,347,2916,309,2915,281"/>
+<area shape="poly" title=" " alt="" coords="2808,429,2782,465,2778,462,2804,425"/>
+<area shape="poly" title=" " alt="" coords="2710,356,2651,395,2648,391,2707,351"/>
+<area shape="poly" title=" " alt="" coords="2729,353,2733,386,2741,426,2755,461,2750,463,2736,427,2728,387,2724,354"/>
+<area shape="poly" title=" " alt="" coords="2741,351,2791,390,2788,395,2738,355"/>
+<area shape="poly" title=" " alt="" coords="2361,279,2159,299,1911,330,1910,325,2159,294,2360,274"/>
+<area shape="poly" title=" " alt="" coords="2380,283,2108,328,2107,323,2379,277"/>
+<area shape="poly" title=" " alt="" coords="2415,283,2290,326,2289,321,2413,278"/>
+<area shape="poly" title=" " alt="" coords="2450,280,2456,315,2464,334,2475,352,2497,370,2521,384,2573,402,2571,407,2519,389,2494,374,2471,355,2459,337,2451,316,2445,281"/>
+<area shape="poly" title=" " alt="" coords="2447,280,2445,314,2448,334,2456,352,2477,380,2503,404,2533,424,2565,440,2632,463,2694,476,2693,482,2631,469,2563,445,2531,429,2500,408,2473,384,2451,355,2443,335,2440,315,2442,280"/>
+<area shape="poly" title=" " alt="" coords="2492,277,2668,322,2666,327,2491,283"/>
+<area shape="poly" title=" " alt="" coords="2462,278,2511,317,2508,321,2459,282"/>
+</map>
+</div>
+</div><div class="textblock"><div class="dynheader">
+This graph shows which files directly or indirectly include this file:</div>
+<div class="dyncontent">
+<div class="center"><img src="PfgWriter_8h__dep__incl.png" border="0" usemap="#asrc_2include_2mantaray_2utils_2PfgWriter_8hdep" alt=""/></div>
+<map name="asrc_2include_2mantaray_2utils_2PfgWriter_8hdep" id="asrc_2include_2mantaray_2utils_2PfgWriter_8hdep">
+<area shape="rect" title="Writer for the PyFactorGraphs (.pfg) text format." alt="" coords="5,5,164,45"/>
+<area shape="rect" href="SimConfig_8h.html" title="Top&#45;level simulation configuration and JSON deserialization." alt="" coords="5,93,164,133"/>
+<area shape="poly" title=" " alt="" coords="87,59,87,93,82,93,82,59"/>
+</map>
+</div>
+</div>
+<p><a href="PfgWriter_8h_source.html">Go to the source code of this file.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpyfg_1_1PfgWriterConfig.html">pyfg::PfgWriterConfig</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configuration for the PFG writer.  <a href="structpyfg_1_1PfgWriterConfig.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="namespaces" name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespacepyfg" id="r_namespacepyfg"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepyfg.html">pyfg</a></td></tr>
+<tr class="memdesc:namespacepyfg"><td class="mdescLeft">&#160;</td><td class="mdescRight">PyFactorGraphs file format utilities. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:af44ed08cfe218ec9fe3a48a58c548553" id="r_af44ed08cfe218ec9fe3a48a58c548553"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepyfg.html#af44ed08cfe218ec9fe3a48a58c548553">pyfg::writePfg</a> (const std::string &amp;filename, const <a class="el" href="structrb_1_1RbWorld.html">rb::RbWorld</a> &amp;world, const std::vector&lt; <a class="el" href="structsim_1_1RangeMeasurement.html">sim::RangeMeasurement</a> &gt; &amp;measurements, const <a class="el" href="structpyfg_1_1PfgWriterConfig.html">PfgWriterConfig</a> &amp;config)</td></tr>
+<tr class="memdesc:af44ed08cfe218ec9fe3a48a58c548553"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a PFG factor graph file from simulation data.  <br /></td></tr>
+<tr class="separator:af44ed08cfe218ec9fe3a48a58c548553"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac3f3127c64a68ca2a1f2ebc41ba948b4" id="r_ac3f3127c64a68ca2a1f2ebc41ba948b4"><td class="memItemLeft" align="right" valign="top">std::array&lt; double, <a class="el" href="namespacepyfg.html#a578536867229ff6dab2461e4563ca399">kCovUniqueElems6x6</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepyfg.html#ac3f3127c64a68ca2a1f2ebc41ba948b4">pyfg::makeDiagUpperTri6x6</a> (double d0, double d1, double d2, double d3, double d4, double d5)</td></tr>
+<tr class="memdesc:ac3f3127c64a68ca2a1f2ebc41ba948b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fills a 6x6 diagonal covariance in PFG serialization order.  <br /></td></tr>
+<tr class="separator:ac3f3127c64a68ca2a1f2ebc41ba948b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a82fbb958e1806f57049d9deb42b1f195" id="r_a82fbb958e1806f57049d9deb42b1f195"><td class="memItemLeft" align="right" valign="top">std::array&lt; double, <a class="el" href="namespacepyfg.html#a2800af71a60f9778d3438a58406585a5">kCovUniqueElems3x3</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepyfg.html#a82fbb958e1806f57049d9deb42b1f195">pyfg::makeDiagUpperTri3x3</a> (double d0, double d1, double d2)</td></tr>
+<tr class="memdesc:a82fbb958e1806f57049d9deb42b1f195"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fills a 3x3 diagonal covariance in PFG serialization order.  <br /></td></tr>
+<tr class="separator:a82fbb958e1806f57049d9deb42b1f195"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:afbf447935726ab027200f19def8b975e" id="r_afbf447935726ab027200f19def8b975e"><td class="memItemLeft" align="right" valign="top"><a id="afbf447935726ab027200f19def8b975e" name="afbf447935726ab027200f19def8b975e"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kVertexSe3Quat</b> = &quot;VERTEX_SE3:QUAT&quot;</td></tr>
+<tr class="separator:afbf447935726ab027200f19def8b975e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a9327bd9fb39e2dace3228f9c7853d8" id="r_a1a9327bd9fb39e2dace3228f9c7853d8"><td class="memItemLeft" align="right" valign="top"><a id="a1a9327bd9fb39e2dace3228f9c7853d8" name="a1a9327bd9fb39e2dace3228f9c7853d8"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kVertexSe3QuatPrior</b> = &quot;VERTEX_SE3:QUAT:PRIOR&quot;</td></tr>
+<tr class="separator:a1a9327bd9fb39e2dace3228f9c7853d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7197d2c2cac9912e9a032c9fa8a3949" id="r_ac7197d2c2cac9912e9a032c9fa8a3949"><td class="memItemLeft" align="right" valign="top"><a id="ac7197d2c2cac9912e9a032c9fa8a3949" name="ac7197d2c2cac9912e9a032c9fa8a3949"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kVertexXyz</b> = &quot;VERTEX_XYZ&quot;</td></tr>
+<tr class="separator:ac7197d2c2cac9912e9a032c9fa8a3949"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ae661c042e138fde97262cff52669e3" id="r_a7ae661c042e138fde97262cff52669e3"><td class="memItemLeft" align="right" valign="top"><a id="a7ae661c042e138fde97262cff52669e3" name="a7ae661c042e138fde97262cff52669e3"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kVertexXyzPrior</b> = &quot;VERTEX_XYZ:PRIOR&quot;</td></tr>
+<tr class="separator:a7ae661c042e138fde97262cff52669e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25a182aaa60d8fe3abf5217df2c3b64a" id="r_a25a182aaa60d8fe3abf5217df2c3b64a"><td class="memItemLeft" align="right" valign="top"><a id="a25a182aaa60d8fe3abf5217df2c3b64a" name="a25a182aaa60d8fe3abf5217df2c3b64a"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kEdgeSe3Quat</b> = &quot;EDGE_SE3:QUAT&quot;</td></tr>
+<tr class="separator:a25a182aaa60d8fe3abf5217df2c3b64a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad3067c304be4c6bd5d052d008fb9dbd9" id="r_ad3067c304be4c6bd5d052d008fb9dbd9"><td class="memItemLeft" align="right" valign="top"><a id="ad3067c304be4c6bd5d052d008fb9dbd9" name="ad3067c304be4c6bd5d052d008fb9dbd9"></a>
+constexpr const char *&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kEdgeRange</b> = &quot;EDGE_RANGE&quot;</td></tr>
+<tr class="separator:ad3067c304be4c6bd5d052d008fb9dbd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr><td colspan="2"><div class="groupHeader">Covariance Serialization</div></td></tr>
+<tr><td colspan="2"><div class="groupText"><p>PFG covariance format: column-major lower-triangular unique elements.</p>
+<p>A symmetric NxN covariance matrix is serialized as N*(N+1)/2 space-separated values. The ordering is <b>column-major lower-triangular</b>: iterate over columns left-to-right, and within each column emit rows from the diagonal downward.</p>
+<p>This matches <code>py_factor_graph.utils.matrix_utils</code>:</p><ul>
+<li><code>get_list_column_major_from_symmetric_matrix()</code> (writer)</li>
+<li><code>get_symmetric_matrix_from_list_column_major()</code> (reader)</li>
+</ul>
+<p>For a 3x3 matrix with indices (row, col): </p><div class="fragment"><div class="line">c0 = (0,0)</div>
+<div class="line">c1 = (1,0)   c3 = (1,1)</div>
+<div class="line">c2 = (2,0)   c4 = (2,1)   c5 = (2,2)</div>
+</div><!-- fragment --><p> Emitted order: c0 c1 c2 c3 c4 c5 (6 elements)</p>
+<p>For a 6x6 matrix (pose covariance, tangent-space ordering [x, y, z, roll, pitch, yaw]): </p><div class="fragment"><div class="line">  c0  = (0,0)</div>
+<div class="line">  c1  = (1,0)   c6  = (1,1)</div>
+<div class="line">  c2  = (2,0)   c7  = (2,1)   c11 = (2,2)</div>
+<div class="line">  c3  = (3,0)   c8  = (3,1)   c12 = (3,2)   c15 = (3,3)</div>
+<div class="line">  c4  = (4,0)   c9  = (4,1)   c13 = (4,2)   c16 = (4,3)   c18 = (4,4)</div>
+<div class="line">  c5  = (5,0)   c10 = (5,1)   c14 = (5,2)   c17 = (5,3)   c19 = (5,4)   c20 =</div>
+<div class="line">(5,5)</div>
+</div><!-- fragment --><p> Emitted order: c0 c1 c2 c3 c4 c5 c6 c7 ... c20 (21 elements)</p>
+<p>Diagonal indices for a diagonal-only 6x6: {0, 6, 11, 15, 18, 20} Diagonal indices for a diagonal-only 3x3: {0, 3, 5}</p>
+<dl class="section note"><dt>Note</dt><dd>For diagonal matrices the column-major lower-triangular and row-major upper-triangular orderings produce identical output because all off-diagonal elements are zero. </dd></dl>
+</div></td></tr>
+<tr class="memitem:a578536867229ff6dab2461e4563ca399" id="r_a578536867229ff6dab2461e4563ca399"><td class="memItemLeft" align="right" valign="top"><a id="a578536867229ff6dab2461e4563ca399" name="a578536867229ff6dab2461e4563ca399"></a>
+constexpr int&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kCovUniqueElems6x6</b> = 21</td></tr>
+<tr class="memdesc:a578536867229ff6dab2461e4563ca399"><td class="mdescLeft">&#160;</td><td class="mdescRight">6x6 symmetric: 6*7/2 <br /></td></tr>
+<tr class="separator:a578536867229ff6dab2461e4563ca399"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2800af71a60f9778d3438a58406585a5" id="r_a2800af71a60f9778d3438a58406585a5"><td class="memItemLeft" align="right" valign="top"><a id="a2800af71a60f9778d3438a58406585a5" name="a2800af71a60f9778d3438a58406585a5"></a>
+constexpr int&#160;</td><td class="memItemRight" valign="bottom"><b>pyfg::kCovUniqueElems3x3</b> = 6</td></tr>
+<tr class="memdesc:a2800af71a60f9778d3438a58406585a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">3x3 symmetric: 3*4/2 <br /></td></tr>
+<tr class="separator:a2800af71a60f9778d3438a58406585a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Writer for the PyFactorGraphs (.pfg) text format. </p>
+</div></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_f571563e73abc9c07f0cb049318d13f8.html">mantaray</a></li><li class="navelem"><a class="el" href="dir_a4db2d02845c45318fde0cdea36452bd.html">utils</a></li><li class="navelem"><a class="el" href="PfgWriter_8h.html">PfgWriter.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>

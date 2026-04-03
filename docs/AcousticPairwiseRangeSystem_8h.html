@@ -1,0 +1,360 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!-- BEGIN opengraph metadata -->
+<meta property="og:title" content="Doxygen Awesome" />
+<meta property="og:image" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta property="og:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<meta property="og:url" content="https://jothepro.github.io/doxygen-awesome-css/" />
+<!-- END opengraph metadata -->
+<!-- BEGIN twitter metadata -->
+<meta name="twitter:image:src" content="https://repository-images.githubusercontent.com/348492097/4f16df80-88fb-11eb-9d31-4015ff22c452" />
+<meta name="twitter:title" content="Doxygen Awesome" />
+<meta name="twitter:description" content="Custom CSS theme for doxygen html-documentation with lots of customization parameters." />
+<!-- END twitter metadata -->
+<title>MantaRay: src/include/mantaray/sim/AcousticPairwiseRangeSystem.h File Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/svg+xml" href="logo.drawio.svg"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+<script type="text/javascript" src="doxygen-awesome-fragment-copy-button.js"></script>
+<script type="text/javascript" src="doxygen-awesome-paragraph-link.js"></script>
+<script type="text/javascript" src="doxygen-awesome-interactive-toc.js"></script>
+<script type="text/javascript" src="doxygen-awesome-tabs.js"></script>
+<script type="text/javascript" src="toggle-alternative-theme.js"></script>
+<script type="text/javascript">
+    DoxygenAwesomeFragmentCopyButton.init()
+    DoxygenAwesomeDarkModeToggle.init()
+    DoxygenAwesomeParagraphLink.init()
+    DoxygenAwesomeInteractiveToc.init()
+    DoxygenAwesomeTabs.init()
+</script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  extensions: ["tex2jax.js"],
+  jax: ["input/TeX","output/HTML-CSS"],
+});
+</script>
+<script type="text/javascript" async="async" src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen-awesome.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="doxygen-awesome-darkmode-toggle.js"></script>
+        <script type="text/javascript">
+            DoxygenAwesomeDarkModeToggle.init();
+        </script>
+</head>
+<body>
+<!-- https://tholman.com/github-corners/ -->
+<a href="https://github.com/jothepro/doxygen-awesome-css" class="github-corner" title="View source on GitHub" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 250 250" width="40" height="40" style="position: absolute; top: 0; border: 0; right: 0; z-index: 99;" aria-hidden="true">
+    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">MantaRay
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+<div id="theme-selection">
+ <label for="theme-select">Theme:</label>
+ <select id="theme-select">
+  <option value="theme-default">Default</option>
+  <option value="theme-round">Round</option>
+  <option value="theme-robot">Robot</option>
+ </select>
+</div>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.8 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+var searchBox = new SearchBox("searchBox", "search/",'.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
+$(document).ready(function(){initNavTree('AcousticPairwiseRangeSystem_8h.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<div id="MSearchResults">
+<div class="SRPage">
+<div id="SRIndex">
+<div id="SRResults"></div>
+<div class="SRStatus" id="Loading">Loading...</div>
+<div class="SRStatus" id="Searching">Searching...</div>
+<div class="SRStatus" id="NoMatches">No Matches</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#namespaces">Namespaces</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#var-members">Variables</a>  </div>
+  <div class="headertitle"><div class="title">AcousticPairwiseRangeSystem.h File Reference</div></div>
+</div><!--header-->
+<div class="contents">
+
+<p>Pairwise acoustic range measurement system using Bellhop ray tracing.  
+<a href="#details">More...</a></p>
+<div class="textblock"><code>#include &quot;<a class="el" href="AcousticsBuilder_8h_source.html">acoustics/AcousticsBuilder.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="Arrival_8h_source.html">acoustics/Arrival.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="BellhopContext_8h_source.html">acoustics/BellhopContext.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="acoustics_2include_2acoustics_2helpers_8h_source.html">acoustics/helpers.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="Logger_8h_source.html">mantaray/utils/Logger.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="RbWorld_8h_source.html">rb/RbWorld.h</a>&quot;</code><br />
+<code>#include &quot;fmt/format.h&quot;</code><br />
+<code>#include &lt;cmath&gt;</code><br />
+<code>#include &lt;cstring&gt;</code><br />
+<code>#include &lt;map&gt;</code><br />
+<code>#include &lt;stdexcept&gt;</code><br />
+<code>#include &lt;vector&gt;</code><br />
+</div><div class="textblock"><div class="dynheader">
+Include dependency graph for AcousticPairwiseRangeSystem.h:</div>
+<div class="dyncontent">
+<div class="center"><img src="AcousticPairwiseRangeSystem_8h__incl.png" border="0" usemap="#asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8h" alt=""/></div>
+<map name="asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8h" id="asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8h">
+<area shape="rect" title="Pairwise acoustic range measurement system using Bellhop ray tracing." alt="" coords="1393,5,1658,45"/>
+<area shape="rect" href="AcousticsBuilder_8h.html" title="See details of AcousticsBuilder." alt="" coords="595,93,802,119"/>
+<area shape="poly" title=" " alt="" coords="1393,42,816,96,816,91,1392,37"/>
+<area shape="rect" title=" " alt="" coords="213,387,299,412"/>
+<area shape="poly" title=" " alt="" coords="1393,30,1065,34,662,45,467,53,298,65,168,79,123,87,93,96,59,110,32,126,14,146,8,178,8,254,13,284,27,309,49,331,76,348,138,374,200,388,198,393,137,379,73,353,45,335,23,313,8,286,3,254,3,178,10,144,28,121,56,106,91,91,122,82,168,73,298,59,467,48,661,40,1065,29,1392,25"/>
+<area shape="rect" href="acoustics_2include_2acoustics_2helpers_8h.html" title="Helpers for floating point, boundary box, monotonic, and vector creation." alt="" coords="544,313,691,339"/>
+<area shape="poly" title=" " alt="" coords="1393,34,961,55,743,73,653,84,584,96,528,106,482,113,462,120,443,130,425,146,408,168,403,179,402,191,408,219,420,245,434,263,455,280,480,294,532,311,530,316,477,299,452,285,430,267,415,248,402,221,396,192,398,177,403,165,421,142,440,126,460,115,481,108,527,100,584,91,652,78,742,67,961,49,1393,28"/>
+<area shape="rect" title=" " alt="" coords="1467,387,1530,412"/>
+<area shape="poly" title=" " alt="" coords="1560,43,1608,74,1663,118,1716,174,1738,205,1756,239,1758,252,1756,265,1757,305,1755,323,1743,340,1729,351,1709,361,1657,376,1544,396,1543,390,1655,371,1707,356,1726,347,1739,337,1750,321,1752,305,1751,265,1753,252,1751,241,1733,208,1712,177,1659,122,1605,79,1558,48"/>
+<area shape="rect" title=" " alt="" coords="750,387,813,412"/>
+<area shape="poly" title=" " alt="" coords="1428,48,1317,75,1184,115,1045,171,977,204,914,242,875,273,843,309,796,376,792,373,838,306,872,269,910,238,975,200,1043,166,1182,110,1315,70,1426,43"/>
+<area shape="rect" href="Arrival_8h.html" title="Extract arrival data and arrival debug data from bellhop pointer struct." alt="" coords="1107,167,1250,192"/>
+<area shape="poly" title=" " alt="" coords="1484,48,1219,163,1217,159,1481,43"/>
+<area shape="rect" href="BellhopContext_8h.html" title="RAII wrapper for Bellhop params and outputs." alt="" coords="1530,313,1729,339"/>
+<area shape="poly" title=" " alt="" coords="1536,45,1568,129,1608,239,1625,299,1620,301,1603,241,1563,131,1531,47"/>
+<area shape="rect" href="Logger_8h.html" title="Global and Bellhop logger initialization." alt="" coords="104,93,280,119"/>
+<area shape="poly" title=" " alt="" coords="1393,35,915,58,310,96,294,97,294,92,309,91,914,53,1392,29"/>
+<area shape="rect" href="RbWorld_8h.html" title="Controls all rigid body simulation time stepping." alt="" coords="1745,93,1850,119"/>
+<area shape="poly" title=" " alt="" coords="1591,43,1745,87,1744,92,1590,48"/>
+<area shape="rect" title=" " alt="" coords="1874,93,1979,119"/>
+<area shape="poly" title=" " alt="" coords="1622,43,1861,89,1860,94,1621,48"/>
+<area shape="rect" title=" " alt="" coords="2004,93,2071,119"/>
+<area shape="poly" title=" " alt="" coords="1659,39,1814,61,1991,91,1990,96,1813,66,1658,45"/>
+<area shape="rect" title=" " alt="" coords="2095,93,2145,119"/>
+<area shape="poly" title=" " alt="" coords="1658,33,1855,54,1967,70,2082,91,2081,96,1966,75,1854,59,1658,39"/>
+<area shape="rect" href="SimulationConfig_8h.html" title="All acoustics related configuration structs." alt="" coords="672,167,883,192"/>
+<area shape="poly" title=" " alt="" coords="713,117,756,156,753,159,710,121"/>
+<area shape="rect" title=" " alt="" coords="361,387,447,412"/>
+<area shape="poly" title=" " alt="" coords="629,121,488,149,320,191,240,218,170,247,117,280,98,297,85,315,81,326,84,337,116,346,185,360,348,387,347,392,184,365,114,352,81,341,75,327,80,312,94,293,114,275,168,242,238,213,318,186,487,144,628,116"/>
+<area shape="poly" title=" " alt="" coords="677,121,581,169,512,204,446,242,441,255,442,266,448,277,459,286,491,301,531,311,529,316,489,306,456,290,444,280,437,268,436,254,442,238,510,200,579,164,674,116"/>
+<area shape="rect" title=" " alt="" coords="1062,387,1162,412"/>
+<area shape="poly" title=" " alt="" coords="788,116,844,134,871,147,896,165,917,189,926,213,933,237,949,264,981,298,1017,329,1083,377,1080,381,1014,334,978,302,945,267,928,239,921,214,912,191,893,169,869,152,842,139,786,121"/>
+<area shape="rect" title=" " alt="" coords="417,167,517,192"/>
+<area shape="poly" title=" " alt="" coords="662,121,518,165,516,160,661,116"/>
+<area shape="rect" href="checkAssert_8h.html" title="CHECK macro for runtime assertions." alt="" coords="1381,240,1593,265"/>
+<area shape="poly" title=" " alt="" coords="803,108,900,113,1016,124,1141,140,1263,164,1366,197,1451,232,1449,237,1365,202,1262,169,1140,145,1016,129,900,119,802,113"/>
+<area shape="rect" title=" " alt="" coords="592,167,648,192"/>
+<area shape="poly" title=" " alt="" coords="688,121,645,159,641,156,684,117"/>
+<area shape="rect" href="Grid_8h.html" title="Library internal data structures for representing 2 and 3D grids." alt="" coords="203,240,330,265"/>
+<area shape="poly" title=" " alt="" coords="696,195,344,243,343,238,695,189"/>
+<area shape="poly" title=" " alt="" coords="780,192,784,372,778,372,775,192"/>
+<area shape="rect" href="acousticsConstants_8h.html" title="Defines constants for bellhop and wrapper library." alt="" coords="455,240,681,265"/>
+<area shape="poly" title=" " alt="" coords="745,195,616,238,614,233,743,189"/>
+<area shape="rect" title=" " alt="" coords="1254,240,1357,265"/>
+<area shape="poly" title=" " alt="" coords="863,189,1241,240,1240,245,862,195"/>
+<area shape="rect" title=" " alt="" coords="471,387,563,412"/>
+<area shape="poly" title=" " alt="" coords="301,263,351,284,407,311,455,344,496,376,492,380,452,348,404,316,349,288,299,268"/>
+<area shape="poly" title=" " alt="" coords="307,263,346,282,365,295,382,312,398,342,405,372,400,373,393,343,378,315,362,299,344,286,304,268"/>
+<area shape="rect" title=" " alt="" coords="588,387,647,412"/>
+<area shape="poly" title=" " alt="" coords="306,263,371,284,444,311,520,345,585,378,582,382,518,350,442,316,369,289,304,268"/>
+<area shape="rect" title=" " alt="" coords="94,313,218,339"/>
+<area shape="poly" title=" " alt="" coords="250,268,187,308,184,303,247,263"/>
+<area shape="rect" title=" " alt="" coords="293,313,368,339"/>
+<area shape="poly" title=" " alt="" coords="279,264,313,301,309,305,275,267"/>
+<area shape="poly" title=" " alt="" coords="268,266,261,373,255,373,263,266"/>
+<area shape="poly" title=" " alt="" coords="324,263,548,308,547,313,322,268"/>
+<area shape="poly" title=" " alt="" coords="603,341,546,381,543,376,600,337"/>
+<area shape="poly" title=" " alt="" coords="584,341,452,385,451,380,582,336"/>
+<area shape="poly" title=" " alt="" coords="620,339,620,373,615,373,615,339"/>
+<area shape="poly" title=" " alt="" coords="560,341,313,389,312,384,559,336"/>
+<area shape="poly" title=" " alt="" coords="691,335,1049,386,1048,392,690,340"/>
+<area shape="poly" title=" " alt="" coords="691,331,1454,392,1454,397,691,336"/>
+<area shape="rect" title=" " alt="" coords="852,387,932,412"/>
+<area shape="poly" title=" " alt="" coords="662,336,839,382,838,387,661,341"/>
+<area shape="poly" title=" " alt="" coords="645,336,743,379,741,384,643,341"/>
+<area shape="poly" title=" " alt="" coords="1440,268,946,388,945,382,1439,263"/>
+<area shape="rect" title=" " alt="" coords="1441,313,1506,339"/>
+<area shape="poly" title=" " alt="" coords="1487,266,1481,300,1475,299,1482,265"/>
+<area shape="poly" title=" " alt="" coords="1107,193,987,212,851,243,746,277,658,311,656,306,744,272,850,237,986,207,1106,187"/>
+<area shape="poly" title=" " alt="" coords="1186,192,1194,225,1196,246,1193,266,1181,298,1166,329,1132,378,1128,375,1161,326,1177,296,1188,265,1191,245,1189,226,1181,193"/>
+<area shape="poly" title=" " alt="" coords="1108,192,1028,210,987,224,948,242,885,298,804,379,801,375,882,295,945,238,985,219,1027,205,1107,187"/>
+<area shape="poly" title=" " alt="" coords="1229,189,1424,234,1423,240,1228,195"/>
+<area shape="rect" title=" " alt="" coords="958,240,1079,265"/>
+<area shape="poly" title=" " alt="" coords="1154,194,1058,237,1056,232,1152,190"/>
+<area shape="rect" title=" " alt="" coords="1667,240,1741,265"/>
+<area shape="poly" title=" " alt="" coords="1250,188,1654,242,1653,247,1250,193"/>
+<area shape="rect" title=" " alt="" coords="1104,240,1179,265"/>
+<area shape="poly" title=" " alt="" coords="1175,194,1156,229,1151,227,1170,191"/>
+<area shape="poly" title=" " alt="" coords="1547,341,1176,392,1175,387,1546,336"/>
+<area shape="poly" title=" " alt="" coords="149,121,112,139,96,152,84,168,77,185,76,203,80,222,87,240,110,274,135,302,131,306,106,278,83,243,75,223,71,204,72,184,79,165,93,148,110,135,147,116"/>
+<area shape="rect" title=" " alt="" coords="94,167,290,192"/>
+<area shape="poly" title=" " alt="" coords="195,119,195,153,189,153,189,119"/>
+<area shape="poly" title=" " alt="" coords="1774,121,1525,237,1522,232,1771,116"/>
+<area shape="rect" title=" " alt="" coords="1872,313,1944,339"/>
+<area shape="poly" title=" " alt="" coords="1813,117,1835,138,1857,165,1875,200,1889,236,1906,299,1901,301,1884,238,1870,202,1852,168,1832,141,1810,121"/>
+<area shape="rect" href="Integrator_8h.html" title="Manages all pose integration." alt="" coords="1745,167,1842,192"/>
+<area shape="poly" title=" " alt="" coords="1799,119,1797,153,1792,153,1794,119"/>
+<area shape="rect" href="PhysicsBodies_8h.html" title="An AoS format for storing kinematic data and accessing it." alt="" coords="2070,313,2197,339"/>
+<area shape="poly" title=" " alt="" coords="1851,114,1863,116,1933,124,1997,125,2111,125,2161,133,2208,151,2230,166,2250,186,2289,239,2294,253,2293,266,2287,277,2276,287,2247,303,2211,314,2210,309,2245,298,2273,283,2283,274,2288,264,2289,254,2284,241,2246,189,2226,171,2205,156,2160,138,2110,130,1997,130,1932,129,1862,121,1850,119"/>
+<area shape="rect" href="RbInterfaces_8h.html" title="Defines all interfaces that RbWorld expects to be fulfilled." alt="" coords="2019,240,2152,265"/>
+<area shape="poly" title=" " alt="" coords="1850,114,2008,143,2104,165,2112,180,2113,197,2102,228,2097,227,2107,196,2107,181,2101,169,2007,148,1850,119"/>
+<area shape="rect" href="RobotsAndSensors_8h.html" title="Houses the current concrete implementations of sensors and robots." alt="" coords="1918,167,2090,192"/>
+<area shape="poly" title=" " alt="" coords="1831,116,1958,160,1957,165,1830,121"/>
+<area shape="rect" href="rb_2include_2rb_2helpers_8h.html" title="Few critical helpers for floating point comparison." alt="" coords="2176,240,2275,265"/>
+<area shape="poly" title=" " alt="" coords="1851,114,2125,164,2172,195,2208,228,2204,232,2169,199,2123,169,1850,119"/>
+<area shape="rect" title=" " alt="" coords="1950,387,2063,412"/>
+<area shape="poly" title=" " alt="" coords="1798,192,1804,221,1816,259,1835,300,1862,337,1898,363,1939,380,1937,385,1896,367,1858,341,1830,303,1811,261,1799,222,1793,193"/>
+<area shape="poly" title=" " alt="" coords="2114,341,2041,382,2038,377,2112,336"/>
+<area shape="poly" title=" " alt="" coords="2058,268,1950,311,1948,306,2056,263"/>
+<area shape="poly" title=" " alt="" coords="2081,267,2022,376,2017,373,2077,265"/>
+<area shape="poly" title=" " alt="" coords="2095,264,2120,301,2116,304,2091,267"/>
+<area shape="poly" title=" " alt="" coords="1918,191,1637,215,1371,243,1370,237,1637,210,1917,185"/>
+<area shape="poly" title=" " alt="" coords="1921,195,1584,241,1583,235,1921,189"/>
+<area shape="poly" title=" " alt="" coords="1956,195,1754,242,1753,237,1955,189"/>
+<area shape="poly" title=" " alt="" coords="1998,194,1965,241,1925,303,1920,300,1960,239,1993,191"/>
+<area shape="poly" title=" " alt="" coords="2007,192,2009,372,2004,372,2001,192"/>
+<area shape="poly" title=" " alt="" coords="2019,190,2064,229,2060,233,2015,194"/>
+<area shape="poly" title=" " alt="" coords="2040,189,2178,233,2176,238,2039,195"/>
+</map>
+</div>
+</div><div class="textblock"><div class="dynheader">
+This graph shows which files directly or indirectly include this file:</div>
+<div class="dyncontent">
+<div class="center"><img src="AcousticPairwiseRangeSystem_8h__dep__incl.png" border="0" usemap="#asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8hdep" alt=""/></div>
+<map name="asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8hdep" id="asrc_2include_2mantaray_2sim_2AcousticPairwiseRangeSystem_8hdep">
+<area shape="rect" title="Pairwise acoustic range measurement system using Bellhop ray tracing." alt="" coords="5,5,271,45"/>
+<area shape="rect" href="SimConfig_8h.html" title="Top&#45;level simulation configuration and JSON deserialization." alt="" coords="59,181,217,221"/>
+<area shape="poly" title=" " alt="" coords="121,58,107,94,104,113,107,133,116,158,128,180,123,182,111,160,102,134,99,113,102,93,116,57"/>
+<area shape="rect" href="PfgWriter_8h.html" title="Writer for the PyFactorGraphs (.pfg) text format." alt="" coords="117,93,276,133"/>
+<area shape="poly" title=" " alt="" coords="161,55,186,92,181,95,156,58"/>
+<area shape="poly" title=" " alt="" coords="178,146,153,183,149,180,174,143"/>
+</map>
+</div>
+</div>
+<p><a href="AcousticPairwiseRangeSystem_8h_source.html">Go to the source code of this file.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsim_1_1RangeEndpoint.html">sim::RangeEndpoint</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Identifies one end of an acoustic link.  <a href="structsim_1_1RangeEndpoint.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsim_1_1RangeMeasurement.html">sim::RangeMeasurement</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Self-contained record of a single acoustic range measurement.  <a href="structsim_1_1RangeMeasurement.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsim_1_1RangeLink.html">sim::RangeLink</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Directed link between two endpoints.  <a href="structsim_1_1RangeLink.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classsim_1_1AcousticPairwiseRangeSystem.html">sim::AcousticPairwiseRangeSystem</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Manages pairwise acoustic ranging between all robots and landmarks.  <a href="classsim_1_1AcousticPairwiseRangeSystem.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="namespaces" name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespacesim" id="r_namespacesim"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesim.html">sim</a></td></tr>
+<tr class="memdesc:namespacesim"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simulation systems, acoustic ranging, and robot factory utilities. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:ac4113b097c577da3c54311322b567a97" id="r_ac4113b097c577da3c54311322b567a97"><td class="memItemLeft" align="right" valign="top"><a id="ac4113b097c577da3c54311322b567a97" name="ac4113b097c577da3c54311322b567a97"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesim.html#ac4113b097c577da3c54311322b567a97">sim::GlobalTofMode</a> { <b>kOneWay</b>
+, <b>kTwoWay</b>
+ }</td></tr>
+<tr class="memdesc:ac4113b097c577da3c54311322b567a97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Selects one-way or two-way time-of-flight scaling. <br /></td></tr>
+<tr class="separator:ac4113b097c577da3c54311322b567a97"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0bb4381a4dfffeda6bded427dc2e938e" id="r_a0bb4381a4dfffeda6bded427dc2e938e"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938e">sim::RangeStatus</a> { <br />
+&#160;&#160;<a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938eae69fa9a656f76dd8a4d89f21992b2d3a">sim::kOk</a>
+, <a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938ea23148baeced5188d530c1e87016e0d4c">sim::kSkippedPingerDead</a>
+, <a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938ea929c68a7c01f1ad038b81b88de3f1d4a">sim::kSkippedTargetDead</a>
+, <a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938eaae60bf440c4faca4528665f8b34bf000">sim::kOutOfBounds</a>
+, <br />
+&#160;&#160;<a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938eae61ec374003b5c6d4acb4933ca4deab7">sim::kNoArrival</a>
+, <a class="el" href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938ea18692672f93a2dbe4a4df4ca727a8d16">sim::kSspSampleFailed</a>
+<br />
+ }</td></tr>
+<tr class="memdesc:a0bb4381a4dfffeda6bded427dc2e938e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Outcome of a single range measurement attempt.  <a href="namespacesim.html#a0bb4381a4dfffeda6bded427dc2e938e">More...</a><br /></td></tr>
+<tr class="separator:a0bb4381a4dfffeda6bded427dc2e938e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d420fcf2d5124e5ba0380be392454e4" id="r_a9d420fcf2d5124e5ba0380be392454e4"><td class="memItemLeft" align="right" valign="top"><a id="a9d420fcf2d5124e5ba0380be392454e4" name="a9d420fcf2d5124e5ba0380be392454e4"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesim.html#a9d420fcf2d5124e5ba0380be392454e4">sim::EndpointType</a> { <b>kRobot</b>
+, <b>kLandmark</b>
+ }</td></tr>
+<tr class="memdesc:a9d420fcf2d5124e5ba0380be392454e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Distinguishes robots from static landmarks. <br /></td></tr>
+<tr class="separator:a9d420fcf2d5124e5ba0380be392454e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a9fc18b966f11c9ddd0bf8d6f69e0080d" id="r_a9fc18b966f11c9ddd0bf8d6f69e0080d"><td class="memItemLeft" align="right" valign="top"><a id="a9fc18b966f11c9ddd0bf8d6f69e0080d" name="a9fc18b966f11c9ddd0bf8d6f69e0080d"></a>
+constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>sim::kInvalidDistance</b> = -1.0f</td></tr>
+<tr class="memdesc:a9fc18b966f11c9ddd0bf8d6f69e0080d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sentinel value for invalid or unavailable distance/speed/TOF fields. <br /></td></tr>
+<tr class="separator:a9fc18b966f11c9ddd0bf8d6f69e0080d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Pairwise acoustic range measurement system using Bellhop ray tracing. </p>
+</div></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_f571563e73abc9c07f0cb049318d13f8.html">mantaray</a></li><li class="navelem"><a class="el" href="dir_ba6cd4d7c6106cdcfe99798bca820d41.html">sim</a></li><li class="navelem"><a class="el" href="AcousticPairwiseRangeSystem_8h.html">AcousticPairwiseRangeSystem.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+  </ul>
+</div>
+</body>
+</html>
