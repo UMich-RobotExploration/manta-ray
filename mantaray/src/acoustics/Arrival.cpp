@@ -104,7 +104,7 @@ float Arrival::getFastestArrival(bool directPathOnly) {
 
                 if (directPathOnly && (arr->NTopBnc > 0 || arr->NBotBnc > 0)) {
                   ++multipathSkipped;
-                  SPDLOG_DEBUG("Skipping multipath arrival: delay={:.6f}s, "
+                  SPDLOG_TRACE("Skipping multipath arrival: delay={:.6f}s, "
                                "topBnc={}, botBnc={}",
                                delay, arr->NTopBnc, arr->NBotBnc);
                   continue;

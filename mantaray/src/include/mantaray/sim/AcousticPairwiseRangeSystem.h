@@ -96,9 +96,43 @@ struct RangeLink {
  * Measurements are accumulated in a flat chronological log accessible via
  * getMeasurements(). A lightweight checkBounds() method can be called at
  * physics-rate to cull out-of-bounds robots without running Bellhop.
+ *
+ * @section iterative_beam_solver Iterative Beam Refinement
+ *
+ * When acquiring time-of-flight, the system uses direct-path-only filtering
+ * (zero surface and bottom bounces). If no direct-path arrival is found at the
+ * initial beam count, an iterative solver increases the beam density and
+ * re-runs Bellhop until either a direct path is found or the maximum beam
+ * count is reached.
+ *
+ * The beam count is scaled by kBeamIterativeFactor on each iteration and
+ * clamped to `AcousticsBuilder::getMaxBeams()` so the final iteration always
+ * runs at full allocated resolution, even when the max is not a clean multiple
+ * of the scale factor. After the loop completes (success or exhaustion), the
+ * beam count is restored to its original value for subsequent links.
+ *
+ * Example progression with `numBeams=80`, `maxBeams=300`,
+ * `kBeamIterativeFactor=2.0`:
+ * @code
+ *   Step 1:  80 beams  → no direct path
+ *   Step 2: 160 beams  → no direct path
+ *   Step 3: 300 beams  → clamped from 320, final attempt
+ * @endcode
+ *
+ * Configuration (via JSON `"acoustics"` block):
+ * - `num_beams`: initial beam count per axis (default 80)
+ * - `max_beams`: maximum beam count for iterative refinement (default 180)
+ * - `beam_spread_deg`: half-cone angle in degrees (default 20.0)
+ *
+ * @see AcousticsBuilder::rebuildBeam(), AcousticsBuilder::getMaxBeams()
+ * @see @ref iterative_beam_refinement "Iterative Beam Refinement (sim.md)"
  */
 class AcousticPairwiseRangeSystem {
 public:
+  /// @brief Scale factor applied to beam count on each iterative refinement
+  /// step.
+  static constexpr double kBeamIterativeFactor{2.0};
+
   /**
    * @brief Constructs the range system.
    *
@@ -200,10 +234,12 @@ private:
 
   /// @brief Acquire time-of-flight for a link, using reciprocal cache when
   /// possible.
+  /// @details Uses the iterative beam refinement solver to find a direct-path
+  /// arrival. See @ref iterative_beam_solver "Iterative Beam Refinement".
   /// @param[in]     link     The acoustic link
   /// @param[in]     tag      Log tag for this measurement
   /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
-  /// @return Raw TOF in seconds, or negative if no arrival
+  /// @return Raw TOF in seconds, or negative if no direct path found
   float acquireTof(const RangeLink &link, const std::string &tag,
                    std::map<std::pair<size_t, size_t>, float> &tofCache);
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple script to read a .pyfg file and plot 3D values.
+Script that helps visualize and debug range data.
 """
 
 import matplotlib

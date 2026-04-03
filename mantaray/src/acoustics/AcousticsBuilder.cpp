@@ -10,13 +10,15 @@ namespace acoustics {
 AcousticsBuilder::AcousticsBuilder(bhc::bhcParams<true> &params,
                                    BathymetryConfig &bathConfig,
                                    SSPConfig &sspConfig,
-                                   AgentsConfig &agentsConfig)
+                                   AgentsConfig &agentsConfig, int numBeams,
+                                   double beamSpreadDeg, int maxBeams)
     : params_(params),
       bathymetryConfig_(std::move(bathConfig)),
       sspConfig_(std::move(sspConfig)),
-      agentsConfig_(std::move(agentsConfig)){
-
-      };
+      agentsConfig_(std::move(agentsConfig)),
+      numBeams_(numBeams),
+      maxBeams_(maxBeams > 0 ? maxBeams : numBeams),
+      beamSpreadRad_(beamSpreadDeg * kDegree2Radians){};
 
 AgentsConfig &AcousticsBuilder::getAgentsConfig() { return agentsConfig_; };
 const SSPConfig &AcousticsBuilder::getSSPConfig() const { return sspConfig_; };
@@ -174,17 +176,22 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   params_.Angles->beta.inDegrees = false;
   Eigen::Vector3d delta = agentsConfig_.receiver - agentsConfig_.source;
   double elevationAngle = utils::computeElevationAngle(delta);
+  // On first call, allocate for maxBeams_ so iterative beam
+  // refinement can increase numBeams_ without reallocating mid-simulation.
   if (!beamBuilt_) {
-    bhc::extsetup_raybearings(params_, kNumBeams);
-    bhc::extsetup_rayelevations(params_, kNumBeams);
+    bhc::extsetup_raybearings(params_, maxBeams_);
+    bhc::extsetup_rayelevations(params_, maxBeams_);
     beamBuilt_ = true;
   }
+  // Set the active beam count (may be less than allocated)
+  params_.Angles->beta.n = numBeams_;
+  params_.Angles->alpha.n = numBeams_;
   utils::unsafeSetupVector(params_.Angles->beta.angles,
-                           bearingAngle - kBeamSpreadRadians,
-                           bearingAngle + kBeamSpreadRadians, kNumBeams);
+                           bearingAngle - beamSpreadRad_,
+                           bearingAngle + beamSpreadRad_, numBeams_);
   utils::unsafeSetupVector(params_.Angles->alpha.angles,
-                           elevationAngle - kBeamSpreadRadians,
-                           elevationAngle + kBeamSpreadRadians, kNumBeams);
+                           elevationAngle - beamSpreadRad_,
+                           elevationAngle + beamSpreadRad_, numBeams_);
 
   auto beam = params_.Beam;
   constexpr double boxScale = 1.50;
@@ -211,6 +218,15 @@ void AcousticsBuilder::constructBeam(double bearingAngle) {
   // off the bottom
   beam->Box.z = max * kmScaler + 10;
 }
+
+void AcousticsBuilder::rebuildBeam(int newNumBeams) {
+  numBeams_ = newNumBeams;
+  auto delta = agentsConfig_.receiver(Eigen::seq(0, 1)) -
+               agentsConfig_.source(Eigen::seq(0, 1));
+  double bearingAngle = std::atan2(delta(1), delta(0));
+  constructBeam(bearingAngle);
+}
+
 std::pair<double, bool>
 AcousticsBuilder::isWithinBathymetry(const Eigen::Vector3d &position) const {
   double kmScalerBath = bathymetryConfig_.isKm ? 1.0 / 1000.0 : 1.0;

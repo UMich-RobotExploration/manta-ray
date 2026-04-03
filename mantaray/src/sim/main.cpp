@@ -96,8 +96,9 @@ int main(int argc, char *argv[]) {
   auto sspConfig = acoustics::SSPConfig{std::move(importedSSPGrid), false};
 
   acoustics::AgentsConfig agents{{0, 0, 10}, {0, 0, 1}};
-  auto simBuilder = acoustics::AcousticsBuilder(context.params(), bathConfig,
-                                                sspConfig, agents);
+  auto simBuilder = acoustics::AcousticsBuilder(
+      context.params(), bathConfig, sspConfig, agents, config.numBeams,
+      config.beamSpreadDeg, config.maxBeams);
   simBuilder.build();
 
   // Simulation setup

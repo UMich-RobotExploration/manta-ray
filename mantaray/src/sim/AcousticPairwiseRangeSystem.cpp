@@ -123,15 +123,45 @@ float AcousticPairwiseRangeSystem::acquireTof(
     }
   }
 
-  bellhop_logger->debug("\n===Start Bellhop {}===\n", tag);
-  if (bellhop_logger->level() == spdlog::level::debug) {
-    bhc::echo(context_.params());
-  }
-  bhc::run(context_.params(), context_.outputs());
-  bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
+  const int originalBeams = builder_.getNumBeams();
+  const int maxBeams = builder_.getMaxBeams();
+  float tofRawSec = acoustics::kNoArrival;
 
-  acoustics::Arrival arrival(context_.params(), context_.outputs());
-  float tofRawSec = arrival.getFastestArrival(true);
+  for (int beams = originalBeams; beams <= maxBeams;) {
+    bellhop_logger->debug("\n===Start Bellhop {} (beams={})===\n", tag,
+                          builder_.getNumBeams());
+    if (bellhop_logger->level() == spdlog::level::debug) {
+      bhc::echo(context_.params());
+    }
+    bhc::run(context_.params(), context_.outputs());
+    bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
+
+    acoustics::Arrival arrival(context_.params(), context_.outputs());
+    tofRawSec = arrival.getFastestArrival(true);
+
+    if (tofRawSec >= 0.0f) {
+      break;
+    }
+
+    int nextBeams = static_cast<int>(beams * kBeamIterativeFactor);
+    // Clamp to maxBeams so the final iteration always runs at full resolution
+    nextBeams = std::min(nextBeams, maxBeams);
+
+    if (beams >= maxBeams) {
+      SPDLOG_INFO("{} No direct path found at max {} beams", tag, maxBeams);
+      break;
+    }
+
+    SPDLOG_INFO("{} No direct path at {} beams, retrying with {}", tag, beams,
+                nextBeams);
+    builder_.rebuildBeam(nextBeams);
+    beams = nextBeams;
+  }
+
+  // Restore original beam count
+  if (builder_.getNumBeams() != originalBeams) {
+    builder_.rebuildBeam(originalBeams);
+  }
 
   if (isRobotPair) {
     auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
