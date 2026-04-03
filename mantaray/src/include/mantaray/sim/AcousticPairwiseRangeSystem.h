@@ -99,6 +99,10 @@ struct RangeLink {
  */
 class AcousticPairwiseRangeSystem {
 public:
+  /// @brief Scale factor applied to beam count on each iterative refinement
+  /// step.
+  static constexpr double kBeamIterativeFactor{2.0};
+
   /**
    * @brief Constructs the range system.
    *
@@ -209,6 +213,7 @@ private:
 
   /**
    * @brief Returns the TOF multiplier for the given mode.
+   * @details Uses an iterative solver to attempt to find a direct path
    * @param mode One-way (1x) or two-way (2x)
    */
   static float tofScale(GlobalTofMode mode);

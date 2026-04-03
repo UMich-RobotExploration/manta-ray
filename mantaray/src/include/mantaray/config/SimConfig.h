@@ -108,6 +108,9 @@ struct SimConfig {
 
   std::string tofMode{"one_way"};
   double debugRangeErrorPct{0.0};
+  int numBeams{80};
+  int maxBeams{180};
+  double beamSpreadDeg{20.0};
 
   sim::StandardSensorConfig sensors{};
 
@@ -138,6 +141,9 @@ inline void from_json(const json &j, SimConfig &c) {
     c.tofMode = a.value("tof_mode", c.tofMode);
     c.debugRangeErrorPct =
         a.value("debug_range_error_pct", c.debugRangeErrorPct);
+    c.numBeams = a.value("num_beams", c.numBeams);
+    c.maxBeams = a.value("max_beams", c.maxBeams);
+    c.beamSpreadDeg = a.value("beam_spread_deg", c.beamSpreadDeg);
   }
 
   if (j.contains("sensors")) {

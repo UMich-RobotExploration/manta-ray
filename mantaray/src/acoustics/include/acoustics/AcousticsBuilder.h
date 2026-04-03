@@ -88,7 +88,9 @@ public:
    */
   explicit AcousticsBuilder(bhc::bhcParams<true> &params,
                             BathymetryConfig &bathConfig, SSPConfig &sspConfig,
-                            AgentsConfig &agentsConfig);
+                            AgentsConfig &agentsConfig,
+                            int numBeams = kNumBeams,
+                            double beamSpreadDeg = 20.0, int maxBeams = 0);
 
   /**
    * @brief Creates bathymetry, altimetry, SSP, and agent configurations in
@@ -135,6 +137,17 @@ public:
   void validateSPPandBathymetryBox(const Grid2D &bathGrid,
                                    const Grid3D &sspGrid) const;
 
+  /// @brief Rebuild beam fan with a new beam count using current geometry.
+  /// @details Reallocates ray arrays if needed and recomputes angles from
+  ///          the current source/receiver positions stored in agentsConfig_.
+  void rebuildBeam(int newNumBeams);
+
+  /// @brief Returns the current active beam count per axis.
+  int getNumBeams() const { return numBeams_; }
+
+  /// @brief Returns the maximum beam count that was pre-allocated.
+  int getMaxBeams() const { return maxBeams_; }
+
   AgentsConfig &getAgentsConfig();
   const SSPConfig &getSSPConfig() const;
 
@@ -156,6 +169,9 @@ private:
   // double minBoxWidth_{-1.0};
   bool bathymetryBuilt_{false};
   bool agentsBuilt_{false};
+  int numBeams_;
+  int maxBeams_{0};
+  double beamSpreadRad_;
   bool beamBuilt_{false};
 
   /** @brief Constructs bathymetry based on bathymetry config

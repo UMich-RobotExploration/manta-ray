@@ -12,7 +12,10 @@
   },
   "acoustics": {
     "tof_mode": "one_way",
-    "debug_range_error_pct": 5.0
+    "debug_range_error_pct": 5.0,
+    "num_beams": 100,
+    "beam_spread_deg": 20,
+    "max_beams": 500
   },
   "sensors": {
     "gt_freq_hz": 0.01,
