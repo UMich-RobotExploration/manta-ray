@@ -131,7 +131,7 @@ float AcousticPairwiseRangeSystem::acquireTof(
   bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
 
   acoustics::Arrival arrival(context_.params(), context_.outputs());
-  float tofRawSec = arrival.getFastestArrival();
+  float tofRawSec = arrival.getFastestArrival(true);
 
   if (isRobotPair) {
     auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
@@ -144,6 +144,7 @@ float AcousticPairwiseRangeSystem::acquireTof(
 
 void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
                                                          RangeLink &link,
+                                                         const std::string &tag,
                                                          double simTimeSec,
                                                          double trueRange) {
   // Debug ray trace on high error
@@ -295,7 +296,7 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
                 meas.tofEffectiveSec, meas.soundSpeedAtPingerMps);
 
     measurements_.push_back(meas);
-    debugOutputRangeErrors(meas, link, simTimeSec, trueRange);
+    debugOutputRangeErrors(meas, link, tag, simTimeSec, trueRange);
   }
 }
 

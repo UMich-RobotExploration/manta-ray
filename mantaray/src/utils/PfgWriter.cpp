@@ -140,9 +140,11 @@ endpointName(const sim::RangeEndpoint &ep, double queryTime,
 
 namespace pyfg {
 
-std::array<double, 21> makeDiagUpperTri6x6(double d0, double d1, double d2,
-                                           double d3, double d4, double d5) {
-  std::array<double, 21> out{};
+std::array<double, kCovUniqueElems6x6> makeDiagUpperTri6x6(double d0, double d1,
+                                                           double d2, double d3,
+                                                           double d4,
+                                                           double d5) {
+  std::array<double, kCovUniqueElems6x6> out{};
   // Diagonal positions in upper-tri row-major: 0, 6, 11, 15, 18, 20
   out[0] = d0;
   out[6] = d1;
@@ -153,8 +155,9 @@ std::array<double, 21> makeDiagUpperTri6x6(double d0, double d1, double d2,
   return out;
 }
 
-std::array<double, 6> makeDiagUpperTri3x3(double d0, double d1, double d2) {
-  std::array<double, 6> out{};
+std::array<double, kCovUniqueElems3x3> makeDiagUpperTri3x3(double d0, double d1,
+                                                           double d2) {
+  std::array<double, kCovUniqueElems3x3> out{};
   // (0,0) (0,1) (0,2) (1,1) (1,2) (2,2)
   out[0] = d0;
   out[3] = d1;
@@ -188,7 +191,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     const auto &data = gt->getSensorData();
     const auto &timestamps = gt->getSensorTimesteps();
     for (size_t t = 0; t < data.size(); ++t) {
-      file << "VERTEX_SE3:QUAT " << fmtT(timestamps[t]) << ' '
+      file << kVertexSe3Quat << ' ' << fmtT(timestamps[t]) << ' '
            << robotName(i, t) << ' ' << formatTranslation(data[t]) << ' '
            << formatPoseQuaternion(data[t]) << '\n';
     }
@@ -199,7 +202,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
   //////////////////////////////////////////////////////////////////////////////
   for (size_t j = 0; j < numLandmarks; ++j) {
     const auto &pos = world.landmarks[j];
-    file << "VERTEX_XYZ " << landmarkName(j) << ' ' << fmtT(pos.x()) << ' '
+    file << kVertexXyz << ' ' << landmarkName(j) << ' ' << fmtT(pos.x()) << ' '
          << fmtT(pos.y()) << ' ' << fmtT(pos.z()) << '\n';
   }
 
@@ -215,7 +218,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     if (data.empty())
       continue;
 
-    file << "VERTEX_SE3:QUAT:PRIOR " << fmtT(timestamps[0]) << ' '
+    file << kVertexSe3QuatPrior << ' ' << fmtT(timestamps[0]) << ' '
          << robotName(i, 0) << ' ' << formatTranslation(data[0]) << ' '
          << formatPoseQuaternion(data[0]) << ' '
          << formatUpperTri(config.defaultPosePriorCov) << '\n';
@@ -253,7 +256,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
       size_t nearestGtIdx =
           findNearestTimeIndex(gtTimestamps, gpsTimestamps[g]);
       // GPS data is [x, y, z], write with identity quaternion
-      file << "VERTEX_SE3:QUAT:PRIOR " << fmtT(gpsTimestamps[g]) << ' '
+      file << kVertexSe3QuatPrior << ' ' << fmtT(gpsTimestamps[g]) << ' '
            << robotName(i, nearestGtIdx) << ' ' << fmtT(gpsData[g][0]) << ' '
            << fmtT(gpsData[g][1]) << ' ' << fmtT(gpsData[g][2]) << ' '
            << fmtQ(0.0) << ' ' << fmtQ(0.0) << ' ' << fmtQ(0.0) << ' '
@@ -268,9 +271,10 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     for (size_t j = 0; j < numLandmarks; ++j) {
       size_t covIdx = std::min(j, config.landmarkPriorCovs.size() - 1);
       const auto &pos = world.landmarks[j];
-      file << "VERTEX_XYZ:PRIOR " << fmtT(0.0) << ' ' << landmarkName(j) << ' '
-           << fmtT(pos.x()) << ' ' << fmtT(pos.y()) << ' ' << fmtT(pos.z())
-           << ' ' << formatUpperTri(config.landmarkPriorCovs[covIdx]) << '\n';
+      file << kVertexXyzPrior << ' ' << fmtT(0.0) << ' ' << landmarkName(j)
+           << ' ' << fmtT(pos.x()) << ' ' << fmtT(pos.y()) << ' '
+           << fmtT(pos.z()) << ' '
+           << formatUpperTri(config.landmarkPriorCovs[covIdx]) << '\n';
     }
   }
 
@@ -279,7 +283,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
   //////////////////////////////////////////////////////////////////////////////
   for (size_t i = 0; i < numRobots; ++i) {
     auto *odomSensor = findOdomSensor(*world.robots[i]);
-    std::array<double, 21> odomCov{};
+    std::array<double, kCovUniqueElems6x6> odomCov{};
     if (odomSensor) {
       double var = odomSensor->getNoiseStddev() * odomSensor->getNoiseStddev();
       odomCov = makeDiagUpperTri6x6(var, var, var, config.odomRotationVariance,
@@ -306,7 +310,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
         manif::SE3d rel;
         rb::relativeTransformBodyFrame(poseFrom, poseTo, rel);
 
-        file << "EDGE_SE3:QUAT " << fmtT(timestamps[t + 1]) << ' '
+        file << kEdgeSe3Quat << ' ' << fmtT(timestamps[t + 1]) << ' '
              << robotName(i, t) << ' ' << robotName(i, t + 1) << ' '
              << formatSE3(rel) << ' ' << formatUpperTri(odomCov) << '\n';
       }
@@ -320,7 +324,7 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
       for (size_t t = 0; t < data.size() - 1; ++t) {
         Eigen::Vector3d delta = data[t + 1].head<3>() - data[t].head<3>();
 
-        file << "EDGE_SE3:QUAT " << fmtT(timestamps[t + 1]) << ' '
+        file << kEdgeSe3Quat << ' ' << fmtT(timestamps[t + 1]) << ' '
              << robotName(i, t) << ' ' << robotName(i, t + 1) << ' '
              << fmtT(delta.x()) << ' ' << fmtT(delta.y()) << ' '
              << fmtT(delta.z()) << ' ' << fmtQ(0.0) << ' ' << fmtQ(0.0) << ' '
@@ -352,9 +356,10 @@ void writePfg(const std::string &filename, const rb::RbWorld &world,
     std::string targetName =
         endpointName(meas.target, meas.simTimeSec, robotGtTimestamps);
 
-    file << "EDGE_RANGE " << fmtT(meas.simTimeSec) << ' ' << pingerName << ' '
-         << targetName << ' ' << fmtT(static_cast<double>(meas.rangeMeters))
-         << ' ' << fmtT(config.rangeVariance) << '\n';
+    file << kEdgeRange << ' ' << fmtT(meas.simTimeSec) << ' ' << pingerName
+         << ' ' << targetName << ' '
+         << fmtT(static_cast<double>(meas.rangeMeters)) << ' '
+         << fmtT(config.rangeVariance) << '\n';
   }
 
   file.close();

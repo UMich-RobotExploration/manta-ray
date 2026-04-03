@@ -151,7 +151,8 @@ public:
    * @param trueRange Actual range between rigid bodies (not bellhops)
    */
   void debugOutputRangeErrors(RangeMeasurement &meas, RangeLink &link,
-                              double simTimeSec, double trueRange);
+                              const std::string &tag, double simTimeSec,
+                              double trueRange);
 
   /**
    * @brief Runs Bellhop on every active pair and appends measurements to the

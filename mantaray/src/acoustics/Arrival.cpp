@@ -70,19 +70,16 @@ size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
   return (ir * inputs.Pos->NRz_per_range + iz) * inputs.Pos->Ntheta + itheta;
 }
 
-float Arrival::getFastestArrival() {
+float Arrival::getFastestArrival(bool directPathOnly) {
   const bhc::Position *Pos = inputs.Pos;
-
-  float arrivalDelay = -1;
-  // std::cout << "Number of receivers: "
-  //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
-  // std::cout << "Number of receiver ranges: " << Pos->NRr
-  //           << ", Number of Rz per range: " << Pos->NRz_per_range
-  //           << ", Number Theta: " << Pos->Ntheta << "\n";
 
   CHECK(Pos->NRz_per_range == 1,
         "Z values should be singular per range. A potential issue is that "
         "regular grids ('I') were not used in the Runtype[4]");
+
+  float minDelay = std::numeric_limits<float>::max();
+  bool hasArrival = false;
+  int multipathSkipped = 0;
 
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
     for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
@@ -92,15 +89,10 @@ float Arrival::getFastestArrival() {
           for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
             for (int32_t ir = 0; ir < Pos->NRr; ++ir) {
               size_t base = GetFieldAddr(isx, isy, isz, itheta, iz, ir, Pos);
-              // gives us number of rays we can iterate over
               int32_t narr = arrInfo->NArr[base];
-              // Iterating over Individual Ray arrival times
-
-              float minDelay = std::numeric_limits<float>::max();
 
               for (size_t iArr = 0; iArr < static_cast<size_t>(narr); ++iArr) {
                 const size_t arrayIdx = base * arrInfo->MaxNArr + iArr;
-
                 const bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
                 if (delay < 0) {
@@ -109,10 +101,19 @@ float Arrival::getFastestArrival() {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");
                 }
-                minDelay = std::min(delay, minDelay);
-              }
-              if (narr != 0) {
-                arrivalDelay = minDelay;
+
+                if (directPathOnly && (arr->NTopBnc > 0 || arr->NBotBnc > 0)) {
+                  ++multipathSkipped;
+                  SPDLOG_DEBUG("Skipping multipath arrival: delay={:.6f}s, "
+                               "topBnc={}, botBnc={}",
+                               delay, arr->NTopBnc, arr->NBotBnc);
+                  continue;
+                }
+
+                if (delay < minDelay) {
+                  minDelay = delay;
+                  hasArrival = true;
+                }
               }
             }
           }
@@ -121,7 +122,12 @@ float Arrival::getFastestArrival() {
     }
   }
 
-  return arrivalDelay;
+  if (directPathOnly && multipathSkipped > 0 && !hasArrival) {
+    SPDLOG_WARN("No direct-path arrival found, {} multipath arrivals skipped",
+                multipathSkipped);
+  }
+
+  return hasArrival ? minDelay : kNoArrival;
   /*
    * ArrInfo data structure layout:
    *
