@@ -184,6 +184,26 @@ private:
   std::vector<RangeLink> links_{};
   std::vector<RangeMeasurement> measurements_{};
 
+  /// @brief Append measurement to the log if logAllMeasurements_ is enabled.
+  void maybeLog(const RangeMeasurement &meas);
+
+  /// @brief Check if either endpoint is dead and skip the link if so.
+  /// @param[in]  world  Simulation world
+  /// @param[in]  link   The link to check
+  /// @param[out] meas   Measurement to populate with skip status
+  /// @return true if the link should be skipped
+  bool skipIfDead(const rb::RbWorld &world, const RangeLink &link,
+                  RangeMeasurement &meas);
+
+  /// @brief Acquire time-of-flight for a link, using reciprocal cache when
+  /// possible.
+  /// @param[in]     link     The acoustic link
+  /// @param[in]     tag      Log tag for this measurement
+  /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
+  /// @return Raw TOF in seconds, or negative if no arrival
+  float acquireTof(const RangeLink &link, const std::string &tag,
+                   std::map<std::pair<size_t, size_t>, float> &tofCache);
+
   /**
    * @brief Returns the TOF multiplier for the given mode.
    * @param mode One-way (1x) or two-way (2x)
