@@ -4,14 +4,16 @@
 
 #pragma once
 
-#include "acoustics/Arrival.h"
-#include "acoustics/helpers.h"
-#include "fmt/format.h"
-#include "mantaray/utils/Logger.h"
-
 #include "acoustics/AcousticsBuilder.h"
+#include "acoustics/Arrival.h"
 #include "acoustics/BellhopContext.h"
+#include "acoustics/helpers.h"
+#include "mantaray/utils/Logger.h"
 #include "rb/RbWorld.h"
+
+#include "fmt/format.h"
+#include <cmath>
+#include <cstring>
 #include <map>
 #include <stdexcept>
 #include <vector>

@@ -1,8 +1,5 @@
 #include <mantaray/sim/AcousticPairwiseRangeSystem.h>
 
-#include <cmath>
-#include <cstring>
-
 namespace {
 /// Compact composite key for correlating general and bellhop logs.
 /// Format: "[t=<time> <pingerIdx>[R|L]-><targetIdx>[R|L]]"
