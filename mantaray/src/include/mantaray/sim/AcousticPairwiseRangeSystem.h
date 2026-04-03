@@ -125,8 +125,7 @@ struct RangeLink {
  * - `beam_spread_deg`: half-cone angle in degrees (default 20.0)
  *
  * @see AcousticsBuilder::rebuildBeam(), AcousticsBuilder::getMaxBeams()
- * @see @ref iterative_beam_refinement "Iterative Beam Refinement
- * (acoustics.md)"
+ * @see @ref iterative_beam_refinement "Iterative Beam Refinement (sim.md)"
  */
 class AcousticPairwiseRangeSystem {
 public:
