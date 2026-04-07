@@ -16,6 +16,7 @@
 #include <cstring>
 #include <map>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 /** @namespace sim
@@ -75,6 +76,15 @@ struct RangeMeasurement {
       kInvalidDistance}; ///< Sound speed sampled at the pinger position
 };
 
+/// @brief Diagnostic output from the iterative beam solver.
+struct TofConvergenceInfo {
+  int iterations{1};     ///< Bellhop runs executed (1 = no retry)
+  int finalBeams{0};     ///< Beam count at resolution (or last tried)
+  bool converged{false}; ///< True if TOF converged within tolerance
+  bool fromCache{false}; ///< True if result came from reciprocal cache
+  float lastDelta{0.0f}; ///< |TOF_curr - TOF_prev| at final comparison
+};
+
 /**
  * @brief Directed link between two endpoints.
  *
@@ -132,6 +142,13 @@ public:
   /// @brief Scale factor applied to beam count on each iterative refinement
   /// step.
   static constexpr double kBeamIterativeFactor{2.0};
+
+  /// @brief Absolute TOF convergence tolerance (seconds).
+  /// ~15cm range error at 1500 m/s.
+  static constexpr double kTofConvergenceAtol{1e-4};
+
+  /// @brief Relative TOF convergence tolerance.
+  static constexpr double kTofConvergenceRtol{1e-3};
 
   /**
    * @brief Constructs the range system.
@@ -232,16 +249,18 @@ private:
   bool skipIfDead(const rb::RbWorld &world, const RangeLink &link,
                   RangeMeasurement &meas);
 
-  /// @brief Acquire time-of-flight for a link, using reciprocal cache when
-  /// possible.
-  /// @details Uses the iterative beam refinement solver to find a direct-path
-  /// arrival. See @ref iterative_beam_solver "Iterative Beam Refinement".
+  /// @brief Acquire time-of-flight for a link with convergence verification.
+  /// @details Uses iterative beam refinement, requiring two successive beam
+  /// levels to agree on the TOF within combined absolute + relative tolerance
+  /// before accepting the result. See @ref iterative_beam_solver.
   /// @param[in]     link     The acoustic link
   /// @param[in]     tag      Log tag for this measurement
   /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
-  /// @return Raw TOF in seconds, or negative if no direct path found
-  float acquireTof(const RangeLink &link, const std::string &tag,
-                   std::map<std::pair<size_t, size_t>, float> &tofCache);
+  /// @return {TOF in seconds, convergence diagnostics}. TOF is negative if
+  ///         no direct path found or convergence not achieved.
+  std::pair<float, TofConvergenceInfo>
+  acquireTof(const RangeLink &link, const std::string &tag,
+             std::map<std::pair<size_t, size_t>, float> &tofCache);
 
   /**
    * @brief Returns the TOF multiplier for the given mode.

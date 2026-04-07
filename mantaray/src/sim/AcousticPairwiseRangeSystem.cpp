@@ -107,7 +107,7 @@ bool AcousticPairwiseRangeSystem::skipIfDead(const rb::RbWorld &world,
   return false;
 }
 
-float AcousticPairwiseRangeSystem::acquireTof(
+std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
     const RangeLink &link, const std::string &tag,
     std::map<std::pair<size_t, size_t>, float> &tofCache) {
   const bool isRobotPair = link.pinger.type == EndpointType::kRobot &&
@@ -119,17 +119,27 @@ float AcousticPairwiseRangeSystem::acquireTof(
     auto it = tofCache.find(key);
     if (it != tofCache.end()) {
       bellhop_logger->debug("{} Using cached TOF (reciprocal)", tag);
-      return it->second;
+      TofConvergenceInfo info{};
+      info.fromCache = true;
+      info.converged = true;
+      info.finalBeams = builder_.getNumBeams();
+      return {it->second, info};
     }
   }
 
   const int originalBeams = builder_.getNumBeams();
   const int maxBeams = builder_.getMaxBeams();
   float tofRawSec = acoustics::kNoArrival;
+  float prevTof = -1.0f;
+  TofConvergenceInfo info{};
+  info.iterations = 0;
+  bool tofConverged = false;
 
   for (int beams = originalBeams; beams <= maxBeams;) {
-    bellhop_logger->debug("\n===Start Bellhop {} (beams={})===\n", tag,
-                          builder_.getNumBeams());
+    ++info.iterations;
+    info.finalBeams = beams;
+
+    bellhop_logger->debug("\n===Start Bellhop {} (beams={})===\n", tag, beams);
     if (bellhop_logger->level() == spdlog::level::debug) {
       bhc::echo(context_.params());
     }
@@ -139,21 +149,48 @@ float AcousticPairwiseRangeSystem::acquireTof(
     acoustics::Arrival arrival(context_.params(), context_.outputs());
     tofRawSec = arrival.getFastestArrival(true);
 
-    if (tofRawSec >= 0.0f) {
-      break;
+    if (tofRawSec >= 0.0f && prevTof >= 0.0f) {
+      // Two successive TOF values — check convergence
+      float delta = std::abs(tofRawSec - prevTof);
+      info.lastDelta = delta;
+      float tolerance = static_cast<float>(
+          kTofConvergenceAtol + kTofConvergenceRtol * std::abs(prevTof));
+      if (delta < tolerance) {
+        SPDLOG_INFO("{} TOF converged: delta={:.2e}s tol={:.2e}s after {} "
+                    "iterations (beams={})",
+                    tag, delta, tolerance, info.iterations, beams);
+        tofConverged = true;
+        break;
+      }
+      SPDLOG_INFO("{} TOF delta={:.2e}s > tol={:.2e}s, not converged", tag,
+                  delta, tolerance);
     }
 
+    if (tofRawSec >= 0.0f) {
+      prevTof = tofRawSec;
+    }
+
+    // Scale up for next iteration
     int nextBeams = static_cast<int>(beams * kBeamIterativeFactor);
-    // Clamp to maxBeams so the final iteration always runs at full resolution
     nextBeams = std::min(nextBeams, maxBeams);
 
     if (beams >= maxBeams) {
-      SPDLOG_INFO("{} No direct path found at max {} beams", tag, maxBeams);
+      if (prevTof >= 0.0f) {
+        SPDLOG_WARN("{} TOF did not converge at max {} beams", tag, maxBeams);
+      } else {
+        SPDLOG_INFO("{} No direct path found at max {} beams", tag, maxBeams);
+      }
       break;
     }
 
-    SPDLOG_INFO("{} No direct path at {} beams, retrying with {}", tag, beams,
-                nextBeams);
+    if (tofRawSec < 0.0f) {
+      SPDLOG_INFO("{} No direct path at {} beams, retrying with {}", tag, beams,
+                  nextBeams);
+    } else {
+      SPDLOG_INFO("{} TOF={:.6f}s at {} beams, verifying with {}", tag,
+                  tofRawSec, beams, nextBeams);
+    }
+
     builder_.rebuildBeam(nextBeams);
     beams = nextBeams;
   }
@@ -163,13 +200,19 @@ float AcousticPairwiseRangeSystem::acquireTof(
     builder_.rebuildBeam(originalBeams);
   }
 
+  // Reject unconverged results
+  if (!tofConverged) {
+    tofRawSec = acoustics::kNoArrival;
+  }
+  info.converged = tofConverged;
+
   if (isRobotPair) {
     auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
                               std::max(link.pinger.index, link.target.index));
     tofCache[key] = tofRawSec;
   }
 
-  return tofRawSec;
+  return {tofRawSec, info};
 }
 
 void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
@@ -221,6 +264,11 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
   // the propagation time is identical in both directions, so we only need
   // to run Bellhop once per unordered pair.
   std::map<std::pair<size_t, size_t>, float> tofCache;
+
+  int totalLinks = 0;
+  int cachedCount = 0;
+  int convergedCount = 0;
+  int failedCount = 0;
 
   for (auto &link : links_) {
     RangeMeasurement meas;
@@ -294,8 +342,17 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
-    // TOF acquisition (with reciprocal caching for robot-robot pairs)
-    float tofRawSec = acquireTof(link, tag, tofCache);
+    // TOF acquisition with convergence verification
+    auto [tofRawSec, convergence] = acquireTof(link, tag, tofCache);
+    ++totalLinks;
+    if (convergence.fromCache) {
+      ++cachedCount;
+    } else if (convergence.converged) {
+      ++convergedCount;
+    } else {
+      ++failedCount;
+    }
+
     if (tofRawSec < 0.0f) {
       meas.status = RangeStatus::kNoArrival;
       SPDLOG_WARN("{} Ping dropped: no arrival", tag);
@@ -328,6 +385,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     measurements_.push_back(meas);
     debugOutputRangeErrors(meas, link, tag, simTimeSec, trueRange);
   }
+
+  SPDLOG_INFO("t={:.1f}s TOF summary: {} links, {} cached, {} converged, "
+              "{} failed",
+              simTimeSec, totalLinks, cachedCount, convergedCount, failedCount);
 }
 
 const std::vector<RangeMeasurement> &
