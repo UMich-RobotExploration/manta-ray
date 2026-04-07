@@ -17,11 +17,12 @@ namespace sim {
 AcousticPairwiseRangeSystem::AcousticPairwiseRangeSystem(
     acoustics::AcousticsBuilder &builder,
     acoustics::BhContext<true, true> &context, GlobalTofMode mode,
-    bool logAllMeasurements, double debugRangeErrorPct,
+    bool allowMultipath, bool logAllMeasurements, double debugRangeErrorPct,
     std::string debugOutputDir)
     : builder_(builder),
       context_(context),
       mode_(mode),
+      allowMultipath_(allowMultipath),
       logAllMeasurements_(logAllMeasurements),
       debugRangeErrorPct_(debugRangeErrorPct),
       debugOutputDir_(std::move(debugOutputDir)) {}
@@ -107,6 +108,14 @@ bool AcousticPairwiseRangeSystem::skipIfDead(const rb::RbWorld &world,
   return false;
 }
 
+bool AcousticPairwiseRangeSystem::checkTofConvergence(float curr, float prev,
+                                                      float &delta) {
+  delta = std::abs(curr - prev);
+  float tolerance = static_cast<float>(kTofConvergenceAtol +
+                                       kTofConvergenceRtol * std::abs(prev));
+  return delta < tolerance;
+}
+
 std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
     const RangeLink &link, const std::string &tag,
     std::map<std::pair<size_t, size_t>, float> &tofCache) {
@@ -130,7 +139,7 @@ std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
   const int originalBeams = builder_.getNumBeams();
   const int maxBeams = builder_.getMaxBeams();
   float tofRawSec = acoustics::kNoArrival;
-  float prevTof = -1.0f;
+  float prevAnyTof = -1.0f;
   TofConvergenceInfo info{};
   info.iterations = 0;
   bool tofConverged = false;
@@ -147,27 +156,38 @@ std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
     bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
 
     acoustics::Arrival arrival(context_.params(), context_.outputs());
-    tofRawSec = arrival.getFastestArrival(true);
+    auto arrivals = arrival.getFastestArrivals();
 
-    if (tofRawSec >= 0.0f && prevTof >= 0.0f) {
-      // Two successive TOF values — check convergence
-      float delta = std::abs(tofRawSec - prevTof);
-      info.lastDelta = delta;
-      float tolerance = static_cast<float>(
-          kTofConvergenceAtol + kTofConvergenceRtol * std::abs(prevTof));
-      if (delta < tolerance) {
-        SPDLOG_INFO("{} TOF converged: delta={:.2e}s tol={:.2e}s after {} "
+    // Direct path found — accept immediately, no convergence needed
+    if (arrivals.directPath >= 0.0f) {
+      SPDLOG_INFO(
+          "{} Direct path found: tof={:.6f}s at {} beams (iteration {})", tag,
+          arrivals.directPath, beams, info.iterations);
+      tofRawSec = arrivals.directPath;
+      tofConverged = true;
+      break;
+    }
+
+    // Check multipath convergence (requires two successive agreeing values)
+    float multipathDelta = 0.0f;
+    if (allowMultipath_ && arrivals.anyPath >= 0.0f && prevAnyTof >= 0.0f) {
+      if (checkTofConvergence(arrivals.anyPath, prevAnyTof, multipathDelta)) {
+        SPDLOG_INFO("{} Multipath TOF converged: delta={:.2e}s after {} "
                     "iterations (beams={})",
-                    tag, delta, tolerance, info.iterations, beams);
+                    tag, multipathDelta, info.iterations, beams);
+        tofRawSec = arrivals.anyPath;
+        info.lastDelta = multipathDelta;
+        info.multipathUsed = true;
         tofConverged = true;
         break;
       }
-      SPDLOG_INFO("{} TOF delta={:.2e}s > tol={:.2e}s, not converged", tag,
-                  delta, tolerance);
+      SPDLOG_INFO("{} Multipath TOF delta={:.2e}s, not converged", tag,
+                  multipathDelta);
     }
 
-    if (tofRawSec >= 0.0f) {
-      prevTof = tofRawSec;
+    // Update previous multipath value
+    if (arrivals.anyPath >= 0.0f) {
+      prevAnyTof = arrivals.anyPath;
     }
 
     // Scale up for next iteration
@@ -175,21 +195,18 @@ std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
     nextBeams = std::min(nextBeams, maxBeams);
 
     if (beams >= maxBeams) {
-      if (prevTof >= 0.0f) {
-        SPDLOG_WARN("{} TOF did not converge at max {} beams", tag, maxBeams);
+      if (prevAnyTof >= 0.0f) {
+        SPDLOG_WARN("{} Multipath TOF did not converge at max {} beams", tag,
+                    maxBeams);
       } else {
-        SPDLOG_INFO("{} No direct path found at max {} beams", tag, maxBeams);
+        SPDLOG_INFO("{} No arrivals found at max {} beams", tag, maxBeams);
       }
       break;
     }
 
-    if (tofRawSec < 0.0f) {
-      SPDLOG_INFO("{} No direct path at {} beams, retrying with {}", tag, beams,
-                  nextBeams);
-    } else {
-      SPDLOG_INFO("{} TOF={:.6f}s at {} beams, verifying with {}", tag,
-                  tofRawSec, beams, nextBeams);
-    }
+    SPDLOG_INFO(
+        "{} No direct path, refining: {} -> {} beams (multipath={:.6f}s)", tag,
+        beams, nextBeams, arrivals.anyPath >= 0 ? arrivals.anyPath : -1.0f);
 
     builder_.rebuildBeam(nextBeams);
     beams = nextBeams;
@@ -267,7 +284,8 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
 
   int totalLinks = 0;
   int cachedCount = 0;
-  int convergedCount = 0;
+  int directCount = 0;
+  int multipathCount = 0;
   int failedCount = 0;
 
   for (auto &link : links_) {
@@ -347,8 +365,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     ++totalLinks;
     if (convergence.fromCache) {
       ++cachedCount;
-    } else if (convergence.converged) {
-      ++convergedCount;
+    } else if (convergence.converged && !convergence.multipathUsed) {
+      ++directCount;
+    } else if (convergence.converged && convergence.multipathUsed) {
+      ++multipathCount;
     } else {
       ++failedCount;
     }
@@ -386,9 +406,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     debugOutputRangeErrors(meas, link, tag, simTimeSec, trueRange);
   }
 
-  SPDLOG_INFO("t={:.1f}s TOF summary: {} links, {} cached, {} converged, "
-              "{} failed",
-              simTimeSec, totalLinks, cachedCount, convergedCount, failedCount);
+  SPDLOG_INFO("t={:.1f}s TOF summary: {} links, {} cached, {} direct, "
+              "{} multipath, {} failed",
+              simTimeSec, totalLinks, cachedCount, directCount, multipathCount,
+              failedCount);
 }
 
 const std::vector<RangeMeasurement> &

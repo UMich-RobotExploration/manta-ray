@@ -70,21 +70,46 @@ size_t Arrival::getIdx(size_t ir, size_t iz, size_t itheta) const {
   return (ir * inputs.Pos->NRz_per_range + iz) * inputs.Pos->Ntheta + itheta;
 }
 
-float Arrival::getFastestArrival(bool directPathOnly) {
+/*
+ * ArrInfo data structure layout:
+ *
+ * The arrival information is organized in a nested hierarchy by source and
+ * receiver positions:
+ *
+ *   isz (source depth index)
+ *     └─ isx (source x position index)
+ *        └─ isy (source y position index)
+ *           └─ itheta (receiver bearing/azimuth index)
+ *              └─ iz (receiver depth index)
+ *                 └─ ir (receiver range index)
+ *                    └─ Arrival array: Arr[base * MaxNArr + iArr]
+ *
+ * For each receiver location (ir, iz, itheta) relative to a source (isx, isy,
+ * isz):
+ *   - GetFieldAddr() computes a unique base index
+ *   - NArr[base] stores the count of arrivals at this location
+ *   - Arr[base * MaxNArr + iArr] accesses the iArr-th arrival (0 to
+ * NArr[base]-1)
+ *
+ * Memory layout uses a flattened 1D array where MaxNArr is the maximum
+ * arrivals per location.
+ */
+ArrivalPair Arrival::getFastestArrivals() {
   const bhc::Position *Pos = inputs.Pos;
 
   CHECK(Pos->NRz_per_range == 1,
         "Z values should be singular per range. A potential issue is that "
         "regular grids ('I') were not used in the Runtype[4]");
 
-  float minDelay = std::numeric_limits<float>::max();
-  bool hasArrival = false;
-  int multipathSkipped = 0;
+  float minDirectDelay = std::numeric_limits<float>::max();
+  float minAnyDelay = std::numeric_limits<float>::max();
+  bool hasDirectArrival = false;
+  bool hasAnyArrival = false;
+  int multipathCount = 0;
 
   for (int32_t isz = 0; isz < Pos->NSz; ++isz) {
     for (int32_t isx = 0; isx < Pos->NSx; ++isx) {
       for (int32_t isy = 0; isy < Pos->NSy; ++isy) {
-        // Now iterating through receiver points
         for (int32_t itheta = 0; itheta < Pos->Ntheta; ++itheta) {
           for (int32_t iz = 0; iz < Pos->NRz_per_range; ++iz) {
             for (int32_t ir = 0; ir < Pos->NRr; ++ir) {
@@ -102,17 +127,23 @@ float Arrival::getFastestArrival(bool directPathOnly) {
                       "Negative delay encountered in arrival data");
                 }
 
-                if (directPathOnly && (arr->NTopBnc > 0 || arr->NBotBnc > 0)) {
-                  ++multipathSkipped;
-                  SPDLOG_TRACE("Skipping multipath arrival: delay={:.6f}s, "
-                               "topBnc={}, botBnc={}",
-                               delay, arr->NTopBnc, arr->NBotBnc);
-                  continue;
+                // Track fastest arrival regardless of path type
+                if (delay < minAnyDelay) {
+                  minAnyDelay = delay;
+                  hasAnyArrival = true;
                 }
 
-                if (delay < minDelay) {
-                  minDelay = delay;
-                  hasArrival = true;
+                // Track fastest direct-path (zero bounce) arrival
+                if (arr->NTopBnc > 0 || arr->NBotBnc > 0) {
+                  ++multipathCount;
+                  SPDLOG_TRACE("Multipath arrival: delay={:.6f}s, "
+                               "topBnc={}, botBnc={}",
+                               delay, arr->NTopBnc, arr->NBotBnc);
+                } else {
+                  if (delay < minDirectDelay) {
+                    minDirectDelay = delay;
+                    hasDirectArrival = true;
+                  }
                 }
               }
             }
@@ -122,47 +153,21 @@ float Arrival::getFastestArrival(bool directPathOnly) {
     }
   }
 
-  if (directPathOnly && multipathSkipped > 0 && !hasArrival) {
-    SPDLOG_WARN("No direct-path arrival found, {} multipath arrivals skipped",
-                multipathSkipped);
+  if (!hasDirectArrival && multipathCount > 0) {
+    SPDLOG_WARN("No direct-path arrival found, {} multipath arrivals present",
+                multipathCount);
   }
 
-  return hasArrival ? minDelay : kNoArrival;
-  /*
-   * ArrInfo data structure layout:
-   *
-   * The arrival information is organized in a nested hierarchy by source and
-   * receiver positions:
-   *
-   *   isz (source depth index)
-   *     └─ isx (source x position index)
-   *        └─ isy (source y position index)
-   *           └─ itheta (receiver bearing/azimuth index)
-   *              └─ iz (receiver depth index)
-   *                 └─ ir (receiver range index)
-   *                    └─ Arrival array: Arr[base * MaxNArr + iArr]
-   *
-   * For each receiver location (ir, iz, itheta) relative to a source (isx, isy,
-   * isz):
-   *   - GetFieldAddr() computes a unique base index
-   *   - NArr[base] stores the count of arrivals at this location
-   *   - Arr[base * MaxNArr + iArr] accesses the iArr-th arrival (0 to
-   * NArr[base]-1)
-   *
-   * Memory layout uses a flattened 1D array where MaxNArr is the maximum
-   * arrivals per location.
-   */
+  ArrivalPair result;
+  result.directPath = hasDirectArrival ? minDirectDelay : kNoArrival;
+  result.anyPath = hasAnyArrival ? minAnyDelay : kNoArrival;
+  return result;
 }
 
 float Arrival::getLargestAmpArrival() {
   const bhc::Position *Pos = inputs.Pos;
 
   float arrivalDelay = -1;
-  // std::cout << "Number of receivers: "
-  //           << Pos->NRr * Pos->NRz_per_range * Pos->Ntheta << "\n";
-  // std::cout << "Number of receiver ranges: " << Pos->NRr
-  //           << ", Number of Rz per range: " << Pos->NRz_per_range
-  //           << ", Number Theta: " << Pos->Ntheta << "\n";
 
   CHECK(Pos->NRz_per_range == 1,
         "Z values should be singular per range. A potential issue is that "
@@ -189,12 +194,6 @@ float Arrival::getLargestAmpArrival() {
 
                 bhc::Arrival *arr = &arrInfo->Arr[arrayIdx];
                 auto delay = arr->delay.real();
-                // std::cout << "Arrival Delay: " << std::setprecision(10) <<
-                // delay
-                // << "\n";
-                // float amplitude_dB = 20.0f * std::log10(arr->a);
-                // std::cout << "Amplitude: " << arr->a << " , " << amplitude_dB
-                // << "\n";
                 if (delay < 0) {
                   throw std::runtime_error(
                       "Negative delay encountered in arrival data");

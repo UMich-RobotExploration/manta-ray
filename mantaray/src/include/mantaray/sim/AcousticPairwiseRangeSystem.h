@@ -78,11 +78,12 @@ struct RangeMeasurement {
 
 /// @brief Diagnostic output from the iterative beam solver.
 struct TofConvergenceInfo {
-  int iterations{1};     ///< Bellhop runs executed (1 = no retry)
-  int finalBeams{0};     ///< Beam count at resolution (or last tried)
-  bool converged{false}; ///< True if TOF converged within tolerance
-  bool fromCache{false}; ///< True if result came from reciprocal cache
-  float lastDelta{0.0f}; ///< |TOF_curr - TOF_prev| at final comparison
+  int iterations{1};         ///< Bellhop runs executed (1 = no retry)
+  int finalBeams{0};         ///< Beam count at resolution (or last tried)
+  bool converged{false};     ///< True if TOF converged within tolerance
+  bool fromCache{false};     ///< True if result came from reciprocal cache
+  bool multipathUsed{false}; ///< True if accepted TOF was from multipath
+  float lastDelta{0.0f};     ///< |TOF_curr - TOF_prev| at final comparison
 };
 
 /**
@@ -161,7 +162,7 @@ public:
    */
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
                               acoustics::BhContext<true, true> &context,
-                              GlobalTofMode mode,
+                              GlobalTofMode mode, bool allowMultipath = false,
                               bool logAllMeasurements = false,
                               double debugRangeErrorPct = 0.0,
                               std::string debugOutputDir = "");
@@ -232,6 +233,7 @@ private:
   acoustics::AcousticsBuilder &builder_;
   acoustics::BhContext<true, true> &context_;
   GlobalTofMode mode_{GlobalTofMode::kOneWay};
+  bool allowMultipath_{false};
   bool logAllMeasurements_{false};
   double debugRangeErrorPct_{0.0};
   std::string debugOutputDir_;
@@ -248,6 +250,13 @@ private:
   /// @return true if the link should be skipped
   bool skipIfDead(const rb::RbWorld &world, const RangeLink &link,
                   RangeMeasurement &meas);
+
+  /// @brief Check if two successive TOF values have converged.
+  /// @param curr Current TOF value (must be >= 0)
+  /// @param prev Previous TOF value (must be >= 0)
+  /// @param[out] delta Populated with |curr - prev| for logging
+  /// @return true if |curr - prev| < atol + rtol * |prev|
+  static bool checkTofConvergence(float curr, float prev, float &delta);
 
   /// @brief Acquire time-of-flight for a link with convergence verification.
   /// @details Uses iterative beam refinement, requiring two successive beam
