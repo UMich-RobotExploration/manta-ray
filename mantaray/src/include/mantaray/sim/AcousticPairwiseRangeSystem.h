@@ -110,33 +110,36 @@ struct RangeLink {
  *
  * @section iterative_beam_solver Iterative Beam Refinement
  *
- * When acquiring time-of-flight, the system uses direct-path-only filtering
- * (zero surface and bottom bounces). If no direct-path arrival is found at the
- * initial beam count, an iterative solver increases the beam density and
- * re-runs Bellhop until either a direct path is found or the maximum beam
- * count is reached.
+ * When acquiring time-of-flight, the system extracts both direct-path (zero
+ * bounce) and any-path (fastest regardless of bounces) arrivals from each
+ * Bellhop run via a single pass (ArrivalPair).
+ *
+ * **Direct path**: Accepted immediately on first detection. The direct path
+ * is a unique geometric path whose TOF is accurate when found, so no
+ * convergence verification is required.
+ *
+ * **Multipath fallback**: When `allow_multipath` is enabled and no direct
+ * path is found, multipath TOF is tracked across beam refinement levels.
+ * Convergence is required — two successive beam levels must agree within
+ * combined absolute + relative tolerance:
+ * @code
+ *   |TOF_new - TOF_prev| < kTofConvergenceAtol + kTofConvergenceRtol *
+ * |TOF_prev|
+ * @endcode
+ * Unconverged multipath results are rejected as kNoArrival.
  *
  * The beam count is scaled by kBeamIterativeFactor on each iteration and
- * clamped to `AcousticsBuilder::getMaxBeams()` so the final iteration always
- * runs at full allocated resolution, even when the max is not a clean multiple
- * of the scale factor. After the loop completes (success or exhaustion), the
- * beam count is restored to its original value for subsequent links.
- *
- * Example progression with `numBeams=80`, `maxBeams=300`,
- * `kBeamIterativeFactor=2.0`:
- * @code
- *   Step 1:  80 beams  → no direct path
- *   Step 2: 160 beams  → no direct path
- *   Step 3: 300 beams  → clamped from 320, final attempt
- * @endcode
+ * clamped to `AcousticsBuilder::getMaxBeams()`. After the loop completes,
+ * the beam count is restored to its original value for subsequent links.
  *
  * Configuration (via JSON `"acoustics"` block):
  * - `num_beams`: initial beam count per axis (default 80)
  * - `max_beams`: maximum beam count for iterative refinement (default 180)
  * - `beam_spread_deg`: half-cone angle in degrees (default 20.0)
+ * - `allow_multipath`: accept converged multipath TOF as fallback (default
+ *   false)
  *
  * @see AcousticsBuilder::rebuildBeam(), AcousticsBuilder::getMaxBeams()
- * @see @ref iterative_beam_refinement "Iterative Beam Refinement (sim.md)"
  */
 class AcousticPairwiseRangeSystem {
 public:
@@ -157,8 +160,13 @@ public:
    * @param builder Acoustics builder that manages source/receiver placement
    * @param context Bellhop context for ray tracing
    * @param mode One-way or two-way TOF scaling
+   * @param allowMultipath When true, accept converged multipath TOF as
+   *        fallback when no direct path is found
    * @param logAllMeasurements When true, failed measurements are also stored;
    *        when false (default), only successful measurements are logged
+   * @param debugRangeErrorPct When > 0, dump ray trace env files for
+   *        measurements with range error exceeding this percentage
+   * @param debugOutputDir Directory for debug ray trace output files
    */
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
                               acoustics::BhContext<true, true> &context,
@@ -258,15 +266,15 @@ private:
   /// @return true if |curr - prev| < atol + rtol * |prev|
   static bool checkTofConvergence(float curr, float prev, float &delta);
 
-  /// @brief Acquire time-of-flight for a link with convergence verification.
-  /// @details Uses iterative beam refinement, requiring two successive beam
-  /// levels to agree on the TOF within combined absolute + relative tolerance
-  /// before accepting the result. See @ref iterative_beam_solver.
+  /// @brief Acquire time-of-flight for a link via iterative beam refinement.
+  /// @details Direct-path arrivals are accepted immediately. When
+  /// allowMultipath_ is enabled, multipath arrivals require convergence
+  /// across two successive beam levels. See @ref iterative_beam_solver.
   /// @param[in]     link     The acoustic link
   /// @param[in]     tag      Log tag for this measurement
   /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
   /// @return {TOF in seconds, convergence diagnostics}. TOF is negative if
-  ///         no direct path found or convergence not achieved.
+  ///         no arrival found or multipath did not converge.
   std::pair<float, TofConvergenceInfo>
   acquireTof(const RangeLink &link, const std::string &tag,
              std::map<std::pair<size_t, size_t>, float> &tofCache);
