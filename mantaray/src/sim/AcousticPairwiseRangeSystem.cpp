@@ -17,11 +17,12 @@ namespace sim {
 AcousticPairwiseRangeSystem::AcousticPairwiseRangeSystem(
     acoustics::AcousticsBuilder &builder,
     acoustics::BhContext<true, true> &context, GlobalTofMode mode,
-    bool logAllMeasurements, double debugRangeErrorPct,
+    bool allowMultipath, bool logAllMeasurements, double debugRangeErrorPct,
     std::string debugOutputDir)
     : builder_(builder),
       context_(context),
       mode_(mode),
+      allowMultipath_(allowMultipath),
       logAllMeasurements_(logAllMeasurements),
       debugRangeErrorPct_(debugRangeErrorPct),
       debugOutputDir_(std::move(debugOutputDir)) {}
@@ -107,7 +108,15 @@ bool AcousticPairwiseRangeSystem::skipIfDead(const rb::RbWorld &world,
   return false;
 }
 
-float AcousticPairwiseRangeSystem::acquireTof(
+bool AcousticPairwiseRangeSystem::checkTofConvergence(float curr, float prev,
+                                                      float &delta) {
+  delta = std::abs(curr - prev);
+  float tolerance = static_cast<float>(kTofConvergenceAtol +
+                                       kTofConvergenceRtol * std::abs(prev));
+  return delta < tolerance;
+}
+
+std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
     const RangeLink &link, const std::string &tag,
     std::map<std::pair<size_t, size_t>, float> &tofCache) {
   const bool isRobotPair = link.pinger.type == EndpointType::kRobot &&
@@ -119,17 +128,27 @@ float AcousticPairwiseRangeSystem::acquireTof(
     auto it = tofCache.find(key);
     if (it != tofCache.end()) {
       bellhop_logger->debug("{} Using cached TOF (reciprocal)", tag);
-      return it->second;
+      TofConvergenceInfo info{};
+      info.fromCache = true;
+      info.converged = true;
+      info.finalBeams = builder_.getNumBeams();
+      return {it->second, info};
     }
   }
 
   const int originalBeams = builder_.getNumBeams();
   const int maxBeams = builder_.getMaxBeams();
   float tofRawSec = acoustics::kNoArrival;
+  float prevAnyTof = -1.0f;
+  TofConvergenceInfo info{};
+  info.iterations = 0;
+  bool tofConverged = false;
 
   for (int beams = originalBeams; beams <= maxBeams;) {
-    bellhop_logger->debug("\n===Start Bellhop {} (beams={})===\n", tag,
-                          builder_.getNumBeams());
+    ++info.iterations;
+    info.finalBeams = beams;
+
+    bellhop_logger->debug("\n===Start Bellhop {} (beams={})===\n", tag, beams);
     if (bellhop_logger->level() == spdlog::level::debug) {
       bhc::echo(context_.params());
     }
@@ -137,23 +156,58 @@ float AcousticPairwiseRangeSystem::acquireTof(
     bellhop_logger->debug("\n===End Bellhop {}===\n", tag);
 
     acoustics::Arrival arrival(context_.params(), context_.outputs());
-    tofRawSec = arrival.getFastestArrival(true);
+    auto arrivals = arrival.getFastestArrivals();
 
-    if (tofRawSec >= 0.0f) {
+    // Direct path found — accept immediately, no convergence needed
+    if (arrivals.directPath >= 0.0f) {
+      SPDLOG_INFO(
+          "{} Direct path found: tof={:.6f}s at {} beams (iteration {})", tag,
+          arrivals.directPath, beams, info.iterations);
+      tofRawSec = arrivals.directPath;
+      tofConverged = true;
       break;
     }
 
+    // Check multipath convergence (requires two successive agreeing values)
+    float multipathDelta = 0.0f;
+    if (allowMultipath_ && arrivals.anyPath >= 0.0f && prevAnyTof >= 0.0f) {
+      if (checkTofConvergence(arrivals.anyPath, prevAnyTof, multipathDelta)) {
+        SPDLOG_INFO("{} Multipath TOF converged: delta={:.2e}s after {} "
+                    "iterations (beams={})",
+                    tag, multipathDelta, info.iterations, beams);
+        tofRawSec = arrivals.anyPath;
+        info.lastDelta = multipathDelta;
+        info.multipathUsed = true;
+        tofConverged = true;
+        break;
+      }
+      SPDLOG_INFO("{} Multipath TOF delta={:.2e}s, not converged", tag,
+                  multipathDelta);
+    }
+
+    // Update previous multipath value
+    if (arrivals.anyPath >= 0.0f) {
+      prevAnyTof = arrivals.anyPath;
+    }
+
+    // Scale up for next iteration
     int nextBeams = static_cast<int>(beams * kBeamIterativeFactor);
-    // Clamp to maxBeams so the final iteration always runs at full resolution
     nextBeams = std::min(nextBeams, maxBeams);
 
     if (beams >= maxBeams) {
-      SPDLOG_INFO("{} No direct path found at max {} beams", tag, maxBeams);
+      if (prevAnyTof >= 0.0f) {
+        SPDLOG_WARN("{} Multipath TOF did not converge at max {} beams", tag,
+                    maxBeams);
+      } else {
+        SPDLOG_INFO("{} No arrivals found at max {} beams", tag, maxBeams);
+      }
       break;
     }
 
-    SPDLOG_INFO("{} No direct path at {} beams, retrying with {}", tag, beams,
-                nextBeams);
+    SPDLOG_INFO(
+        "{} No direct path, refining: {} -> {} beams (multipath={:.6f}s)", tag,
+        beams, nextBeams, arrivals.anyPath >= 0 ? arrivals.anyPath : -1.0f);
+
     builder_.rebuildBeam(nextBeams);
     beams = nextBeams;
   }
@@ -163,13 +217,19 @@ float AcousticPairwiseRangeSystem::acquireTof(
     builder_.rebuildBeam(originalBeams);
   }
 
+  // Reject unconverged results
+  if (!tofConverged) {
+    tofRawSec = acoustics::kNoArrival;
+  }
+  info.converged = tofConverged;
+
   if (isRobotPair) {
     auto key = std::make_pair(std::min(link.pinger.index, link.target.index),
                               std::max(link.pinger.index, link.target.index));
     tofCache[key] = tofRawSec;
   }
 
-  return tofRawSec;
+  return {tofRawSec, info};
 }
 
 void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
@@ -182,8 +242,8 @@ void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
     double errorPct =
         std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
     if (errorPct > debugRangeErrorPct_) {
-      SPDLOG_WARN("{} Error {:.1f}% exceeds threshold {:.1f}%, "
-                  "re-running ray trace",
+      SPDLOG_WARN("{} Range error {:.1f}% exceeds threshold {:.1f}%, "
+                  "dumping debug ray trace",
                   tag, errorPct, debugRangeErrorPct_);
 
       // Switch to ray trace mode, preserving all other RunType flags
@@ -221,6 +281,12 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
   // the propagation time is identical in both directions, so we only need
   // to run Bellhop once per unordered pair.
   std::map<std::pair<size_t, size_t>, float> tofCache;
+
+  int totalLinks = 0;
+  int cachedCount = 0;
+  int directCount = 0;
+  int multipathCount = 0;
+  int failedCount = 0;
 
   for (auto &link : links_) {
     RangeMeasurement meas;
@@ -294,8 +360,19 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       continue;
     }
 
-    // TOF acquisition (with reciprocal caching for robot-robot pairs)
-    float tofRawSec = acquireTof(link, tag, tofCache);
+    // TOF acquisition with convergence verification
+    auto [tofRawSec, convergence] = acquireTof(link, tag, tofCache);
+    ++totalLinks;
+    if (convergence.fromCache) {
+      ++cachedCount;
+    } else if (convergence.converged && !convergence.multipathUsed) {
+      ++directCount;
+    } else if (convergence.converged && convergence.multipathUsed) {
+      ++multipathCount;
+    } else {
+      ++failedCount;
+    }
+
     if (tofRawSec < 0.0f) {
       meas.status = RangeStatus::kNoArrival;
       SPDLOG_WARN("{} Ping dropped: no arrival", tag);
@@ -320,14 +397,20 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
     meas.status = RangeStatus::kOk;
     double trueRange = (pingerPos - targetPos).norm();
-    SPDLOG_INFO("{} Ping OK: range={:.2f}m true={:.2f}m err={:.2f}m "
+    SPDLOG_INFO("{} Ping OK{}: range={:.2f}m true={:.2f}m err={:.2f}m "
                 "tof={:.6f}s ssp={:.1f}m/s",
-                tag, meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
+                tag, convergence.multipathUsed ? " (multipath)" : "",
+                meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
                 meas.tofEffectiveSec, meas.soundSpeedAtPingerMps);
 
     measurements_.push_back(meas);
     debugOutputRangeErrors(meas, link, tag, simTimeSec, trueRange);
   }
+
+  SPDLOG_INFO("t={:.1f}s TOF summary: {} links, {} cached, {} direct, "
+              "{} multipath, {} failed",
+              simTimeSec, totalLinks, cachedCount, directCount, multipathCount,
+              failedCount);
 }
 
 const std::vector<RangeMeasurement> &

@@ -16,6 +16,7 @@
 #include <cstring>
 #include <map>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 /** @namespace sim
@@ -30,12 +31,18 @@ enum class GlobalTofMode { kOneWay, kTwoWay };
  * @brief Outcome of a single range measurement attempt.
  */
 enum class RangeStatus {
-  kOk,                ///< Successful measurement
-  kSkippedPingerDead, ///< Pinger was already marked dead
-  kSkippedTargetDead, ///< Target was already marked dead
-  kOutOfBounds,       ///< One or both endpoints outside the acoustic domain
-  kNoArrival,         ///< Bellhop produced no valid arrival
-  kSspSampleFailed,   ///< Sound speed profile query returned invalid value
+  /// Successful measurement
+  kOk,
+  /// Pinger was already marked dead
+  kSkippedPingerDead,
+  /// Target was already marked dead
+  kSkippedTargetDead,
+  /// One or both endpoints outside the acoustic domain
+  kOutOfBounds,
+  /// Bellhop produced no valid arrival
+  kNoArrival,
+  /// Sound speed profile query returned invalid value
+  kSspSampleFailed,
 };
 
 /** @brief Sentinel value for invalid or unavailable distance/speed/TOF fields.
@@ -49,9 +56,10 @@ enum class EndpointType { kRobot, kLandmark };
  * @brief Identifies one end of an acoustic link.
  */
 struct RangeEndpoint {
-  EndpointType type{
-      EndpointType::kRobot}; ///< Whether this is a robot or landmark
-  size_t index{0};           ///< Index into the world's robot or landmark list
+  /// Whether this is a robot or landmark
+  EndpointType type{EndpointType::kRobot};
+  /// Index into the world's robot or landmark list
+  size_t index{0};
 };
 
 /**
@@ -62,17 +70,36 @@ struct RangeEndpoint {
  * originating link or simulation state.
  */
 struct RangeMeasurement {
-  double simTimeSec{0.0}; ///< Simulation time when the measurement was taken
-  RangeEndpoint pinger{}; ///< Endpoint that emitted the acoustic ping
-  RangeEndpoint target{}; ///< Endpoint that received the acoustic ping
-  RangeStatus status{
-      RangeStatus::kNoArrival};        ///< Outcome of the measurement attempt
-  float rangeMeters{kInvalidDistance}; ///< Computed range in meters
-                                       ///< (kInvalidDistance if invalid)
-  float tofEffectiveSec{
-      kInvalidDistance}; ///< Effective time-of-flight after mode scaling
-  float soundSpeedAtPingerMps{
-      kInvalidDistance}; ///< Sound speed sampled at the pinger position
+  /// Simulation time when the measurement was taken
+  double simTimeSec{0.0};
+  /// Endpoint that emitted the acoustic ping
+  RangeEndpoint pinger{};
+  /// Endpoint that received the acoustic ping
+  RangeEndpoint target{};
+  /// Outcome of the measurement attempt
+  RangeStatus status{RangeStatus::kNoArrival};
+  /// Computed range in meters (kInvalidDistance if invalid)
+  float rangeMeters{kInvalidDistance};
+  /// Effective time-of-flight after mode scaling
+  float tofEffectiveSec{kInvalidDistance};
+  /// Sound speed sampled at the pinger position
+  float soundSpeedAtPingerMps{kInvalidDistance};
+};
+
+/// @brief Diagnostic output from the iterative beam solver.
+struct TofConvergenceInfo {
+  /// Bellhop runs executed (1 = no retry)
+  int iterations{1};
+  /// Beam count at resolution (or last tried)
+  int finalBeams{0};
+  /// True if TOF converged within tolerance
+  bool converged{false};
+  /// True if result came from reciprocal cache
+  bool fromCache{false};
+  /// True if accepted TOF was from multipath
+  bool multipathUsed{false};
+  /// |TOF_curr - TOF_prev| at final comparison
+  float lastDelta{0.0f};
 };
 
 /**
@@ -81,8 +108,10 @@ struct RangeMeasurement {
  * @details Used internally to track which pairs to run Bellhop on.
  */
 struct RangeLink {
-  RangeEndpoint pinger{}; ///< Source of the acoustic ping
-  RangeEndpoint target{}; ///< Receiver of the acoustic ping
+  /// Source of the acoustic ping
+  RangeEndpoint pinger{};
+  /// Receiver of the acoustic ping
+  RangeEndpoint target{};
 };
 
 /**
@@ -99,33 +128,36 @@ struct RangeLink {
  *
  * @section iterative_beam_solver Iterative Beam Refinement
  *
- * When acquiring time-of-flight, the system uses direct-path-only filtering
- * (zero surface and bottom bounces). If no direct-path arrival is found at the
- * initial beam count, an iterative solver increases the beam density and
- * re-runs Bellhop until either a direct path is found or the maximum beam
- * count is reached.
+ * When acquiring time-of-flight, the system extracts both direct-path (zero
+ * bounce) and any-path (fastest regardless of bounces) arrivals from each
+ * Bellhop run via a single pass (ArrivalPair).
+ *
+ * **Direct path**: Accepted immediately on first detection. The direct path
+ * is a unique geometric path whose TOF is accurate when found, so no
+ * convergence verification is required.
+ *
+ * **Multipath fallback**: When `allow_multipath` is enabled and no direct
+ * path is found, multipath TOF is tracked across beam refinement levels.
+ * Convergence is required — two successive beam levels must agree within
+ * combined absolute + relative tolerance:
+ * @code
+ *   |TOF_new - TOF_prev| < kTofConvergenceAtol + kTofConvergenceRtol *
+ * |TOF_prev|
+ * @endcode
+ * Unconverged multipath results are rejected as kNoArrival.
  *
  * The beam count is scaled by kBeamIterativeFactor on each iteration and
- * clamped to `AcousticsBuilder::getMaxBeams()` so the final iteration always
- * runs at full allocated resolution, even when the max is not a clean multiple
- * of the scale factor. After the loop completes (success or exhaustion), the
- * beam count is restored to its original value for subsequent links.
- *
- * Example progression with `numBeams=80`, `maxBeams=300`,
- * `kBeamIterativeFactor=2.0`:
- * @code
- *   Step 1:  80 beams  → no direct path
- *   Step 2: 160 beams  → no direct path
- *   Step 3: 300 beams  → clamped from 320, final attempt
- * @endcode
+ * clamped to `AcousticsBuilder::getMaxBeams()`. After the loop completes,
+ * the beam count is restored to its original value for subsequent links.
  *
  * Configuration (via JSON `"acoustics"` block):
  * - `num_beams`: initial beam count per axis (default 80)
  * - `max_beams`: maximum beam count for iterative refinement (default 180)
  * - `beam_spread_deg`: half-cone angle in degrees (default 20.0)
+ * - `allow_multipath`: accept converged multipath TOF as fallback (default
+ *   false)
  *
  * @see AcousticsBuilder::rebuildBeam(), AcousticsBuilder::getMaxBeams()
- * @see @ref iterative_beam_refinement "Iterative Beam Refinement (sim.md)"
  */
 class AcousticPairwiseRangeSystem {
 public:
@@ -133,18 +165,30 @@ public:
   /// step.
   static constexpr double kBeamIterativeFactor{2.0};
 
+  /// @brief Absolute TOF convergence tolerance (seconds).
+  /// ~15cm range error at 1500 m/s.
+  static constexpr double kTofConvergenceAtol{1e-3};
+
+  /// @brief Relative TOF convergence tolerance.
+  static constexpr double kTofConvergenceRtol{1e-3};
+
   /**
    * @brief Constructs the range system.
    *
    * @param builder Acoustics builder that manages source/receiver placement
    * @param context Bellhop context for ray tracing
    * @param mode One-way or two-way TOF scaling
+   * @param allowMultipath When true, accept converged multipath TOF as
+   *        fallback when no direct path is found
    * @param logAllMeasurements When true, failed measurements are also stored;
    *        when false (default), only successful measurements are logged
+   * @param debugRangeErrorPct When > 0, dump ray trace env files for
+   *        measurements with range error exceeding this percentage
+   * @param debugOutputDir Directory for debug ray trace output files
    */
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
                               acoustics::BhContext<true, true> &context,
-                              GlobalTofMode mode,
+                              GlobalTofMode mode, bool allowMultipath = false,
                               bool logAllMeasurements = false,
                               double debugRangeErrorPct = 0.0,
                               std::string debugOutputDir = "");
@@ -215,6 +259,7 @@ private:
   acoustics::AcousticsBuilder &builder_;
   acoustics::BhContext<true, true> &context_;
   GlobalTofMode mode_{GlobalTofMode::kOneWay};
+  bool allowMultipath_{false};
   bool logAllMeasurements_{false};
   double debugRangeErrorPct_{0.0};
   std::string debugOutputDir_;
@@ -232,16 +277,25 @@ private:
   bool skipIfDead(const rb::RbWorld &world, const RangeLink &link,
                   RangeMeasurement &meas);
 
-  /// @brief Acquire time-of-flight for a link, using reciprocal cache when
-  /// possible.
-  /// @details Uses the iterative beam refinement solver to find a direct-path
-  /// arrival. See @ref iterative_beam_solver "Iterative Beam Refinement".
+  /// @brief Check if two successive TOF values have converged.
+  /// @param curr Current TOF value (must be >= 0)
+  /// @param prev Previous TOF value (must be >= 0)
+  /// @param[out] delta Populated with |curr - prev| for logging
+  /// @return true if |curr - prev| < atol + rtol * |prev|
+  static bool checkTofConvergence(float curr, float prev, float &delta);
+
+  /// @brief Acquire time-of-flight for a link via iterative beam refinement.
+  /// @details Direct-path arrivals are accepted immediately. When
+  /// allowMultipath_ is enabled, multipath arrivals require convergence
+  /// across two successive beam levels. See @ref iterative_beam_solver.
   /// @param[in]     link     The acoustic link
   /// @param[in]     tag      Log tag for this measurement
   /// @param[in,out] tofCache Cache of TOF values keyed by unordered robot pair
-  /// @return Raw TOF in seconds, or negative if no direct path found
-  float acquireTof(const RangeLink &link, const std::string &tag,
-                   std::map<std::pair<size_t, size_t>, float> &tofCache);
+  /// @return {TOF in seconds, convergence diagnostics}. TOF is negative if
+  ///         no arrival found or multipath did not converge.
+  std::pair<float, TofConvergenceInfo>
+  acquireTof(const RangeLink &link, const std::string &tag,
+             std::map<std::pair<size_t, size_t>, float> &tofCache);
 
   /**
    * @brief Returns the TOF multiplier for the given mode.

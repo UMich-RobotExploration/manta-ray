@@ -13,7 +13,8 @@ from aubellhop import readers
 from readers_1_8 import read_bty_3d
 
 # ---- Edit this path (no .env extension) ----
-file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R0_to_L2_7200s"
+# file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R0_to_L2_7200s"
+file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R1_to_L2_19800s"
 
 
 def build_bathy_mesh(bty_path: str) -> o3d.geometry.TriangleMesh:
@@ -245,7 +246,7 @@ if __name__ == "__main__":
         print(f"Loaded rays: {ray_path}")
 
         if os.path.exists(env_path):
-            threshold_m = 20
+            threshold_m = 10
             connecting = find_connecting_rays(ray_path, rcv_pos, src_pos, threshold_m=threshold_m)
             print(f"\n--- {len(connecting)} rays within {threshold_m}m of receiver ---")
             for i, (idx, dist, pts, angle) in enumerate(connecting):

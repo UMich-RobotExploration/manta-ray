@@ -14,8 +14,9 @@
     "tof_mode": "one_way",
     "debug_range_error_pct": 5.0,
     "num_beams": 100,
-    "beam_spread_deg": 20,
-    "max_beams": 500
+    "beam_spread_deg": 15,
+    "max_beams": 1000,
+    "allow_multipath":true
   },
   "sensors": {
     "gt_freq_hz": 0.01,

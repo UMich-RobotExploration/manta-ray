@@ -44,7 +44,7 @@ print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
 print("\n--- Measured Ranges ---")
-# visualize(solver_measured)
+visualize(solver_measured)
 
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)

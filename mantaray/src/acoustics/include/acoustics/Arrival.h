@@ -15,6 +15,13 @@
 namespace acoustics {
 constexpr float kNoArrival = -1.0f;
 
+/// @brief Paired arrival results from a single pass through Bellhop output.
+struct ArrivalPair {
+  float directPath{kNoArrival}; ///< Fastest zero-bounce arrival (seconds)
+  float anyPath{
+      kNoArrival}; ///< Fastest arrival regardless of bounces (seconds)
+};
+
 /**
  * @brief Debugging struct for arrival information
  *
@@ -50,7 +57,14 @@ public:
    *        if no direct path exists.
    * @return Earliest arrival delay in seconds, or kNoArrival (-1) if none
    */
-  float getFastestArrival(bool directPathOnly = false);
+  /**
+   * @brief Single-pass extraction of both direct-path and any-path fastest
+   * arrivals.
+   * @details Iterates through all arrivals once, tracking the minimum delay
+   * for zero-bounce (direct) and all arrivals (any) simultaneously.
+   * @return ArrivalPair with direct-path and any-path TOF
+   */
+  ArrivalPair getFastestArrivals();
 
   /**
    * @brief Returns largest amplitude arrival (not the shortest flight time)
