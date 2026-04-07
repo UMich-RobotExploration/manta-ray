@@ -1,0 +1,7 @@
+<map id="rb::RobotI" name="rb::RobotI">
+<area shape="rect" id="Node000001" title=" " alt="" coords="139,5,225,31"/>
+<area shape="rect" id="Node000002" href="$classrb_1_1ConstantVelRobot.html" title="Constant Velocity Robot in prescribed vector direction." alt="" coords="5,79,164,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,41,102,81,99,76,154,37"/>
+<area shape="rect" id="Node000003" href="$classrobots_1_1CurrentDriftRobot.html" title="Robot whose commanded twist is determined by the water current." alt="" coords="188,79,373,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="210,36,266,76,263,81,207,41"/>
+</map>
