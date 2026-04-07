@@ -48,6 +48,11 @@ config::SimConfig parseArgs(int argc, char *argv[]) {
   }
   std::filesystem::create_directories(outDir);
 
+  // Copy sim config to output directory for reproducibility
+  auto srcPath = std::filesystem::path(argv[1]);
+  auto dstPath = outDir / srcPath.filename();
+  std::filesystem::copy_file(srcPath, dstPath);
+
   return config;
 }
 
