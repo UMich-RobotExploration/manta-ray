@@ -242,8 +242,8 @@ void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
     double errorPct =
         std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
     if (errorPct > debugRangeErrorPct_) {
-      SPDLOG_WARN("{} Error {:.1f}% exceeds threshold {:.1f}%, "
-                  "re-running ray trace",
+      SPDLOG_WARN("{} Range error {:.1f}% exceeds threshold {:.1f}%, "
+                  "dumping debug ray trace",
                   tag, errorPct, debugRangeErrorPct_);
 
       // Switch to ray trace mode, preserving all other RunType flags
@@ -397,9 +397,10 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
     meas.rangeMeters = meas.tofEffectiveSec * meas.soundSpeedAtPingerMps;
     meas.status = RangeStatus::kOk;
     double trueRange = (pingerPos - targetPos).norm();
-    SPDLOG_INFO("{} Ping OK: range={:.2f}m true={:.2f}m err={:.2f}m "
+    SPDLOG_INFO("{} Ping OK{}: range={:.2f}m true={:.2f}m err={:.2f}m "
                 "tof={:.6f}s ssp={:.1f}m/s",
-                tag, meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
+                tag, convergence.multipathUsed ? " (multipath)" : "",
+                meas.rangeMeters, trueRange, meas.rangeMeters - trueRange,
                 meas.tofEffectiveSec, meas.soundSpeedAtPingerMps);
 
     measurements_.push_back(meas);

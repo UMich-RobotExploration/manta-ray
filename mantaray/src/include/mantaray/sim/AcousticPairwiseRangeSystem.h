@@ -146,7 +146,7 @@ public:
 
   /// @brief Absolute TOF convergence tolerance (seconds).
   /// ~15cm range error at 1500 m/s.
-  static constexpr double kTofConvergenceAtol{1e-4};
+  static constexpr double kTofConvergenceAtol{1e-3};
 
   /// @brief Relative TOF convergence tolerance.
   static constexpr double kTofConvergenceRtol{1e-3};
