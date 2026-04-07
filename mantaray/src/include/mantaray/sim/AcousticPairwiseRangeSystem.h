@@ -31,12 +31,18 @@ enum class GlobalTofMode { kOneWay, kTwoWay };
  * @brief Outcome of a single range measurement attempt.
  */
 enum class RangeStatus {
-  kOk,                ///< Successful measurement
-  kSkippedPingerDead, ///< Pinger was already marked dead
-  kSkippedTargetDead, ///< Target was already marked dead
-  kOutOfBounds,       ///< One or both endpoints outside the acoustic domain
-  kNoArrival,         ///< Bellhop produced no valid arrival
-  kSspSampleFailed,   ///< Sound speed profile query returned invalid value
+  /// Successful measurement
+  kOk,
+  /// Pinger was already marked dead
+  kSkippedPingerDead,
+  /// Target was already marked dead
+  kSkippedTargetDead,
+  /// One or both endpoints outside the acoustic domain
+  kOutOfBounds,
+  /// Bellhop produced no valid arrival
+  kNoArrival,
+  /// Sound speed profile query returned invalid value
+  kSspSampleFailed,
 };
 
 /** @brief Sentinel value for invalid or unavailable distance/speed/TOF fields.
@@ -50,9 +56,10 @@ enum class EndpointType { kRobot, kLandmark };
  * @brief Identifies one end of an acoustic link.
  */
 struct RangeEndpoint {
-  EndpointType type{
-      EndpointType::kRobot}; ///< Whether this is a robot or landmark
-  size_t index{0};           ///< Index into the world's robot or landmark list
+  /// Whether this is a robot or landmark
+  EndpointType type{EndpointType::kRobot};
+  /// Index into the world's robot or landmark list
+  size_t index{0};
 };
 
 /**
@@ -63,27 +70,36 @@ struct RangeEndpoint {
  * originating link or simulation state.
  */
 struct RangeMeasurement {
-  double simTimeSec{0.0}; ///< Simulation time when the measurement was taken
-  RangeEndpoint pinger{}; ///< Endpoint that emitted the acoustic ping
-  RangeEndpoint target{}; ///< Endpoint that received the acoustic ping
-  RangeStatus status{
-      RangeStatus::kNoArrival};        ///< Outcome of the measurement attempt
-  float rangeMeters{kInvalidDistance}; ///< Computed range in meters
-                                       ///< (kInvalidDistance if invalid)
-  float tofEffectiveSec{
-      kInvalidDistance}; ///< Effective time-of-flight after mode scaling
-  float soundSpeedAtPingerMps{
-      kInvalidDistance}; ///< Sound speed sampled at the pinger position
+  /// Simulation time when the measurement was taken
+  double simTimeSec{0.0};
+  /// Endpoint that emitted the acoustic ping
+  RangeEndpoint pinger{};
+  /// Endpoint that received the acoustic ping
+  RangeEndpoint target{};
+  /// Outcome of the measurement attempt
+  RangeStatus status{RangeStatus::kNoArrival};
+  /// Computed range in meters (kInvalidDistance if invalid)
+  float rangeMeters{kInvalidDistance};
+  /// Effective time-of-flight after mode scaling
+  float tofEffectiveSec{kInvalidDistance};
+  /// Sound speed sampled at the pinger position
+  float soundSpeedAtPingerMps{kInvalidDistance};
 };
 
 /// @brief Diagnostic output from the iterative beam solver.
 struct TofConvergenceInfo {
-  int iterations{1};         ///< Bellhop runs executed (1 = no retry)
-  int finalBeams{0};         ///< Beam count at resolution (or last tried)
-  bool converged{false};     ///< True if TOF converged within tolerance
-  bool fromCache{false};     ///< True if result came from reciprocal cache
-  bool multipathUsed{false}; ///< True if accepted TOF was from multipath
-  float lastDelta{0.0f};     ///< |TOF_curr - TOF_prev| at final comparison
+  /// Bellhop runs executed (1 = no retry)
+  int iterations{1};
+  /// Beam count at resolution (or last tried)
+  int finalBeams{0};
+  /// True if TOF converged within tolerance
+  bool converged{false};
+  /// True if result came from reciprocal cache
+  bool fromCache{false};
+  /// True if accepted TOF was from multipath
+  bool multipathUsed{false};
+  /// |TOF_curr - TOF_prev| at final comparison
+  float lastDelta{0.0f};
 };
 
 /**
@@ -92,8 +108,10 @@ struct TofConvergenceInfo {
  * @details Used internally to track which pairs to run Bellhop on.
  */
 struct RangeLink {
-  RangeEndpoint pinger{}; ///< Source of the acoustic ping
-  RangeEndpoint target{}; ///< Receiver of the acoustic ping
+  /// Source of the acoustic ping
+  RangeEndpoint pinger{};
+  /// Receiver of the acoustic ping
+  RangeEndpoint target{};
 };
 
 /**
