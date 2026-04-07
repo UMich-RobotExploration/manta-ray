@@ -140,6 +140,7 @@ ArrivalPair Arrival::getFastestArrivals() {
                                "topBnc={}, botBnc={}",
                                delay, arr->NTopBnc, arr->NBotBnc);
                 } else {
+                  // Track fastest direct-path (zero bounce) arrival
                   if (delay < minDirectDelay) {
                     minDirectDelay = delay;
                     hasDirectArrival = true;
