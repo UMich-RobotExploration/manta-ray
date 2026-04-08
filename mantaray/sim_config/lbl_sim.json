@@ -79,8 +79,8 @@
     "range_variance": 1.00,
     "odom_rotation_variance": 0.00001,
     "pose_prior_cov_diag": [
-      0.0001,
-      0.0001,
+      0.001089,
+      0.001089,
       0.0001,
       0.0001,
       0.0001,
