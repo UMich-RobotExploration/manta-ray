@@ -7,6 +7,8 @@ comparison using the evo library.
 
 from __future__ import annotations
 
+import os
+
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -46,13 +48,19 @@ def _measurement_pose_indices(solver: FactorGraphSolver,
     return range_indices, gps_indices
 
 
-def visualize(solver: FactorGraphSolver):
+def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
+              prefix: str = ""):
     """Plot ground-truth, initial, and optimized trajectories with APE.
 
     Per robot, shows:
       - 3D trajectory overlay (ground-truth / initial / optimized),
         z-axis inverted (depth positive down), capped at -5m above surface
       - APE over pose index with range measurement locations marked
+
+    Args:
+        solver: Solved FactorGraphSolver instance.
+        save_dir: Directory to save figures. If None, only shows interactively.
+        prefix: Filename prefix for saved figures (e.g. "measured", "true").
     """
     if solver.result is None:
         raise RuntimeError("Call solver.solve() before visualize()")
@@ -129,5 +137,10 @@ def visualize(solver: FactorGraphSolver):
         ax2.legend()
         ax2.grid(True, alpha=0.3)
         fig2.tight_layout()
+
+        if save_dir:
+            tag = f"{prefix}_" if prefix else ""
+            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=150)
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=150)
 
     plt.show()

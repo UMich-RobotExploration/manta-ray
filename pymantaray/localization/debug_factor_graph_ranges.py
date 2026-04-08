@@ -3,6 +3,8 @@
 Script that helps visualize and debug range data.
 """
 
+import os
+
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -21,20 +23,17 @@ from py_factor_graph.variables import PoseVariable3D
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
 
-# ============ CONFIGURATION ============
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/output.pfg"
+# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
+FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/output.pfg"
+WORK_DIR = os.path.dirname(FILE_PATH)
 
 
-# ======================================
-
-
-def plot_range_histogram(fg_data):
-    """
-    Plot a histogram comparing measured range distances vs true distances.
+def plot_range_histogram(fg_data, save_dir: str | None = None):
+    """Plot a histogram comparing measured range distances vs true distances.
 
     Args:
         fg_data: FactorGraphData object with range measurements
+        save_dir: Directory to save figure. If None, only shows interactively.
     """
     if not fg_data.range_measurements:
         print("No range measurements to compare.")
@@ -72,15 +71,21 @@ def plot_range_histogram(fg_data):
     ax3.set_title('Range Measurement Percent Error')
 
     plt.tight_layout()
+    if save_dir:
+        fig.savefig(os.path.join(save_dir, "range_histogram.png"), dpi=150)
     plt.show()
 
 
-def plot_range_diagnostics(fg_data):
+def plot_range_diagnostics(fg_data, save_dir: str | None = None):
     """Plot range measurement error diagnostics broken down by association type.
 
     Categorizes range measurements into pose↔pose (robot-robot) and
     pose↔landmark (robot-landmark), then plots absolute error, percent error,
     and error vs measurement index for each category.
+
+    Args:
+        fg_data: FactorGraphData object with range measurements
+        save_dir: Directory to save figure. If None, only shows interactively.
     """
     if not fg_data.range_measurements:
         print("No range measurements to diagnose.")
@@ -161,6 +166,8 @@ def plot_range_diagnostics(fg_data):
         ax.set_title(f"{cat_name} — Error vs Index")
 
     fig.tight_layout()
+    if save_dir:
+        fig.savefig(os.path.join(save_dir, "range_diagnostics.png"), dpi=150)
     plt.show()
 
 
@@ -205,14 +212,15 @@ def print_worst_ranges(fg_data, n: int = 20):
               f"{measured:10.4f}  {true:10.4f}  {abs_e:+10.4f}  {pct_e:+7.2f}%")
 
 
-def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True):
-    """
-    Plot 3D factor graph data.
+def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
+                         save_dir: str | None = None):
+    """Plot 3D factor graph data.
 
     Args:
         fg_data: FactorGraphData object (must be 3D)
         show_trajectories: Whether to plot pose trajectories
         show_landmarks: Whether to plot landmark variables
+        save_dir: Directory to save figure. If None, only shows interactively.
     """
 
     if fg_data.dimension != 3:
@@ -302,7 +310,8 @@ def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True):
     ax.set_zlabel('Z')
     ax.set_title(f'3D Factor Graph - {fg_data.num_robots} Robot(s), {len(fg_data.landmark_variables)} Landmarks')
 
-    # plt.tight_layout()
+    if save_dir:
+        fig.savefig(os.path.join(save_dir, "factor_graph_3d.png"), dpi=150)
     plt.show()
 
 
@@ -319,14 +328,8 @@ if __name__ == "__main__":
     print(f"  Poses: {sum(len(poses) for poses in fg_data.pose_variables)}")
     print(f"  Range measurements: {len(fg_data.range_measurements)}")
 
-    # Print worst range measurements
     print_worst_ranges(fg_data)
-
-    # Plot range comparison histogram
-    plot_range_histogram(fg_data)
-
-    # Plot range diagnostics by association type
-    plot_range_diagnostics(fg_data)
-
-    # Plot the data
-    plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True)
+    plot_range_histogram(fg_data, save_dir=WORK_DIR)
+    plot_range_diagnostics(fg_data, save_dir=WORK_DIR)
+    plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
+                         save_dir=WORK_DIR)

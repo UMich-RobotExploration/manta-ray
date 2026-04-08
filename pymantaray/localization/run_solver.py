@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the factor graph solver with measured and true ranges, then visualize."""
 
+import os
 from copy import deepcopy
 
 import numpy as np
@@ -9,14 +10,13 @@ from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 from pyfg_to_gtsam import FactorGraphSolver, SolverConfig
 from visualize_solver import visualize
 
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/tests/debug_single_robot.pfg"
+FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
+WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:
 #   [rot_x (rad), rot_y (rad), rot_z (rad), tx (m), ty (m), tz (m)]
 angular_noise = 1E-8
-positional_noise = 2
+positional_noise = 1
 z_positional_noise = 1E-8
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
@@ -44,7 +44,7 @@ print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
 print("\n--- Measured Ranges ---")
-visualize(solver_measured)
+visualize(solver_measured, save_dir=WORK_DIR, prefix="measured")
 
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)
@@ -57,4 +57,4 @@ print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
 
 print("\n--- True Ranges ---")
-visualize(solver_true)
+visualize(solver_true, save_dir=WORK_DIR, prefix="true")
