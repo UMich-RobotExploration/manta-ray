@@ -100,6 +100,10 @@ target_include_directories(bhc_runner PRIVATE ${INCLUDE_GLM})
 target_link_libraries(bhc_runner PRIVATE ${BELLHPCXXLIB})
 find_package(Threads REQUIRED)
 target_link_libraries(bhc_runner PRIVATE Threads::Threads)
+target_compile_options(bhc_runner PRIVATE
+    "$<$<CONFIG:Debug>:${DEBUG_COMPILER_OPTIONS}>"
+    "$<$<CONFIG:Release>:${RELEASE_COMPILER_OPTIONS}>"
+)
 
 # Enable testing only if requested
 option(BUILD_TESTS "Build the tests" ON)

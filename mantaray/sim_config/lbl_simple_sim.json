@@ -1,6 +1,6 @@
 {
   "run_name": "lbl",
-  "output_dir": "results/lbl",
+  "output_dir": "results/lbl-simple",
   "env_config_file": "../../sim_config/monterey.json",
   "rng_seed": 10020,
   "bellhop_memory_mib": 80,
@@ -16,7 +16,7 @@
     "num_beams": 100,
     "beam_spread_deg": 15,
     "max_beams": 1000,
-    "allow_multipath": true
+    "allow_multipath": false
   },
   "sensors": {
     "gt_freq_hz": 0.01,
@@ -39,17 +39,6 @@
         -0.3,
         0.0
       ]
-    },
-    {
-      "type": "current_drift",
-      "position": [
-        0.0,
-        -0.0,
-        0.01
-      ],
-      "target_depth": 1000.0,
-      "hold_seconds": 3600.0,
-      "surface_hold_seconds": 3600.0
     }
   ],
   "landmarks": [
@@ -76,20 +65,20 @@
   ],
   "pfg": {
     "use_ground_truth_odometry": true,
-    "range_variance": 1.00,
+    "range_variance": 0.1,
     "odom_rotation_variance": 0.00001,
     "pose_prior_cov_diag": [
-      0.001089,
-      0.001089,
-      0.0001,
-      0.0001,
-      0.0001,
-      0.0001
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1
     ],
     "landmark_prior_cov_diag": [
-      0.00001,
-      0.00001,
-      0.00001
+      0.1,
+      0.1,
+      0.1
     ]
   }
 }

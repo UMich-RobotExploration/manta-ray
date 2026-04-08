@@ -255,7 +255,8 @@ void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
 
       // Ray Preprocess allocates ray data alongside existing arrivals data.
       // Both fit in memory as long as maxMemory is sufficient.
-      bhc::run(context_.params(), context_.outputs());
+      int savedBeams = builder_.getNumBeams();
+      builder_.rebuildBeam(builder_.getMaxBeams());
 
       auto filename =
           fmt::format("{}/debug_{}{}_to_{}{}_{:.0f}s", debugOutputDir_,
@@ -269,6 +270,8 @@ void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
       // bug in bellhop that we cannot fix
       bhc::writeenv(context_.params(), filename.c_str());
 
+      // Restore previous beam count
+      builder_.rebuildBeam(savedBeams);
       // Restore arrivals mode — next bhc::run() re-preprocesses for arrivals
       std::strcpy(context_.params().Beam->RunType, savedRunType);
     }
