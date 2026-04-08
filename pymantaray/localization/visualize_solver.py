@@ -289,3 +289,90 @@ def compare_results(solvers: list[FactorGraphSolver],
             fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=150)
 
     plt.show()
+
+
+def visualize_landmarks(solver: FactorGraphSolver,
+                        save_dir: str | None = None,
+                        prefix: str = ""):
+    """Plot ground truth vs estimated landmark positions and print error table.
+
+    Produces a 3D scatter with GT (green) and estimated (blue) landmarks
+    connected by dashed error lines, with dx/dy/dz annotations. Saves
+    figure to save_dir without showing interactively.
+
+    Args:
+        solver: Solved FactorGraphSolver instance.
+        save_dir: Directory to save figure. Required for output.
+        prefix: Filename prefix for saved figure.
+    """
+    if solver.result is None:
+        raise RuntimeError("Call solver.solve() before visualize_landmarks()")
+
+    landmarks = solver.fg.landmark_variables
+    if not landmarks:
+        print("No landmarks to visualize.")
+        return
+
+    import numpy as np
+
+    gt_pts = []
+    est_pts = []
+    names = []
+    for lm in landmarks:
+        key = solver.key_map[lm.name]
+        gt = solver.gt_values.atPoint3(key)
+        est = solver.result.atPoint3(key)
+        gt_pts.append(gt)
+        est_pts.append(est)
+        names.append(lm.name)
+
+    gt_pts = np.array(gt_pts)
+    est_pts = np.array(est_pts)
+    deltas = est_pts - gt_pts
+    norms = np.linalg.norm(deltas, axis=1)
+
+    # Print table
+    print(f"\nLandmark Position Error ({prefix or 'default'}):")
+    print(f"  {'Name':>6s}  {'GT_X':>10s}  {'GT_Y':>10s}  {'GT_Z':>10s}  "
+          f"{'Est_X':>10s}  {'Est_Y':>10s}  {'Est_Z':>10s}  "
+          f"{'dX':>10s}  {'dY':>10s}  {'dZ':>10s}  {'||err||':>10s}")
+    print(f"  {'─' * 6}  {'─' * 10}  {'─' * 10}  {'─' * 10}  "
+          f"{'─' * 10}  {'─' * 10}  {'─' * 10}  "
+          f"{'─' * 10}  {'─' * 10}  {'─' * 10}  {'─' * 10}")
+    for i, name in enumerate(names):
+        g, e, d = gt_pts[i], est_pts[i], deltas[i]
+        print(f"  {name:>6s}  {g[0]:10.2f}  {g[1]:10.2f}  {g[2]:10.2f}  "
+              f"{e[0]:10.2f}  {e[1]:10.2f}  {e[2]:10.2f}  "
+              f"{d[0]:+10.4f}  {d[1]:+10.4f}  {d[2]:+10.4f}  {norms[i]:10.4f}")
+
+    # 3D scatter
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(gt_pts[:, 0], gt_pts[:, 1], gt_pts[:, 2],
+               c='green', s=80, marker='o', label='Ground Truth')
+    ax.scatter(est_pts[:, 0], est_pts[:, 1], est_pts[:, 2],
+               c='blue', s=80, marker='^', label='Estimated')
+
+    for i, name in enumerate(names):
+        g, e, d = gt_pts[i], est_pts[i], deltas[i]
+        ax.plot([g[0], e[0]], [g[1], e[1]], [g[2], e[2]],
+                'r--', linewidth=1, alpha=0.7)
+        ax.text(g[0], g[1], g[2], f" {name}", fontsize=8, color='green')
+        ax.text(e[0], e[1], e[2],
+                f" d=[{d[0]:+.1f}, {d[1]:+.1f}, {d[2]:+.1f}]",
+                fontsize=7, color='red')
+
+    ax.invert_zaxis()
+    ax.set_zlabel("Depth (m)")
+    z_min, z_max = ax.get_zlim()
+    ax.set_zlim(z_min, max(z_max, -5))
+    ax.set_xlabel("X (m)")
+    ax.set_ylabel("Y (m)")
+    ax.legend()
+    ax.set_title("Landmark Ground Truth vs Estimated")
+
+    if save_dir:
+        tag = f"{prefix}_" if prefix else ""
+        fig.savefig(os.path.join(save_dir, f"{tag}landmarks.png"), dpi=150)
+    plt.close(fig)

@@ -82,22 +82,34 @@ _ROBUST_KERNELS = {
 }
 
 
-def _range_noise(stddev: float, robust: bool = False,
-                 kernel: str = "tukey", param: float = 15.0):
-    """1-DOF range noise model, optionally wrapped with a robust m-estimator.
+@dataclass
+class RobustConfig:
+    """M-estimator configuration for robust noise models.
 
-    When robust=True, wraps the Gaussian with noiseModel.Robust using the
-    specified kernel. Available kernels: tukey, huber, cauchy, geman-mcclure.
-    The param is the kernel-specific threshold (e.g. Tukey's c parameter).
+    Args:
+        kernel: Which m-estimator kernel. Options: "tukey", "huber",
+                "cauchy", "geman-mcclure", "welsch".
+        param:  Kernel-specific threshold parameter
+                (e.g. Tukey's c, Huber's k).
     """
+    kernel: str = "tukey"
+    param: float = 15.0
+
+    def __post_init__(self):
+        if self.kernel not in _ROBUST_KERNELS:
+            raise ValueError(
+                f"Unknown robust kernel '{self.kernel}', "
+                f"choose from {list(_ROBUST_KERNELS.keys())}")
+
+
+def _range_noise(stddev: float,
+                 robust: RobustConfig | None = None):
+    """1-DOF range noise model, optionally wrapped with a robust m-estimator."""
     gaussian = gtsam.noiseModel.Isotropic.Sigma(1, stddev)
-    if not robust:
+    if robust is None:
         return gaussian
-    if kernel not in _ROBUST_KERNELS:
-        raise ValueError(f"Unknown robust kernel '{kernel}', "
-                         f"choose from {list(_ROBUST_KERNELS.keys())}")
     return gtsam.noiseModel.Robust.Create(
-        _ROBUST_KERNELS[kernel](param), gaussian)
+        _ROBUST_KERNELS[robust.kernel](robust.param), gaussian)
 
 
 def _odom_to_pose3(odom) -> gtsam.Pose3:
@@ -137,11 +149,10 @@ class SolverConfig:
                              noise model, same GTSAM Pose3 tangent ordering.
                              When set, overrides PyFG odometry precisions.
                              When None, falls back to PyFG precisions.
-        robust_range:        Wrap range noise with a robust m-estimator.
-        robust_range_kernel: Which m-estimator kernel to use.
-                             Options: "tukey", "huber", "cauchy", "geman-mcclure".
-        robust_range_param:  Kernel-specific threshold parameter
-                             (e.g. Tukey's c, Huber's k).
+        robust_range:        RobustConfig for range noise m-estimator.
+                             None = standard Gaussian (no robustness).
+        landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
+                             When None, falls back to PyFG precisions.
         seed:                RNG seed for all random number generation
                              (odom perturbation).
     """
@@ -150,9 +161,8 @@ class SolverConfig:
     include_gps_priors: bool = True
     include_ranges: bool = True
     range_noise_stddev: float = 4.0
-    robust_range: bool = False
-    robust_range_kernel: str = "tukey"
-    robust_range_param: float = 15.0
+    robust_range: RobustConfig | None = None
+    landmark_prior_sigma: float | None = None
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     seed: int = 42
@@ -175,10 +185,10 @@ class SolverConfig:
         if self.range_noise_stddev <= 0:
             raise ValueError(
                 f"range_noise_stddev must be positive, got {self.range_noise_stddev}")
-        if self.robust_range_kernel not in _ROBUST_KERNELS:
+        if self.landmark_prior_sigma is not None and self.landmark_prior_sigma <= 0:
             raise ValueError(
-                f"Unknown robust_range_kernel '{self.robust_range_kernel}', "
-                f"choose from {list(_ROBUST_KERNELS.keys())}")
+                f"landmark_prior_sigma must be positive, "
+                f"got {self.landmark_prior_sigma}")
 
 
 class FactorGraphSolver:
@@ -300,10 +310,14 @@ class FactorGraphSolver:
                                  prior.rotation_precision)
             self.graph.addPriorPose3(key, pose, noise)
 
+        landmark_noise = (gtsam.noiseModel.Isotropic.Sigma(3, cfg.landmark_prior_sigma)
+                          if cfg.landmark_prior_sigma is not None else None)
+
         for prior in fg.landmark_priors:
             key = self.key_map[prior.name]
             point = np.array(prior.position, dtype=np.float64)
-            noise = _point3_noise(prior.translation_precision)
+            noise = (landmark_noise if landmark_noise is not None
+                     else _point3_noise(prior.translation_precision))
             self.graph.addPriorPoint3(key, point, noise)
 
         between_noise = (gtsam.noiseModel.Diagonal.Sigmas(cfg.between_noise_sigmas)
@@ -348,8 +362,7 @@ class FactorGraphSolver:
 
             key_a = self.key_map[name_a]
             key_b = self.key_map[name_b]
-            noise = _range_noise(cfg.range_noise_stddev, cfg.robust_range,
-                                cfg.robust_range_kernel, cfg.robust_range_param)
+            noise = _range_noise(cfg.range_noise_stddev, cfg.robust_range)
 
             a_is_pose = name_a in pose_keys
             b_is_pose = name_b in pose_keys

@@ -7,8 +7,8 @@ from copy import deepcopy
 import numpy as np
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
-from pyfg_to_gtsam import FactorGraphSolver, SolverConfig
-from visualize_solver import visualize, compare_results
+from pyfg_to_gtsam import FactorGraphSolver, SolverConfig, RobustConfig
+from visualize_solver import visualize, compare_results, visualize_landmarks
 
 FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
@@ -26,8 +26,9 @@ odom_noise = np.array(
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
     range_noise_stddev=0.1,
-    include_ranges = True,
-    between_noise_sigmas=odom_noise
+    include_ranges=True,
+    between_noise_sigmas=odom_noise,
+    landmark_prior_sigma=1e-2,
 )
 
 print(f"Reading {FILE_PATH} ...")
@@ -48,6 +49,7 @@ print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}
 
 print("\n--- Measured Ranges ---")
 visualize(solver_measured, save_dir=WORK_DIR, prefix="measured")
+visualize_landmarks(solver_measured, save_dir=WORK_DIR, prefix="measured")
 
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)
@@ -61,12 +63,11 @@ print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
 
 print("\n--- True Ranges ---")
 visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False)
+visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
 print("\n=== Run 3: Robust Ranges ===")
 config_robust = deepcopy(config)
-config_robust.robust_range_kernel = "welsch"
-config_robust.robust_range = True
-config_robust.robust_range_param = 15.0
+config_robust.robust_range = RobustConfig(kernel="welsch", param=15.0)
 solver_robust = FactorGraphSolver(fg_data, config_robust)
 solver_robust.solve()
 print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
@@ -76,6 +77,7 @@ print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
 
 print("\n--- Robust Ranges ---")
 visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
 
 print("\n=== Comparison ===")
 compare_results(
