@@ -23,8 +23,8 @@ from py_factor_graph.variables import PoseVariable3D
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
 
-# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
-FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/output.pfg"
+FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
+# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 

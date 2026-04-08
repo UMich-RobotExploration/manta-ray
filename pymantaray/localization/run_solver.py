@@ -8,23 +8,26 @@ import numpy as np
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
 from pyfg_to_gtsam import FactorGraphSolver, SolverConfig
-from visualize_solver import visualize
+from visualize_solver import visualize, compare_results
 
-FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
+FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
+# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:
 #   [rot_x (rad), rot_y (rad), rot_z (rad), tx (m), ty (m), tz (m)]
-angular_noise = 1E-8
+angular_noise = 0.001
 positional_noise = 1
-z_positional_noise = 1E-8
+z_positional_noise = 0.001
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      positional_noise, positional_noise, z_positional_noise])
 
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
-    range_noise_stddev=1.0,
+    range_noise_stddev=0.1,
+    include_ranges = True,
+    between_noise_sigmas=odom_noise
 )
 
 print(f"Reading {FILE_PATH} ...")
@@ -57,4 +60,26 @@ print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
 
 print("\n--- True Ranges ---")
-visualize(solver_true, save_dir=WORK_DIR, prefix="true")
+visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False)
+
+print("\n=== Run 3: Robust Ranges ===")
+config_robust = deepcopy(config)
+config_robust.robust_range_kernel = "welsch"
+config_robust.robust_range = True
+config_robust.robust_range_param = 15.0
+solver_robust = FactorGraphSolver(fg_data, config_robust)
+solver_robust.solve()
+print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
+      f"{solver_robust.initial.size()} variables")
+print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
+print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
+
+print("\n--- Robust Ranges ---")
+visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+
+print("\n=== Comparison ===")
+compare_results(
+    [solver_measured, solver_true, solver_robust],
+    ["Bellhop Ranges", "True Ranges", "Robust Ranges"],
+    save_dir=WORK_DIR,
+)

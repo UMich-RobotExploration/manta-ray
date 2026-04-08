@@ -14,7 +14,7 @@ from readers_1_8 import read_bty_3d
 
 # ---- Edit this path (no .env extension) ----
 # file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R0_to_L2_7200s"
-file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R1_to_L2_19800s"
+file_root = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/debug_R1_to_L2_19800s"
 
 
 def build_bathy_mesh(bty_path: str) -> o3d.geometry.TriangleMesh:
@@ -157,16 +157,25 @@ def _val(line: str) -> str:
     return line.split("!")[0].strip()
 
 
-def parse_source_receiver(env_path: str):
-    """Parse source and receiver positions from 3D .env file by line index.
+def parse_env(env_path: str):
+    """Parse source/receiver positions and beam fan from a 3D .env file.
 
-    Fixed format (0-indexed):
+    Fixed format (0-indexed line numbers):
       7:  NSX              8:  SX (km)
       9:  NSY              10: SY (km)
       11: NSD              12: SD (m)
       13: NRD              14: RD (m)
       15: NR               16: R (km)
       17: Ntheta           18: bearing (deg)
+      19: RunType          20: Nalpha
+      21: alpha_min alpha_max /   (elevation, degrees)
+      22: Nbeta            23: beta_min beta_max /  (azimuth, degrees)
+
+    Returns:
+        src_pos:     Source position [x, y, z] in meters.
+        rcv_pos:     Receiver position [x, y, z] in meters.
+        alpha_range: (alpha_min, alpha_max) elevation angles in degrees.
+        beta_range:  (beta_min, beta_max) azimuth angles in degrees.
     """
     with open(env_path) as f:
         lines = f.readlines()
@@ -187,7 +196,84 @@ def parse_source_receiver(env_path: str):
     rcv_y = sy + rcv_r * np.sin(bearing_rad)
     rcv_pos = np.array([rcv_x, rcv_y, rd])
 
-    return src_pos, rcv_pos
+    # Beam fan angles
+    alpha_parts = _val(lines[21]).replace("/", "").split()
+    alpha_range = (float(alpha_parts[0]), float(alpha_parts[1]))
+
+    beta_parts = _val(lines[23]).replace("/", "").split()
+    beta_range = (float(beta_parts[0]), float(beta_parts[1]))
+
+    return src_pos, rcv_pos, alpha_range, beta_range
+
+
+def build_fan_center_arrow(src_pos: np.ndarray,
+                           alpha_range: tuple[float, float],
+                           beta_range: tuple[float, float],
+                           length: float = 2000.0) -> list[o3d.geometry.Geometry]:
+    """Build a yellow arrow showing the beam fan center direction.
+
+    Direction is computed from the midpoint of the alpha (elevation) and
+    beta (azimuth) angle ranges using Bellhop3D conventions:
+      - alpha: elevation in degrees, positive = downward
+      - beta:  azimuth in degrees, math convention (0° = +x)
+
+    Args:
+        src_pos:     Source position [x, y, z] in meters.
+        alpha_range: (alpha_min, alpha_max) elevation in degrees.
+        beta_range:  (beta_min, beta_max) azimuth in degrees.
+        length:      Arrow length in meters.
+    """
+    center_elev = np.radians(np.mean(alpha_range))
+    center_bear = np.radians(np.mean(beta_range))
+
+    # Spherical → Cartesian (math convention, positive elev = downward)
+    direction = np.array([
+        np.cos(center_elev) * np.cos(center_bear),
+        np.cos(center_elev) * np.sin(center_bear),
+        np.sin(center_elev),
+    ])
+
+    print(f"Fan center: elev={np.degrees(center_elev):.2f}°, "
+          f"bear={np.degrees(center_bear):.2f}°, "
+          f"dir=[{direction[0]:.4f}, {direction[1]:.4f}, {direction[2]:.4f}]")
+
+    tip = src_pos + direction * length
+    cone_base = src_pos + direction * (length * 0.85)
+
+    # Shaft as a cylinder
+    shaft = o3d.geometry.TriangleMesh.create_cylinder(
+        radius=10.0, height=length * 0.85)
+    shaft.compute_vertex_normals()
+
+    # Cone head
+    cone = o3d.geometry.TriangleMesh.create_cone(
+        radius=30.0, height=length * 0.15)
+    cone.compute_vertex_normals()
+
+    # Both default along +Z centered at origin. Rotate to target direction.
+    z_axis = np.array([0.0, 0.0, 1.0])
+    v = np.cross(z_axis, direction)
+    c = np.dot(z_axis, direction)
+    if np.linalg.norm(v) < 1e-8:
+        R = np.eye(3) if c > 0 else np.diag([1.0, -1.0, -1.0])
+    else:
+        vx = np.array([[0, -v[2], v[1]],
+                        [v[2], 0, -v[0]],
+                        [-v[1], v[0], 0]])
+        R = np.eye(3) + vx + vx @ vx / (1.0 + c)
+
+    # Cylinder is centered at origin along Z, so translate its midpoint
+    shaft.rotate(R, center=[0, 0, 0])
+    shaft.translate(src_pos + direction * (length * 0.85 / 2.0))
+
+    # Cone base is at z=0 in its local frame
+    cone.rotate(R, center=[0, 0, 0])
+    cone.translate(cone_base)
+
+    shaft.paint_uniform_color([1.0, 1.0, 0.0])
+    cone.paint_uniform_color([1.0, 1.0, 0.0])
+
+    return [shaft, cone]
 
 
 if __name__ == "__main__":
@@ -209,13 +295,19 @@ if __name__ == "__main__":
     else:
         print(f"No bathymetry file: {bty_path}")
 
-    # Source and receiver markers
+    # Source and receiver markers + beam fan center
+    alpha_range = None
+    beta_range = None
     if os.path.exists(env_path):
-        src_pos, rcv_pos = parse_source_receiver(env_path)
+        src_pos, rcv_pos, alpha_range, beta_range = parse_env(env_path)
         print(f"Source:   {src_pos}")
         print(f"Receiver: {rcv_pos}")
+        print(f"Alpha (elevation): {alpha_range[0]:.2f}° to {alpha_range[1]:.2f}°")
+        print(f"Beta  (azimuth):   {beta_range[0]:.2f}° to {beta_range[1]:.2f}°")
         geometries.append(create_sphere(src_pos, [1, 0, 0], radius=50.0))  # red
         geometries.append(create_sphere(rcv_pos, [0, 1, 0], radius=50.0))  # green
+        geometries.extend(build_fan_center_arrow(
+            src_pos, alpha_range, beta_range))
     else:
         print(f"No env file: {env_path}")
 
@@ -246,7 +338,7 @@ if __name__ == "__main__":
         print(f"Loaded rays: {ray_path}")
 
         if os.path.exists(env_path):
-            threshold_m = 10
+            threshold_m = 1000
             connecting = find_connecting_rays(ray_path, rcv_pos, src_pos, threshold_m=threshold_m)
             print(f"\n--- {len(connecting)} rays within {threshold_m}m of receiver ---")
             for i, (idx, dist, pts, angle) in enumerate(connecting):
@@ -295,6 +387,9 @@ if __name__ == "__main__":
             ls.colors = o3d.utility.Vector3dVector(np.array([color] * (n - 1)))
             vis2.add_geometry(ls)
 
+        if alpha_range is not None and beta_range is not None:
+            for g in build_fan_center_arrow(src_pos, alpha_range, beta_range):
+                vis2.add_geometry(g)
         vis2.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame(size=100))
         ctr2 = vis2.get_view_control()
         ctr2.set_front([0, 0, -1])
