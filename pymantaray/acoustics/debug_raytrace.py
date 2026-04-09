@@ -339,7 +339,7 @@ if __name__ == "__main__":
         print(f"Loaded rays: {ray_path}")
 
         if os.path.exists(env_path):
-            threshold_m = 1000
+            threshold_m = 50
             connecting = find_connecting_rays(ray_path, rcv_pos, src_pos, threshold_m=threshold_m)
             print(f"\n--- {len(connecting)} rays within {threshold_m}m of receiver ---")
             for i, (idx, dist, pts, angle) in enumerate(connecting):
