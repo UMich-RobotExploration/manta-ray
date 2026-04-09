@@ -232,6 +232,11 @@ public:
                               const std::string &tag, double simTimeSec,
                               double trueRange);
 
+  /// @brief Dump a Bellhop env file for offline debugging.
+  /// Scales to max beams, sets ray-mode RunType, writes env, then restores.
+  void dumpDebugEnv(const RangeLink &link, const std::string &prefix,
+                    double simTimeSec);
+
   /**
    * @brief Runs Bellhop on every active pair and appends measurements to the
    * log.

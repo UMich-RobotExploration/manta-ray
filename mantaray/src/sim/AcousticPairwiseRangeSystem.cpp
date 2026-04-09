@@ -232,48 +232,46 @@ std::pair<float, TofConvergenceInfo> AcousticPairwiseRangeSystem::acquireTof(
   return {tofRawSec, info};
 }
 
+void AcousticPairwiseRangeSystem::dumpDebugEnv(const RangeLink &link,
+                                               const std::string &prefix,
+                                               double simTimeSec) {
+  // Switch to ray trace mode, preserving all other RunType flags
+  char savedRunType[7];
+  std::strcpy(savedRunType, context_.params().Beam->RunType);
+  savedRunType[0] = 'R';
+  std::strcpy(context_.params().Beam->RunType, savedRunType);
+  savedRunType[0] = 'A'; // prepare restore value
+
+  int savedBeams = builder_.getNumBeams();
+  builder_.rebuildBeam(builder_.getMaxBeams());
+
+  auto filename = fmt::format(
+      "{}/{}_{}{}_to_{}{}_{:.0f}s", debugOutputDir_, prefix,
+      link.pinger.type == EndpointType::kRobot ? "R" : "L", link.pinger.index,
+      link.target.type == EndpointType::kRobot ? "R" : "L", link.target.index,
+      simTimeSec);
+  // writeenv captures the environment snapshot (source/receiver/SSP/bathy).
+  // writeout for ray mode segfaults in bellhop's Ray::Writeout (null ray ptr)
+  // — this is a fundamental bug in bellhop that we cannot fix.
+  bhc::writeenv(context_.params(), filename.c_str());
+
+  builder_.rebuildBeam(savedBeams);
+  std::strcpy(context_.params().Beam->RunType, savedRunType);
+}
+
 void AcousticPairwiseRangeSystem::debugOutputRangeErrors(RangeMeasurement &meas,
                                                          RangeLink &link,
                                                          const std::string &tag,
                                                          double simTimeSec,
                                                          double trueRange) {
-  // Debug ray trace on high error
   if (debugRangeErrorPct_ > 0.0 && trueRange > 0.0) {
     double errorPct =
         std::abs(meas.rangeMeters - trueRange) / trueRange * 100.0;
     if (errorPct > debugRangeErrorPct_) {
       SPDLOG_WARN("{} Range error {:.1f}% exceeds threshold {:.1f}%, "
-                  "dumping debug ray trace",
+                  "dumping debug env",
                   tag, errorPct, debugRangeErrorPct_);
-
-      // Switch to ray trace mode, preserving all other RunType flags
-      char savedRunType[7];
-      std::strcpy(savedRunType, context_.params().Beam->RunType);
-      savedRunType[0] = 'R';
-      std::strcpy(context_.params().Beam->RunType, savedRunType);
-      savedRunType[0] = 'A'; // prepare restore value
-
-      // Ray Preprocess allocates ray data alongside existing arrivals data.
-      // Both fit in memory as long as maxMemory is sufficient.
-      int savedBeams = builder_.getNumBeams();
-      builder_.rebuildBeam(builder_.getMaxBeams());
-
-      auto filename =
-          fmt::format("{}/debug_{}{}_to_{}{}_{:.0f}s", debugOutputDir_,
-                      link.pinger.type == EndpointType::kRobot ? "R" : "L",
-                      link.pinger.index,
-                      link.target.type == EndpointType::kRobot ? "R" : "L",
-                      link.target.index, simTimeSec);
-      // writeenv captures the environment snapshot
-      // (source/receiver/SSP/bathy) writeout for ray mode segfaults in
-      // bellhop's Ray::Writeout (null ray ptr) NOTE: THis is a fundamental
-      // bug in bellhop that we cannot fix
-      bhc::writeenv(context_.params(), filename.c_str());
-
-      // Restore previous beam count
-      builder_.rebuildBeam(savedBeams);
-      // Restore arrivals mode — next bhc::run() re-preprocesses for arrivals
-      std::strcpy(context_.params().Beam->RunType, savedRunType);
+      dumpDebugEnv(link, "debug", simTimeSec);
     }
   }
 }
@@ -380,6 +378,9 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       meas.status = RangeStatus::kNoArrival;
       SPDLOG_WARN("{} Ping dropped: no arrival", tag);
       maybeLog(meas);
+      if (!debugOutputDir_.empty()) {
+        dumpDebugEnv(link, "noarrival", simTimeSec);
+      }
       continue;
     }
 
