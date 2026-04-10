@@ -1,0 +1,21 @@
+{
+  "source_dir": "../../data/beaufort_summer",
+  "bathymetry": {
+    "x": "bathymetry/x_coords.npy",
+    "y": "bathymetry/y_coords.npy",
+    "data": "bathymetry/bathymetry.npy"
+  },
+  "ssp": {
+    "x": "ssp/x_coords.npy",
+    "y": "ssp/y_coords.npy",
+    "z": "ssp/depth_coords.npy",
+    "data": "ssp/ssp.npy"
+  },
+  "current": {
+    "x": "current/x_coords.npy",
+    "y": "current/y_coords.npy",
+    "z": "current/z_coords.npy",
+    "u": "current/u.npy",
+    "v": "current/v.npy"
+  }
+}

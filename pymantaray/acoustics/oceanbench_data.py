@@ -7,9 +7,11 @@ from pykrige.ok import OrdinaryKriging
 from pykrige.ok3d import OrdinaryKriging3D
 from pyproj import Proj, Transformer
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import xarray as xr
-import os
+
+from grid_exporters import export_bathymetry, export_ssp, export_uv
 
 
 ################################################################################
@@ -19,135 +21,106 @@ import os
 ################################################################################
 
 
-def export_bathymetry(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", bathy_filename="bathymetry.npy",
-                      output_dir=None):
+# Local Arctic region presets — swap ACTIVE_REGION / ACTIVE_SEASON to change pulls.
+# All entries use HYCOM glbv0.08 reanalysis 53.x (no credentials, ~80°N coverage limit).
+ARCTIC_REGIONS = {
+    "beaufort_sea": {
+        "name": "Beaufort Sea",
+        "region": {"lon": [-150, -130], "lat": [71, 76]},
+        "roi_lon": (-141.0, -140.5),
+        "roi_lat": (75.0, 76.0),
+        "variables": ["temp", "sal", "u", "v"],
+        "product_id": "hycom_glbv0.08_reanalysis_53x",
+        "output_subdir": "beaufort",
+    },
+    "fram_strait": {
+        "name": "Fram Strait",
+        "region": {"lon": [-10, 10], "lat": [76, 80]},
+        "roi_lon": (-1.0, 0.0),
+        "roi_lat": (78.0, 78.5),
+        "variables": ["temp", "sal", "u", "v"],
+        "product_id": "hycom_glbv0.08_reanalysis_53x",
+        "output_subdir": "fram_strait",
+    },
+    "chukchi_sea": {
+        "name": "Chukchi Sea",
+        "region": {"lon": [-175, -155], "lat": [68, 73]},
+        "roi_lon": (-167.0, -166.0),
+        "roi_lat": (70.5, 71.0),
+        "variables": ["temp", "sal", "u", "v"],
+        "product_id": "hycom_glbv0.08_reanalysis_53x",
+        "output_subdir": "chukchi",
+    },
+    "barents_sea": {
+        "name": "Barents Sea",
+        "region": {"lon": [20, 50], "lat": [70, 78]},
+        "roi_lon": (34.0, 35.0),
+        "roi_lat": (74.0, 74.5),
+        "variables": ["temp", "sal", "u", "v"],
+        "product_id": "hycom_glbv0.08_reanalysis_53x",
+        "output_subdir": "barents",
+    },
+}
+
+# HYCOM glbv0.08 53.x is 3-hourly; one timestep per season keeps downloads tiny.
+SEASON_TIMES = {
+    "winter": ("2014-02-15T00:00", "2014-02-15T03:00"),
+    "spring": ("2014-04-15T00:00", "2014-04-15T03:00"),
+    "summer": ("2014-07-15T00:00", "2014-07-15T03:00"),
+    "autumn": ("2014-10-15T00:00", "2014-10-15T03:00"),
+}
+
+ACTIVE_REGION = "beaufort_sea"  # swap to fram_strait / chukchi_sea / barents_sea
+ACTIVE_SEASON = "summer"        # swap to spring / summer / autumn
+
+# Hard cap on local HYCOM fetches. Estimator runs before download; if the
+# estimate exceeds this, the script aborts so we never accidentally pull GBs.
+MAX_FETCH_MB = 500.0
+
+
+def extract_roi(ds: xr.Dataset, lon_bounds: tuple[float, float],
+                lat_bounds: tuple[float, float]) -> xr.Dataset:
+    """Slice a dataset to a smaller lon/lat region of interest.
+
+    Callers specify geographic bounds rather than index ranges so the same
+    call works regardless of grid resolution or which region was pulled.
     """
-    Args:
-        dataset: weather model data
-        x_filename: output for xcoords
-        y_filename: see above
-        bathy_filename: filename for bathymetry data
-        output_dir: root of directory outputs should be saved in (None means in repo)
-    Outputs:
-        Export x, y coordinates and bathymetry data from the dataset to separate .npy files.
-        - x_coords.npy: 1D array of x_m coordinates
-        - y_coords.npy: 1D array of y_m coordinates
-        - bathymetry.npy: 1D array of bathymetry values, flattened in C order
+    lon_lo, lon_hi = sorted(lon_bounds)
+    lat_lo, lat_hi = sorted(lat_bounds)
+    return ds.sel(lon=slice(lon_lo, lon_hi), lat=slice(lat_lo, lat_hi))
+
+
+def estimate_hycom_size(region: dict, time: tuple[str, str],
+                        variables: list[str], n_depth: int = 41) -> dict:
+    """Accurate HYCOM size estimate that respects sub-day time windows.
+
+    Upstream HycomAdapter.estimate_size() (deps/.../sources/hycom.py) computes
+    n_time as (years_spanned * 365 * 8), so any request inside one year reports
+    a full-year download (~25 GB) regardless of how short the actual window is.
+    This helper computes n_time from the actual pd.Timestamp delta at HYCOM's
+    3-hour cadence, so a 3-hour pull reports ~10 MB.
     """
-    if output_dir is not None:
-        x_filename = output_dir + x_filename
-        y_filename = output_dir + y_filename
-        bathy_filename = output_dir + bathy_filename
-    bathy_da = dataset['bathymetry']
-    print(f"Bathymetry dims: {bathy_da.dims}, shape: {bathy_da.shape}")
-    x_coords = dataset.coords['x_m'].values.astype(np.float64)
-    y_coords = dataset.coords['y_m'].values.astype(np.float64)
-    print(f"x_m size: {len(x_coords)}, y_m size: {len(y_coords)}")
-    print(f"Expected C-flatten index order: {bathy_da.dims[0]} * {len(dataset.coords[bathy_da.dims[1]])} + {bathy_da.dims[1]}")
-    print(f"Grid2D expects: ix * ny + iy  (x-major)")
-    if bathy_da.dims[0] != 'x_m':
-        print(f"WARNING: first dim is '{bathy_da.dims[0]}', not 'x_m' — data may be transposed vs Grid2D expectation!")
-    # Transpose so first axis is x_m (lon), matching Grid2D's ix * ny + iy indexing
-    bathymetry_flat = bathy_da.transpose('lon', 'lat').values.flatten(order='C').astype(np.float64)
-    np.save(x_filename, x_coords, allow_pickle=False)
-    np.save(y_filename, y_coords, allow_pickle=False)
-    np.save(bathy_filename, bathymetry_flat, allow_pickle=False)
-    print(f"Exported x coords to {os.path.abspath(x_filename)}")
-    print(f"Exported y coords to {os.path.abspath(y_filename)}")
-    print(f"Exported bathymetry to {os.path.abspath(bathy_filename)}")
-
-
-def export_ssp(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", z_filename="depth_coords.npy",
-               sound_speed_filename="ssp.npy", output_dir=None):
-    """
-    Export x, y coordinates and bathymetry data from the dataset to separate .npy files.
-    Args:
-        dataset: weather model data
-        x_filename: output for xcoords
-        y_filename: see above
-        z_filename: see above
-        sound_speed_filename: filename for ssp data
-        output_dir: root of directory outputs should be saved in (None means in repo)
-
-
-    Outputs:
-        x_coords.npy: 1D array of x_m coordinates
-        y_coords.npy: 1D array of y_m coordinates
-        z_coords.npy: 1D array of depth coordinates
-        ssp_npy: 1D flattened array
-    """
-    if output_dir is not None:
-        x_filename = output_dir + x_filename
-        y_filename = output_dir + y_filename
-        z_filename = output_dir + z_filename
-        sound_speed_filename = output_dir + sound_speed_filename
-    ssp_da = dataset['sound_speed']
-    print(f"SSP dims: {ssp_da.dims}, shape: {ssp_da.shape}")
-    x_coords = dataset.coords['x_m'].values.astype(np.float64)
-    y_coords = dataset.coords['y_m'].values.astype(np.float64)
-    depths = dataset.coords['depth'].values.astype(np.float64)
-    print(f"x_m size: {len(x_coords)}, y_m size: {len(y_coords)}, depth size: {len(depths)}")
-    if ssp_da.dims[0] != 'x_m':
-        print(f"WARNING: first dim is '{ssp_da.dims[0]}', not 'x_m' — transposing to (lon, lat, depth) for Grid3D")
-    # Transpose so first axis is x (lon), matching Grid3D's ix * ny*nz + iy * nz + iz
-    sound_speed_flat = ssp_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
-    np.save(x_filename, x_coords, allow_pickle=False)
-    np.save(y_filename, y_coords, allow_pickle=False)
-    np.save(z_filename, depths, allow_pickle=False)
-    np.save(sound_speed_filename, sound_speed_flat, allow_pickle=False)
-    print(f"Exported x coords to {os.path.abspath(x_filename)}")
-    print(f"Exported y coords to {os.path.abspath(y_filename)}")
-    print(f"Exported depth coords to {os.path.abspath(z_filename)}")
-    print(f"Exported ssp to {os.path.abspath(sound_speed_filename)}")
-
-
-def export_uv(dataset, x_filename="x_coords.npy", y_filename="y_coords.npy", u_filename="u.npy", v_filename="v.npy",
-              z_filename="z_coords.npy", output_dir=None):
-    """
-    Export x/y coordinates and separate 2D u,v arrays to .npy files.
-
-    Output layout:
-        x_coords.npy: 1D array of x_m coordinates
-        y_coords.npy: 1D array of y_m coordinates
-        u.npy: 2D array of u values (y, x)
-        v.npy: 2D array of v values (y, x)
-    """
-    if output_dir is not None:
-        x_filename = output_dir + x_filename
-        y_filename = output_dir + y_filename
-        u_filename = output_dir + u_filename
-        v_filename = output_dir + v_filename
-        z_filename = output_dir + z_filename
-
-    x_coords = dataset.coords['x_m'].values.astype(np.float64)
-    y_coords = dataset.coords['y_m'].values.astype(np.float64)
-    depths = dataset.coords['depth'].values.astype(np.float64)
-
-    u_da = dataset['u']
-    v_da = dataset['v']
-    print(f"Current u dims: {u_da.dims}, shape: {u_da.shape}")
-    if u_da.dims[0] != 'x_m':
-        print(f"WARNING: first dim is '{u_da.dims[0]}', not 'x_m' — transposing to (lon, lat, depth) for GridVec")
-    # Transpose so first axis is x (lon), matching GridVec's ix * ny*nz + iy * nz + iz
-    u = u_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
-    v = v_da.transpose('lon', 'lat', 'depth').values.flatten(order='C').astype(np.float64)
-
-    # Replace missing current data with zeros to avoid interpolating gaps downstream.
-    # Important to prevent bugs in C++ interpolation scheme
-    u = np.nan_to_num(u, nan=0.0)
-    v = np.nan_to_num(v, nan=0.0)
-
-    np.save(x_filename, x_coords, allow_pickle=False)
-    np.save(y_filename, y_coords, allow_pickle=False)
-    np.save(u_filename, u, allow_pickle=False)
-    np.save(v_filename, v, allow_pickle=False)
-    np.save(z_filename, depths, allow_pickle=False)
-
-    print(f"Exported x coords to {os.path.abspath(x_filename)}")
-    print(f"Exported y coords to {os.path.abspath(y_filename)}")
-    print(f"Exported z coords to {os.path.abspath(z_filename)}")
-    print(f"Exported u to {os.path.abspath(u_filename)}")
-    print(f"Exported v to {os.path.abspath(v_filename)}")
+    lon_b = region["lon"]
+    lat_b = region["lat"]
+    n_lat = max(1, int((lat_b[1] - lat_b[0]) * 12))   # 1/12 deg
+    n_lon = max(1, int((lon_b[1] - lon_b[0]) * 12))
+    start, end = pd.Timestamp(time[0]), pd.Timestamp(time[1])
+    hours = max(0.0, (end - start).total_seconds() / 3600.0)
+    # HYCOM 53.x is 3-hourly; +1 covers the endpoint inclusivity of xarray's slice.
+    n_time = max(1, int(hours // 3) + 1)
+    n_vars = len(variables)
+    bytes_per_value = 4
+    total = n_lat * n_lon * n_time * n_depth * n_vars * bytes_per_value
+    return {
+        "estimate_bytes": total,
+        "estimate_mb": total / (1024 * 1024),
+        "n_lat": n_lat,
+        "n_lon": n_lon,
+        "n_time": n_time,
+        "n_depth": n_depth,
+        "n_vars": n_vars,
+        "note": "Local estimate (upstream HycomAdapter.estimate_size ignores sub-year windows).",
+    }
 
 
 def compute_bathymetry(ds, epsilon=2.5):
@@ -290,24 +263,39 @@ def krige_data_3d(ds, var_name='sound_speed'):
     return kriged_da
 
 
+def make_arctic_axes(figsize: tuple[float, float] = (10, 8)):
+    """Create a NorthPolarStereo cartopy axes covering the Arctic basin.
+
+    Pass the returned axes as `ax=` to `quicklook_map` so plotted data appears
+    at its true geographic location while the surrounding Arctic ocean and
+    coastlines remain visible. Extent is 60°N-90°N, full longitude — wide
+    enough to contain all four `ARCTIC_REGIONS` presets.
+    """
+    import cartopy.crs as ccrs
+    fig, ax = plt.subplots(
+        figsize=figsize,
+        subplot_kw=dict(projection=ccrs.NorthPolarStereo()),
+    )
+    ax.set_extent([-180, 180, 60, 90], crs=ccrs.PlateCarree())
+    return fig, ax
+
+
 def main():
     # Initialize the data provider
     provider = DataProvider()
 
-    SCENARIO_ID = "monterey_bay_phy"
-
-    s = get_scenario(SCENARIO_ID)
-    SELECTED_PRODUCT_ID = s.product_id
-    REGION = s.region
-    TIME_RANGE = s.time
-    SELECTED_VARIABLES = s.variables
+    cfg = ARCTIC_REGIONS[ACTIVE_REGION]
+    SELECTED_PRODUCT_ID = cfg["product_id"]
+    REGION = cfg["region"]
+    TIME_RANGE = SEASON_TIMES[ACTIVE_SEASON]
+    SELECTED_VARIABLES = cfg["variables"]
     # Load dataset card and derived info so later steps (estimate, fetch, plot) work
     card = describe(SELECTED_PRODUCT_ID)
     time_start = card.time_coverage_start
     time_end = card.time_coverage_end
     available_variables = [v.canonical_name for v in card.variables]
     variable_info = {v.canonical_name: v for v in card.variables}
-    print(f"Scenario loaded: {s.name}")
+    print(f"Scenario loaded: {cfg['name']} ({ACTIVE_SEASON})")
     print(f"  Product: {SELECTED_PRODUCT_ID}")
     print(f"  Region: lon={REGION['lon']}, lat={REGION['lat']}")
     print(f"  Time: {TIME_RANGE[0]} to {TIME_RANGE[1]}")
@@ -331,25 +319,25 @@ def main():
         dim_type = "2D (surface)" if vinfo.is_2d else "3D (depth-resolved)"
         print(f"  • {var:10s} - {vinfo.description:40s} [{vinfo.units:10s}] ({dim_type})")
 
-    # Estimate size
-    size_estimate = provider.estimate_size(
-        SELECTED_PRODUCT_ID,
-        REGION,
-        TIME_RANGE,
-        SELECTED_VARIABLES
-    )
+    # Estimate size locally (upstream HycomAdapter.estimate_size is buggy and
+    # always reports a full-year download for any sub-year window).
+    size_estimate = estimate_hycom_size(REGION, TIME_RANGE, SELECTED_VARIABLES)
+    size_mb = size_estimate["estimate_mb"]
+    size_gb = size_mb / 1024
 
-    print("Size Estimate:")
+    print("Size Estimate (local):")
     print("=" * 60)
-    if 'estimate_mb' in size_estimate:
-        size_mb = size_estimate['estimate_mb']
-        size_gb = size_mb / 1024
-        print(f"Estimated size: {size_mb:.1f} MB ({size_gb:.2f} GB)")
-    else:
-        print(f"Estimate: {size_estimate}")
+    print(f"Estimated size: {size_mb:.1f} MB ({size_gb:.3f} GB)")
+    print(f"  grid: {size_estimate['n_lat']} lat × {size_estimate['n_lon']} lon "
+          f"× {size_estimate['n_depth']} depth × {size_estimate['n_time']} time × "
+          f"{size_estimate['n_vars']} vars")
+    print(f"\nNote: {size_estimate['note']}")
 
-    if 'note' in size_estimate:
-        print(f"\nNote: {size_estimate['note']}")
+    if size_mb > MAX_FETCH_MB:
+        raise RuntimeError(
+            f"Estimated fetch size {size_mb:.1f} MB exceeds MAX_FETCH_MB="
+            f"{MAX_FETCH_MB:.0f} MB. Narrow REGION or TIME_RANGE, or raise the cap."
+        )
 
     print(f"\nVariables: {', '.join(SELECTED_VARIABLES)}")
     print(f"Region: lon={REGION['lon']}, lat={REGION['lat']}")
@@ -374,6 +362,22 @@ def main():
     print("\nData fetched successfully!")
 
     print(f"Cache location: {CacheStore().root}")
+
+    # Show the full pulled region on a polar-stereo Arctic map for visual
+    # confirmation of *where* the fetch landed before any ROI extraction.
+    fig, ax = make_arctic_axes()
+    quicklook_map(
+        ds,
+        "temp",
+        ax=ax,
+        time_idx=0,
+        depth_idx=0,
+        variable_info=variable_info,
+        show_date=True,
+    )
+    ax.set_title(f"{cfg['name']} surface temperature — full pull on Arctic basin")
+    plt.show()
+    plt.close(fig)
 
     # Requirements:
     # - ds has variables "temp" and "sal"
@@ -415,8 +419,8 @@ def main():
         else:
             print(f"  • {coord}: {len(coord_data)} values")
 
-    # Slicing out a uniform rectangle in the dataset before computing the center lat/lon
-    new_ds = ds.isel(lat=slice(1, 7), lon=slice(0, 7))
+    # Carve a smaller geographic ROI out of the fetched dataset for downstream experiments.
+    new_ds = extract_roi(ds, cfg["roi_lon"], cfg["roi_lat"])
 
     # Define the center of the sliced region
     center_lon, center_lat = (new_ds.coords['lon'].values[0] + new_ds.coords['lon'].values[-1]) / 2, \
@@ -455,26 +459,30 @@ def main():
 
     print("Bathymetry field added to the dataset.")
 
-    ax = quicklook_map(
+    fig, ax = make_arctic_axes()
+    quicklook_map(
         new_ds,
         "bathymetry",
+        ax=ax,
         time_idx=0,
         depth_idx=0,
         variable_info=variable_info,
         show_date=True,
     )
+    ax.set_title(f"{cfg['name']} bathymetry ({ACTIVE_SEASON}) — ROI on Arctic basin")
     plt.show()
-    plt.close()
+    plt.close(fig)
 
     print(f"X Grid: {new_ds.coords['x_m'].values}")
     print(f"Y Grid: {new_ds.coords['y_m'].values}")
     print(f"Bathymetry Values: {new_ds['bathymetry'].values.flatten('C')}")
 
-    output_dir = "../mantaray/data/monterey/bathymetry/"
+    out_root = f"../../mantaray/data/{cfg['output_subdir']}_{ACTIVE_SEASON}"
+    output_dir = f"{out_root}/bathymetry/"
     export_bathymetry(new_ds, output_dir=output_dir)
-    output_dir = "../mantaray/data/monterey/ssp/"
+    output_dir = f"{out_root}/ssp/"
     export_ssp(new_ds, output_dir=output_dir)
-    output_dir = "../mantaray/data/monterey/current/"
+    output_dir = f"{out_root}/current/"
     export_uv(new_ds, output_dir=output_dir)
 
     # # After exporting bathymetry and ssp, perform kriging and plot

@@ -10,8 +10,9 @@ from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 from pyfg_to_gtsam import FactorGraphSolver, SolverConfig, RobustConfig
 from visualize_solver import visualize, compare_results, visualize_landmarks
 
-FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
+# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:
@@ -25,7 +26,7 @@ odom_noise = np.array(
 
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
-    range_noise_stddev=0.1,
+    range_noise_stddev=1.0,
     include_ranges=True,
     between_noise_sigmas=odom_noise,
     landmark_prior_sigma=1e-2,
@@ -75,13 +76,21 @@ print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
 print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
 print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
 
-print("\n--- Robust Ranges ---")
-visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
-visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
+# print("\n--- Robust Ranges ---")
+# visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+# visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
 
 print("\n=== Comparison ===")
 compare_results(
-    [solver_measured, solver_true, solver_robust],
-    ["Bellhop Ranges", "True Ranges", "Robust Ranges"],
+    [
+        solver_measured,
+        solver_true,
+        # solver_robust,
+    ],
+    [
+        "Bellhop Ranges",
+        "True Ranges",
+        # "Robust Ranges",
+    ],
     save_dir=WORK_DIR,
 )
