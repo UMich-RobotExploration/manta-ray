@@ -13,6 +13,7 @@ dependencies = [
     "pykrige>=1.7.3",
     "pyproj>=3.7.2",
     "oceanbench-data-provider",
+    "scipy-stubs~=1.17.1",
 ]
 
 [tool.uv.sources]

@@ -9,6 +9,7 @@ import open3d as o3d
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.interpolate import RegularGridInterpolator
 from aubellhop import readers
 from readers_1_8 import read_bty_3d
 
@@ -18,11 +19,29 @@ from readers_1_8 import read_bty_3d
 file_root = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/noarrival_R0_to_L2_9000s"
 
 
-def build_bathy_mesh(bty_path: str) -> o3d.geometry.TriangleMesh:
+def build_bathy_mesh(bty_path: str, min_grid: int = 200) -> o3d.geometry.TriangleMesh:
+    """Build an Open3D triangle mesh from a Bellhop3D bathymetry file.
+
+    When the .bty grid is coarse, upsamples via bilinear interpolation to at
+    least `min_grid` points per axis so the triangle mesh closely matches
+    Bellhop's bilinear bottom boundary.
+    """
     bty = read_bty_3d(bty_path)
     x_vals = bty["ranges"]
     y_vals = bty["crossranges"]
     Z = np.array(bty["depths"])
+
+    # Upsample coarse grids so triangulated mesh matches Bellhop's bilinear interp
+    if len(x_vals) < min_grid or len(y_vals) < min_grid:
+        interp = RegularGridInterpolator(
+            (x_vals, y_vals), Z, method="linear", bounds_error=False,
+            fill_value=None)
+        x_fine = np.linspace(x_vals[0], x_vals[-1], max(len(x_vals), min_grid))
+        y_fine = np.linspace(y_vals[0], y_vals[-1], max(len(y_vals), min_grid))
+        Xf, Yf = np.meshgrid(x_fine, y_fine, indexing="ij")
+        Z = interp((Xf, Yf))
+        x_vals, y_vals = x_fine, y_fine
+
     X, Y = np.meshgrid(x_vals, y_vals, indexing="ij")
     dim_x, dim_y = Z.shape
 
@@ -57,52 +76,114 @@ def create_sphere(position: np.ndarray, color: list, radius: float = 50.0):
     return sphere
 
 
-def build_ray_lines(ray_path: str, src_pos: np.ndarray) -> o3d.geometry.LineSet:
-    rays: pd.DataFrame = readers.read_rays(ray_path, dim=3)
+def simplify_path(pts: np.ndarray, tolerance: float) -> np.ndarray:
+    """Ramer-Douglas-Peucker line simplification for 3D point arrays.
+
+    Recursively removes points within `tolerance` of the line between
+    endpoints, preserving sharp bends (bounces) while eliminating dense
+    sampling in straight segments.
+    """
+    if len(pts) <= 2:
+        return pts
+
+    # Distance of each point from the line between first and last
+    start, end = pts[0], pts[-1]
+    line_vec = end - start
+    line_len = np.linalg.norm(line_vec)
+    if line_len < 1e-12:
+        dists = np.linalg.norm(pts - start, axis=1)
+    else:
+        line_unit = line_vec / line_len
+        vecs = pts - start
+        proj = np.outer(vecs @ line_unit, line_unit)
+        dists = np.linalg.norm(vecs - proj, axis=1)
+
+    max_idx = int(np.argmax(dists))
+    if dists[max_idx] <= tolerance:
+        return np.array([start, end])
+
+    left = simplify_path(pts[:max_idx + 1], tolerance)
+    right = simplify_path(pts[max_idx:], tolerance)
+    return np.vstack([left[:-1], right])
+
+
+def load_rays(ray_path: str) -> pd.DataFrame:
+    """Read ray file once and return the DataFrame."""
+    return readers.read_rays(ray_path, dim=3)
+
+
+def build_ray_lines(rays: pd.DataFrame, max_rays: int = 2000,
+                    rdp_tolerance: float = 25.0) -> o3d.geometry.LineSet:
+    """Build an Open3D LineSet from ray data.
+
+    Args:
+        rays:          DataFrame from load_rays() with .ray and .angle_of_departure.
+        max_rays:      Subsample to at most this many rays for performance.
+        rdp_tolerance: RDP simplification tolerance in meters.
+    """
+    n_total = len(rays)
+    if n_total > max_rays:
+        indices = np.linspace(0, n_total - 1, max_rays, dtype=int)
+    else:
+        indices = np.arange(n_total)
+
     all_points = []
     all_lines = []
     all_colors = []
     pt_offset = 0
-
-    # Offset to shift source-centered rays into absolute coordinates
-    src_offset = np.array([src_pos[0], src_pos[1], 0.0])
+    total_pts_before = 0
+    total_pts_after = 0
 
     cmap = plt.cm.plasma
-    n_rays = len(rays)
+    n_shown = len(indices)
 
-    for idx, ray_pts in enumerate(rays.ray):
-        pts = np.array(ray_pts)
+    for i, idx in enumerate(indices):
+        pts = np.array(rays.ray.iloc[idx])
+        total_pts_before += len(pts)
+        pts = simplify_path(pts, rdp_tolerance)
+        total_pts_after += len(pts)
         n = len(pts)
         if n < 2:
             continue
-        all_points.extend(pts.tolist())
-        for i in range(n - 1):
-            all_lines.append([pt_offset + i, pt_offset + i + 1])
-        color = list(cmap(idx / max(n_rays - 1, 1))[:3])
-        all_colors.extend([color] * (n - 1))
+        all_points.append(pts)
+        segs = np.column_stack([
+            np.arange(pt_offset, pt_offset + n - 1),
+            np.arange(pt_offset + 1, pt_offset + n),
+        ])
+        all_lines.append(segs)
+        color = list(cmap(i / max(n_shown - 1, 1))[:3])
+        all_colors.append(np.tile(color, (n - 1, 1)))
         pt_offset += n
 
+    print(f"  Showing {n_shown}/{n_total} rays, "
+          f"{total_pts_before} pts simplified to {total_pts_after} "
+          f"(tolerance={rdp_tolerance}m)")
+
     line_set = o3d.geometry.LineSet()
-    line_set.points = o3d.utility.Vector3dVector(np.array(all_points))
-    line_set.lines = o3d.utility.Vector2iVector(np.array(all_lines))
-    line_set.colors = o3d.utility.Vector3dVector(np.array(all_colors))
+    if all_points:
+        line_set.points = o3d.utility.Vector3dVector(np.vstack(all_points))
+        line_set.lines = o3d.utility.Vector2iVector(np.vstack(all_lines))
+        line_set.colors = o3d.utility.Vector3dVector(np.vstack(all_colors))
     return line_set
 
 
-def find_connecting_rays(ray_path: str, rcv_pos: np.ndarray, src_pos: np.ndarray,
+def find_connecting_rays(rays: pd.DataFrame, rcv_pos: np.ndarray,
                          threshold_m: float = 500.0):
     """Find all rays that pass within threshold of the receiver.
-    Returns list of (index, min_dist, ray_pts, angle), sorted by distance."""
-    rays: pd.DataFrame = readers.read_rays(ray_path, dim=3)
+
+    Returns list of (index, min_dist, ray_pts, angle, closest_idx),
+    sorted by distance.
+    """
     hits = []
 
     for idx, ray_pts in enumerate(rays.ray):
         pts = np.array(ray_pts)
         dists = np.linalg.norm(pts - rcv_pos, axis=1)
-        min_dist = dists.min()
+        min_idx = int(np.argmin(dists))
+        min_dist = dists[min_idx]
         if min_dist < threshold_m:
             angle = rays.angle_of_departure.iloc[idx]
-            hits.append((idx, min_dist, pts, angle))
+            hits.append((idx, min_dist, pts, angle, min_idx))
 
     hits.sort(key=lambda x: x[1])
     return hits
@@ -334,18 +415,22 @@ if __name__ == "__main__":
     # Ray traces (optional)
     connecting = []
     if os.path.exists(ray_path):
-        line_set = build_ray_lines(ray_path, src_pos)
+        rays_df = load_rays(ray_path)
+        print(f"Loaded {len(rays_df)} rays from: {ray_path}")
+
+        line_set = build_ray_lines(rays_df)
         geometries.append(line_set)
-        print(f"Loaded rays: {ray_path}")
 
         if os.path.exists(env_path):
             threshold_m = 50
-            connecting = find_connecting_rays(ray_path, rcv_pos, src_pos, threshold_m=threshold_m)
+            connecting = find_connecting_rays(rays_df, rcv_pos, threshold_m=threshold_m)
             print(f"\n--- {len(connecting)} rays within {threshold_m}m of receiver ---")
-            for i, (idx, dist, pts, angle) in enumerate(connecting):
+            for i, (idx, dist, pts, angle, closest_idx) in enumerate(connecting):
                 label = "BEST" if i == 0 else f"  #{i+1}"
+                hit = pts[closest_idx]
                 print(f"  {label}: ray {idx}, departure={angle:.2f}°, "
-                      f"closest approach={dist:.2f}m")
+                      f"closest approach={dist:.2f}m, "
+                      f"{len(pts)} pts, hit=[{hit[0]:.1f}, {hit[1]:.1f}, {hit[2]:.1f}]")
     else:
         print(f"No ray file (run bhc_runner to generate): {ray_path}")
 
@@ -378,14 +463,27 @@ if __name__ == "__main__":
         vis2.add_geometry(create_sphere(rcv_pos, [0, 1, 0], radius=50.0))
 
         cmap = plt.cm.plasma
-        for i, (idx, dist, pts, angle) in enumerate(connecting):
-            color = list(cmap(i / max(len(connecting) - 1, 1))[:3])
-            n = len(pts)
-            lines = [[j, j + 1] for j in range(n - 1)]
+        for i, (idx, dist, pts, angle, closest_idx) in enumerate(connecting):
+            if i == 0:
+                color = [1.0, 1.0, 1.0]
+                hit_radius = 30.0
+            else:
+                color = list(cmap(i / max(len(connecting) - 1, 1))[:3])
+                hit_radius = 20.0
+
+            # Hit marker at closest approach point
+            vis2.add_geometry(create_sphere(pts[closest_idx], color, radius=hit_radius))
+
+            # Truncate ray at closest approach
+            pts_trunc = pts[:closest_idx + 1]
+            n = len(pts_trunc)
+            if n < 2:
+                continue
+            segs = np.column_stack([np.arange(n - 1), np.arange(1, n)])
             ls = o3d.geometry.LineSet()
-            ls.points = o3d.utility.Vector3dVector(pts)
-            ls.lines = o3d.utility.Vector2iVector(np.array(lines))
-            ls.colors = o3d.utility.Vector3dVector(np.array([color] * (n - 1)))
+            ls.points = o3d.utility.Vector3dVector(pts_trunc)
+            ls.lines = o3d.utility.Vector2iVector(segs)
+            ls.colors = o3d.utility.Vector3dVector(np.tile(color, (n - 1, 1)))
             vis2.add_geometry(ls)
 
         if alpha_range is not None and beta_range is not None:
