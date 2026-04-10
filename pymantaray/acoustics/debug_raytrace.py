@@ -17,6 +17,8 @@ from readers_1_8 import read_bty_3d
 # file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-debug/src/results/lbl/debug_R0_to_L2_7200s"
 # file_root = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/debug_R1_to_L2_19800s"
 file_root = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/noarrival_R0_to_L2_9000s"
+file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/noarrival_R0_to_L2_12600s"
+file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/noarrival_R0_to_L2_27000s"
 
 
 def build_bathy_mesh(bty_path: str, min_grid: int = 200) -> o3d.geometry.TriangleMesh:

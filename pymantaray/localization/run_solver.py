@@ -13,13 +13,14 @@ from visualize_solver import visualize, compare_results, visualize_landmarks
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom perturbation stddevs in GTSAM Pose3 tangent order:
 #   [rot_x (rad), rot_y (rad), rot_z (rad), tx (m), ty (m), tz (m)]
-angular_noise = 0.001
+angular_noise = 0.0001
 positional_noise = 1
-z_positional_noise = 0.001
+z_positional_noise = 0.0001
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      positional_noise, positional_noise, z_positional_noise])
