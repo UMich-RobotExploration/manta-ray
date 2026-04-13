@@ -153,6 +153,11 @@ class SolverConfig:
                              None = standard Gaussian (no robustness).
         landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
                              When None, falls back to PyFG precisions.
+        gps_prior_sigmas:    6-element stddev array for GPS pose priors (all
+                             non-first-pose priors), same GTSAM Pose3 tangent
+                             ordering as odom_noise_sigmas. When set,
+                             overrides per-prior PyFG precisions. First-pose
+                             priors always use PyFG precisions.
         seed:                RNG seed for all random number generation
                              (odom perturbation).
     """
@@ -165,6 +170,7 @@ class SolverConfig:
     landmark_prior_sigma: float | None = None
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
+    gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
     seed: int = 42
 
     def __post_init__(self):
@@ -182,6 +188,13 @@ class SolverConfig:
                 raise ValueError(
                     f"between_noise_sigmas must have 6 elements, "
                     f"got shape {self.between_noise_sigmas.shape}")
+        if self.gps_prior_sigmas is not None:
+            self.gps_prior_sigmas = np.asarray(
+                self.gps_prior_sigmas, dtype=np.float64).flatten()
+            if self.gps_prior_sigmas.shape != (6,):
+                raise ValueError(
+                    f"gps_prior_sigmas must have 6 elements, "
+                    f"got shape {self.gps_prior_sigmas.shape}")
         if self.range_noise_stddev <= 0:
             raise ValueError(
                 f"range_noise_stddev must be positive, got {self.range_noise_stddev}")
@@ -298,6 +311,9 @@ class FactorGraphSolver:
             if pose_chain:
                 first_pose_names.add(pose_chain[0].name)
 
+        gps_prior_noise = (gtsam.noiseModel.Diagonal.Sigmas(cfg.gps_prior_sigmas)
+                           if cfg.gps_prior_sigmas is not None else None)
+
         for prior in fg.pose_priors:
             is_first_pose = prior.name in first_pose_names
             if not is_first_pose and not cfg.include_gps_priors:
@@ -306,8 +322,11 @@ class FactorGraphSolver:
             R = _rot3(prior.rotation_matrix)
             t = np.array(prior.position, dtype=np.float64)
             pose = gtsam.Pose3(R, t)
-            noise = _pose3_noise(prior.translation_precision,
-                                 prior.rotation_precision)
+            if not is_first_pose and gps_prior_noise is not None:
+                noise = gps_prior_noise
+            else:
+                noise = _pose3_noise(prior.translation_precision,
+                                     prior.rotation_precision)
             self.graph.addPriorPose3(key, pose, noise)
 
         landmark_noise = (gtsam.noiseModel.Isotropic.Sigma(3, cfg.landmark_prior_sigma)

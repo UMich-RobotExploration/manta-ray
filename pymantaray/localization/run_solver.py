@@ -25,12 +25,15 @@ odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      positional_noise, positional_noise, z_positional_noise])
 
+gps_prior_sigmas=np.array([1e3, 1e3, 1e3, 0.001, 0.001, 0.001]),
+
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
     range_noise_stddev=1.0,
     include_ranges=True,
     between_noise_sigmas=odom_noise,
     landmark_prior_sigma=1e-2,
+    gps_prior_sigmas=gps_prior_sigmas,
 )
 
 print(f"Reading {FILE_PATH} ...")
