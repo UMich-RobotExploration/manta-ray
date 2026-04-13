@@ -4,6 +4,25 @@ This internal library wraps BellhopCUDA to provide underwater acoustic ray
 tracing for the manta-ray simulation. It handles environment setup (bathymetry,
 sound speed profiles, source/receiver placement) and arrival extraction.
 
+## Composition
+
+`AcousticsBuilder` is the entry point: it owns the Bellhop context and the
+environment grids, and exposes the `updateSource`/`updateReceiver`/`rebuildBeam`
+operations used by the ranging system. `Arrival` is a thin extractor over
+the populated `BhContext` outputs.
+
+```mermaid
+flowchart LR
+  AB[AcousticsBuilder] --> BHC[BhContext]
+  AB --> Bathy[Bathymetry Grid2D]
+  AB --> Altim[Altimetry Grid2D]
+  AB --> SSP[SSP Grid3D]
+  BHC --> Params[(bhcParams)]
+  BHC --> Outputs[(bhcOutputs)]
+  Arr[Arrival] --> Outputs
+  Arr --> Pair[ArrivalPair: directPath, anyPath]
+```
+
 ## Key Classes
 
 - **AcousticsBuilder** — Configures and owns the Bellhop simulation state:

@@ -4,6 +4,28 @@ Sub library that handles the rigid body aspects of the manta-ray simulation.
 It provides a simple physics world with forward-Euler integration, a robot
 abstraction with pluggable sensors, and ground-truth state tracking.
 
+## Composition
+
+`RbWorld` is the top-level container. It owns the SOA physics storage,
+the robot list, landmarks, and a shared RNG. Each `RobotI` references a
+body in `PhysicsBodies` (by `BodyIdx`) and owns a list of `SensorI` that
+sample at their own configured rates during `advanceWorld()`.
+
+```mermaid
+flowchart LR
+  World[RbWorld] --> PB[PhysicsBodies SOA]
+  World --> Landmarks[Landmarks]
+  World --> RNG[RNG engine]
+  World --> Robots[RobotI list]
+  Robots --> CV[ConstantVelRobot]
+  Robots --> CD[CurrentDriftRobot]
+  Robots --> Sensors[SensorI list]
+  Sensors --> GT[GroundTruthPose]
+  Sensors --> Odom[PositionalXYOdometry]
+  Sensors --> GPS[GpsPosition]
+  Robots -. BodyIdx .-> PB
+```
+
 ## Key Classes
 
 - **RbWorld** — Top-level simulation container. Owns the dynamics bodies,

@@ -4,6 +4,101 @@ This package contains the top-level simulation loop, robot factories, and
 acoustic ranging systems that tie together the rigid body and acoustics
 libraries.
 
+## Architecture {#architecture}
+
+### System Context
+
+The simulator is organized into three internal libraries (`acoustics`, `rb`,
+`sim`) plus a configuration layer and an output layer. The `sim` package is
+the orchestrator: it owns `main.cpp` and `AcousticPairwiseRangeSystem`, which
+together drive the rigid-body world and the acoustic ray tracer to produce
+range measurements and a factor-graph file for downstream SLAM backends.
+
+```mermaid
+flowchart LR
+  subgraph Config["config (JSON)"]
+    SC[SimConfig]
+    EC[EnvironmentConfig]
+  end
+  subgraph Sim["sim (orchestrator)"]
+    Main[main.cpp]
+    APRS[AcousticPairwiseRangeSystem]
+  end
+  subgraph Acoustics["acoustics"]
+    AB[AcousticsBuilder]
+    BHC[BhContext]
+    Arr[Arrival]
+    Grid[Grid2D / Grid3D]
+  end
+  subgraph RB["rb (rigid body)"]
+    World[RbWorld]
+    Robot[RobotI subclasses]
+    Sensor[SensorI subclasses]
+  end
+  subgraph Out["outputs"]
+    PFG[PfgWriter]
+    CSV[Sensor CSVs]
+    DBG[Debug env files]
+  end
+  SC --> Main
+  EC --> AB
+  Main --> APRS
+  Main --> World
+  APRS --> AB
+  APRS --> BHC
+  APRS --> Arr
+  AB --> Grid
+  World --> Robot
+  Robot --> Sensor
+  APRS --> PFG
+  Sensor --> CSV
+  APRS --> DBG
+  BHC -.-> bellhop[(bellhopcuda)]
+  Robot -.-> eigen[(Eigen / manif)]
+  PFG -.-> json[(nlohmann::json)]
+```
+
+Solid arrows are direct dependencies (composition or function calls); dashed
+arrows are external library boundaries.
+
+### Ping Lifecycle
+
+A single range measurement traverses the orchestrator, the acoustics stack,
+and (after all pings for the timestep are collected) the output writer. The
+inner loop is the iterative beam refinement described in the next section.
+
+```mermaid
+sequenceDiagram
+  participant Main as main loop
+  participant APRS as AcousticPairwiseRangeSystem
+  participant AB as AcousticsBuilder
+  participant BHC as Bellhop (bhc::run)
+  participant Arr as Arrival
+  participant PFG as PfgWriter
+
+  Main->>APRS: update(t, world)
+  loop for each link (pinger, target)
+    APRS->>AB: updateSource(pingerPos)
+    APRS->>AB: updateReceiver(targetPos)
+    Note over APRS,BHC: acquireTof — iterative beam refinement
+    loop beams = N0 to maxBeams
+      APRS->>BHC: bhc::run(params, outputs)
+      BHC-->>Arr: arrivals
+      Arr-->>APRS: ArrivalPair{direct, anyPath}
+      alt direct path found
+        APRS-->>APRS: accept, break
+      else multipath converged (allow_multipath)
+        APRS-->>APRS: accept, break
+      else
+        APRS->>AB: rebuildBeam(beams * 2)
+      end
+    end
+    APRS->>APRS: range = TOF * SSP
+    APRS->>APRS: log RangeMeasurement
+  end
+  Main->>PFG: writePfg(measurements, world)
+```
+
 ## Iterative Beam Refinement {#iterative_beam_refinement}
 
 ### Problem
