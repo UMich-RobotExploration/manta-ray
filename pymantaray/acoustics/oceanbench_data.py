@@ -27,8 +27,10 @@ ARCTIC_REGIONS = {
     "beaufort_sea": {
         "name": "Beaufort Sea",
         "region": {"lon": [-150, -130], "lat": [71, 76]},
-        "roi_lon": (-141.0, -140.5),
-        "roi_lat": (75.0, 76.0),
+        "roi_lon": (-150.0, -130.0),
+        # "roi_lon": (-141.5, -140.5),
+        # "roi_lat": (75.25, 76.0),
+        "roi_lat": (73.0, 76.0),
         "variables": ["temp", "sal", "u", "v"],
         "product_id": "hycom_glbv0.08_reanalysis_53x",
         "output_subdir": "beaufort",
