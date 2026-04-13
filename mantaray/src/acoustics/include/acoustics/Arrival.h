@@ -47,17 +47,6 @@ public:
   Arrival(bhc::bhcParams<true> &in_params,
           bhc::bhcOutputs<true, true> &outputs);
   /**
-   * @brief Find the fastest arrival time for each reciever position.
-   * @details Iterates through all source and receiver positions, checking the
-   * arrival. Utilize getIdx to map 3D receiver indices to flattened vector
-   * index.
-   *
-   * @param directPathOnly When true, only consider arrivals with zero
-   *        surface and bottom bounces (direct path). Returns kNoArrival
-   *        if no direct path exists.
-   * @return Earliest arrival delay in seconds, or kNoArrival (-1) if none
-   */
-  /**
    * @brief Single-pass extraction of both direct-path and any-path fastest
    * arrivals.
    * @details Iterates through all arrivals once, tracking the minimum delay

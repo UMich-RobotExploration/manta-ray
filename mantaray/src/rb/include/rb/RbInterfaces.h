@@ -102,13 +102,13 @@ protected:
 /** @brief Defines the interface that RbWorld expects from robots in order
  * to properly manage lifetimes, sensors, and compute twists.
  *
- * @property bodyIdx: index into kinematicData where robot's rigid body
- * data is stored
+ * @par Body Index
+ * Each robot stores a `bodyIdx_` index into the world's kinematic data where
+ * the robot's rigid body state is stored.
  *
  * @par Twist Update
  * The twist update is the key component of this interface. The integrator takes
  * twists from all robots and integrates them to create motion.
- *
  */
 class RobotI {
 public:

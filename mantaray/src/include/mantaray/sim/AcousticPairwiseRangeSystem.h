@@ -225,6 +225,7 @@ public:
    * src/tools/bhc_runner.cpp
    * @param meas Populated measurement details
    * @param link Ranging link
+   * @param tag Composite log tag identifying time and endpoints
    * @param simTimeSec Sim Time
    * @param trueRange Actual range between rigid bodies (not bellhops)
    */
