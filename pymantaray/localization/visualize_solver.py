@@ -12,6 +12,7 @@ import os
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import numpy as np
 
 from evo.core import metrics
 from evo.tools import plot as evo_plot
@@ -107,8 +108,6 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
                       style='-', color='tab:blue', label=estimate_legend)
         ax.invert_zaxis()
         ax.set_zlabel("Depth (m)")
-        z_min, z_max = ax.get_zlim()
-        ax.set_zlim(z_min, max(z_max, -5))
         ax.legend()
         ax.set_title(f"Robot {robot_char} — Trajectory Comparison")
 
@@ -261,8 +260,6 @@ def compare_results(solvers: list[FactorGraphSolver],
                           style='-', color=colors[i % len(colors)], label=legend)
         ax.invert_zaxis()
         ax.set_zlabel("Depth (m)")
-        z_min, z_max = ax.get_zlim()
-        ax.set_zlim(z_min, max(z_max, -5))
         ax.legend()
         ax.set_title(f"Robot {robot_char} — Trajectory Comparison")
 
@@ -285,6 +282,87 @@ def compare_results(solvers: list[FactorGraphSolver],
             tag = f"{prefix}_" if prefix else ""
             fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=150)
             fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=150)
+
+    plt.show()
+
+
+def compare_depth_error(solvers: list[FactorGraphSolver],
+                        labels: list[str],
+                        save_dir: str | None = None,
+                        prefix: str = ""):
+    """Single-figure comparison of world-frame z error per solver.
+
+    Concatenates poses across all robots into one x-axis so there is one line
+    per solver. Vertical dotted lines mark robot boundaries when there is
+    more than one robot.
+
+    Args:
+        solvers: List of solved FactorGraphSolver instances.
+        labels:  One label per solver (e.g. ["Ray-Traced Ranges", ...]).
+        save_dir: Directory to save the figure.
+        prefix:  Filename prefix.
+    """
+    if len(solvers) != len(labels):
+        raise ValueError(f"Got {len(solvers)} solvers but {len(labels)} labels")
+    for s, l in zip(solvers, labels):
+        if s.result is None:
+            raise RuntimeError(f"Solver '{l}' has no result — call solve() first")
+
+    ref = solvers[0]
+    estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
+    colors = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
+              'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
+
+    # Build concatenated GT z and odom z (from the first solver).
+    gt_z_parts: list[np.ndarray] = []
+    odom_z_parts: list[np.ndarray] = []
+    boundaries: list[int] = []
+    for pose_chain in ref.fg.pose_variables:
+        if not pose_chain:
+            continue
+        keys = [ref.key_map[p.name] for p in pose_chain]
+        gt_z_parts.append(np.array([p.true_position[2] for p in pose_chain]))
+        odom_z_parts.append(
+            np.array([ref.odom_values.atPose3(k).translation()[2] for k in keys]))
+        boundaries.append(sum(len(p) for p in gt_z_parts))
+
+    gt_z = np.concatenate(gt_z_parts)
+    odom_z = np.concatenate(odom_z_parts)
+
+    fig = plt.figure(figsize=(11, 4))
+    ax = fig.add_subplot(111)
+    ax.axhline(0, color='black', linestyle='--', linewidth=0.5)
+
+    # Robot boundaries (only if multi-robot).
+    if len(boundaries) > 1:
+        for b in boundaries[:-1]:
+            ax.axvline(b, color='gray', linestyle=':', linewidth=0.6, alpha=0.6)
+
+    ax.plot(odom_z - gt_z, color='tab:orange', linestyle='--', alpha=0.6,
+            linewidth=0.8, label='Odometry Only Trajectory')
+
+    for i, (solver, legend) in enumerate(zip(solvers, estimate_legends)):
+        opt_parts: list[np.ndarray] = []
+        for pose_chain in ref.fg.pose_variables:
+            if not pose_chain:
+                continue
+            keys = [solver.key_map[p.name] for p in pose_chain]
+            opt_parts.append(
+                np.array([solver.result.atPose3(k).translation()[2] for k in keys]))
+        opt_z = np.concatenate(opt_parts)
+        ax.plot(opt_z - gt_z, color=colors[i % len(colors)],
+                linewidth=0.8, label=legend)
+
+    ax.set_xlabel('Pose index (concatenated across robots)')
+    ax.set_ylabel('Global z error (m)   [estimate − GT]')
+    ax.set_title('Depth Error Comparison')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+
+    if save_dir:
+        tag = f"{prefix}_" if prefix else ""
+        fig.savefig(os.path.join(save_dir, f"{tag}compare_z_error.png"), dpi=150)
 
     plt.show()
 
@@ -363,8 +441,6 @@ def visualize_landmarks(solver: FactorGraphSolver,
 
     ax.invert_zaxis()
     ax.set_zlabel("Depth (m)")
-    z_min, z_max = ax.get_zlim()
-    ax.set_zlim(z_min, max(z_max, -5))
     ax.set_xlabel("X (m)")
     ax.set_ylabel("Y (m)")
     ax.legend()

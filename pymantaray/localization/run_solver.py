@@ -8,7 +8,8 @@ import numpy as np
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
 from pyfg_to_gtsam import FactorGraphSolver, SolverConfig, RobustConfig
-from visualize_solver import visualize, compare_results, visualize_landmarks
+from visualize_solver import (visualize, compare_results, compare_depth_error,
+                               visualize_landmarks)
 
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
@@ -24,13 +25,14 @@ default_pos_prior = 0.1 # meters
 
 angular_noise = 1E-6 # radians
 xy_frac = 0.05
-z_frac = 0.00005
+z_frac = 0.05
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      xy_frac, xy_frac, z_frac])
 
 odom_gtsam_noise = deepcopy(odom_noise)
 odom_gtsam_noise[:3] = 1E-2   # factor-graph rotation belief (rad-per-rad)
+# odom_gtsam_noise[2] = 0.10
 # Translation fractions stay equal to odom_noise (matched factor belief).
 
 # GPS prior: position stddev 0.1 m, rotation stddev 2 rad (effectively unconstrained).
@@ -38,7 +40,7 @@ odom_gtsam_noise[:3] = 1E-2   # factor-graph rotation belief (rad-per-rad)
 gps_prior_sigmas = np.array([2, 2, 2, default_pos_prior, default_pos_prior, default_pos_prior],
                             dtype=np.float64)
 
-depth_prior_sigma = 0.0001/3.0  # meters — pressure-sensor stddev
+depth_prior_sigma = 0.01/3.0  # meters — pressure-sensor stddev
 
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
@@ -97,15 +99,16 @@ print(f"GTSAM graph: {solver_custom_depth.graph.size()} factors, "
 print(f"Initial error: {solver_custom_depth.graph.error(solver_custom_depth.initial):.4f}")
 print(f"Final   error: {solver_custom_depth.graph.error(solver_custom_depth.result):.4f}")
 
-print("\n=== Run 4: Robust Ranges ===")
-config_robust = deepcopy(config)
-config_robust.robust_range = RobustConfig(kernel="welsch", param=15.0)
-solver_robust = FactorGraphSolver(fg_data, config_robust)
-solver_robust.solve()
-print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
-      f"{solver_robust.initial.size()} variables")
-print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
-print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
+# print("\n=== Run 4: Robust Ranges ===")
+# config_robust = deepcopy(config)
+# config_robust.depth_prior_mode= "custom"
+# config_robust.robust_range = RobustConfig(kernel="welsch", param=15.0)
+# solver_robust = FactorGraphSolver(fg_data, config_robust)
+# solver_robust.solve()
+# print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
+#       f"{solver_robust.initial.size()} variables")
+# print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
+# print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
 
 # print("\n--- Robust Ranges ---")
 # visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
@@ -120,10 +123,24 @@ compare_results(
         # solver_robust,
     ],
     [
+        "Ray-Traced Ranges (Pose3Prior Depth)",
+        "Idealized Ranges",
+        "Ray-Traced Ranges (custom depth)",
+        # "Robust Ray-Traced Ranges",
+    ],
+    save_dir=WORK_DIR,
+)
+
+compare_depth_error(
+    [
+        solver_measured,
+        solver_true,
+        solver_custom_depth,
+    ],
+    [
         "Ray-Traced Ranges",
         "Idealized Ranges",
         "Ray-Traced Ranges (custom depth)",
-        # "Robust Ranges",
     ],
     save_dir=WORK_DIR,
 )
