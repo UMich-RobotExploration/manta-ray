@@ -4,6 +4,26 @@ This package contains the top-level simulation loop, robot factories, and
 acoustic ranging systems that tie together the rigid body and acoustics
 libraries.
 
+## Overview {#overview}
+
+The Manta Ray benchmarking environment operates as an event-based simulation
+with two primary events: advancing rigid-body motion and acquiring
+acoustic-range measurements. These two functionalities are split across two
+libraries that are combined into a single simulation executable. Acoustic
+ranging is iterative and may resolve as either a single-path or multipath
+arrival, handled separately.
+
+```mermaid
+flowchart TB
+  Start([World construction]) --> Loop{{Simulation event loop<br/><i>repeats each tick until end of horizon</i>}}
+  Loop --> Motion[Rigid-body motion]
+  Loop --> Range[Acoustic ranging]
+  Motion --> Lie["SE(3) Lie-group integration"]
+  Range --> Iter[/Iterative ray-tracing solver/]
+  Iter --> Direct[Single-path arrival]
+  Iter --> Multi[Multipath arrival]
+```
+
 ## Architecture {#architecture}
 
 ### System Context
