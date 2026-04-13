@@ -119,6 +119,23 @@ def _odom_to_pose3(odom) -> gtsam.Pose3:
                                 dtype=np.float64))
 
 
+def _scaled_sigmas(fractions: np.ndarray,
+                   delta: gtsam.Pose3,
+                   floor: np.ndarray) -> np.ndarray:
+    """Per-delta component-wise sigma = max(floor, fractions * |motion|).
+
+    Args:
+        fractions: 6-element [rot_x, rot_y, rot_z, tx, ty, tz] fractions of motion.
+        delta:     clean odom delta; sigmas are sized from its magnitude.
+        floor:     2-element [rot_floor_rad, trans_floor_m] for numerical stability.
+    """
+    r = np.abs(gtsam.Rot3.Logmap(delta.rotation()))
+    t = np.abs(delta.translation())
+    motion = np.concatenate([r, t])
+    floor6 = np.concatenate([np.full(3, floor[0]), np.full(3, floor[1])])
+    return np.maximum(floor6, fractions * motion)
+
+
 def extract_trajectory(values: gtsam.Values,
                        pose_keys: list[int],
                        name: str = "") -> PosePath3D:
@@ -140,15 +157,28 @@ class SolverConfig:
         include_gps_priors:  Include GPS pose priors (all except first-pose priors).
         include_ranges:      Include range measurement factors.
         range_noise_stddev:  Stddev (meters) for range factor noise model.
-        odom_noise_sigmas:   6-element stddev array in GTSAM Pose3 tangent order:
-                                 [rot_x (rad), rot_y (rad), rot_z (rad),
-                                  tx (m), ty (m), tz (m)]
-                             When set, BetweenFactors use Expmap-perturbed deltas
-                             and initial estimate defaults to ground truth.
-        between_noise_sigmas: 6-element stddev array for BetweenFactorPose3
-                             noise model, same GTSAM Pose3 tangent ordering.
-                             When set, overrides PyFG odometry precisions.
+        odom_noise_sigmas:   6-element per-component fractions of motion in
+                             GTSAM Pose3 tangent order
+                                 [rot_x, rot_y, rot_z, tx, ty, tz]
+                             Per delta, sigma_i = max(floor, frac_i * |m_i|)
+                             where m = [|log(R)_x|, |log(R)_y|, |log(R)_z|,
+                                        |t_x|, |t_y|, |t_z|]. Drives the
+                             Gaussian perturbation of each clean odom delta.
+                             When None, no perturbation is applied.
+                             When set, initial estimate defaults to ground truth.
+        between_noise_sigmas: 6-element per-component fractions of motion for
+                             BetweenFactorPose3 noise model. Same component-
+                             wise rule as odom_noise_sigmas (sized from the
+                             clean delta). Independent of odom_noise_sigmas —
+                             may be set larger for a pessimistic factor belief.
                              When None, falls back to PyFG precisions.
+        odom_noise_floor:    2-element minimum sigma
+                                 [rot_floor_rad, trans_floor_m]
+                             applied to both odom_noise_sigmas and
+                             between_noise_sigmas scaling to prevent singular
+                             noise models on stationary deltas. Purely
+                             numerical — not a modeling parameter.
+                             Defaults to [1e-4, 1e-3] when None.
         robust_range:        RobustConfig for range noise m-estimator.
                              None = standard Gaussian (no robustness).
         landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
@@ -170,6 +200,7 @@ class SolverConfig:
     landmark_prior_sigma: float | None = None
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
+    odom_noise_floor: np.ndarray | None = field(default=None, repr=False)
     gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
     seed: int = 42
 
@@ -188,6 +219,14 @@ class SolverConfig:
                 raise ValueError(
                     f"between_noise_sigmas must have 6 elements, "
                     f"got shape {self.between_noise_sigmas.shape}")
+        if self.odom_noise_floor is not None:
+            self.odom_noise_floor = np.asarray(
+                self.odom_noise_floor, dtype=np.float64).flatten()
+            if self.odom_noise_floor.shape != (2,):
+                raise ValueError(
+                    f"odom_noise_floor must have 2 elements "
+                    f"[rot_floor_rad, trans_floor_m], "
+                    f"got shape {self.odom_noise_floor.shape}")
         if self.gps_prior_sigmas is not None:
             self.gps_prior_sigmas = np.asarray(
                 self.gps_prior_sigmas, dtype=np.float64).flatten()
@@ -232,6 +271,11 @@ class FactorGraphSolver:
         for landmark in fg.landmark_variables:
             self.key_map[landmark.name] = _name_to_key(landmark.name)
 
+        self._odom_floor: np.ndarray = (
+            self.config.odom_noise_floor
+            if self.config.odom_noise_floor is not None
+            else np.array([1e-4, 1e-3], dtype=np.float64))
+
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
         if self.config.odom_noise_sigmas is not None:
             self._odom_deltas = self._perturb_odom_deltas(
@@ -246,11 +290,12 @@ class FactorGraphSolver:
         self.gt_values = self._build_gt_values()
         self.odom_values = self._build_odom_values()
 
-    def _perturb_odom_deltas(self, sigmas: np.ndarray) -> list[list[gtsam.Pose3]]:
+    def _perturb_odom_deltas(self, fractions: np.ndarray) -> list[list[gtsam.Pose3]]:
         """Sample noisy odom deltas via Pose3 tangent-space perturbation.
 
-        For each measurement, samples xi ~ N(0, diag(sigmas^2)) in
-        [rot_x, rot_y, rot_z, tx, ty, tz], then composes:
+        Sigmas are sized per delta and per component from the clean motion
+        magnitude: sigma_i = max(floor, fractions_i * |motion_i|). The draw
+        xi ~ N(0, diag(sigmas^2)) is then composed onto the clean delta:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
         rng = np.random.default_rng(seed=self.config.seed)
@@ -259,6 +304,7 @@ class FactorGraphSolver:
             chain: list[gtsam.Pose3] = []
             for odom in odom_chain:
                 clean = _odom_to_pose3(odom)
+                sigmas = _scaled_sigmas(fractions, clean, self._odom_floor)
                 xi = rng.normal(0.0, sigmas)
                 noise_pose = gtsam.Pose3.Expmap(xi)
                 chain.append(clean.compose(noise_pose))
@@ -339,17 +385,19 @@ class FactorGraphSolver:
                      else _point3_noise(prior.translation_precision))
             self.graph.addPriorPoint3(key, point, noise)
 
-        between_noise = (gtsam.noiseModel.Diagonal.Sigmas(cfg.between_noise_sigmas)
-                         if cfg.between_noise_sigmas is not None else None)
-
         for chain_idx, odom_chain in enumerate(fg.odom_measurements):
             for i, odom in enumerate(odom_chain):
                 key_from = self.key_map[odom.base_pose]
                 key_to = self.key_map[odom.to_pose]
+                clean = _odom_to_pose3(odom)
                 delta = self._get_odom_delta(chain_idx, i, odom)
-                noise = (between_noise if between_noise is not None
-                         else _pose3_noise(odom.translation_precision,
-                                           odom.rotation_precision))
+                if cfg.between_noise_sigmas is not None:
+                    sigmas = _scaled_sigmas(cfg.between_noise_sigmas, clean,
+                                            self._odom_floor)
+                    noise = gtsam.noiseModel.Diagonal.Sigmas(sigmas)
+                else:
+                    noise = _pose3_noise(odom.translation_precision,
+                                         odom.rotation_precision)
                 self.graph.add(
                     gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 

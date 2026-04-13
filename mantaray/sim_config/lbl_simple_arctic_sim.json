@@ -23,7 +23,7 @@
     "odom_freq_hz": 0.01,
     "gps_freq_hz": 0.01,
     "odom_noise_stddev": 0.01,
-    "gps_xy_noise_stddev": 0.033,
+    "gps_xy_noise_stddev": 0.1,
     "gps_z_noise_stddev": 0.0033
   },
   "robots": [

@@ -51,7 +51,8 @@ def _measurement_pose_indices(solver: FactorGraphSolver,
 
 
 def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
-              prefix: str = "", show_range_error: bool = True):
+              prefix: str = "", show_range_error: bool = True,
+              estimate_label: str = "Estimate"):
     """Plot ground-truth, initial, and optimized trajectories with APE.
 
     Per robot, shows:
@@ -78,12 +79,8 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         robot_char = pose_chain[0].name[0]
 
         traj_gt = extract_trajectory(solver.gt_values, keys_ordered)
-        traj_init = extract_trajectory(solver.initial, keys_ordered)
         traj_odom = extract_trajectory(solver.odom_values, keys_ordered)
         traj_opt = extract_trajectory(solver.result, keys_ordered)
-
-        ape_init = metrics.APE(metrics.PoseRelation.translation_part)
-        ape_init.process_data((traj_gt, traj_init))
 
         ape_odom = metrics.APE(metrics.PoseRelation.translation_part)
         ape_odom.process_data((traj_gt, traj_odom))
@@ -91,24 +88,23 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         ape_opt = metrics.APE(metrics.PoseRelation.translation_part)
         ape_opt.process_data((traj_gt, traj_opt))
 
+        estimate_legend = f"Estimated Traj w/ {estimate_label}"
+
         print(f"\nRobot {robot_char} — APE (translation, {len(pose_chain)} poses):")
-        print(f"  {'':20s} {'Initial':>12s}  {'Odometry':>12s}  {'Optimized':>12s}")
-        for stat_name in ape_init.get_all_statistics():
-            val_i = ape_init.get_all_statistics()[stat_name]
+        print(f"  {'':20s} {'Odometry Only':>14s}  {estimate_legend:>32s}")
+        for stat_name in ape_odom.get_all_statistics():
             val_d = ape_odom.get_all_statistics()[stat_name]
             val_o = ape_opt.get_all_statistics()[stat_name]
-            print(f"  {stat_name:20s} {val_i:12.6f}  {val_d:12.6f}  {val_o:12.6f}")
+            print(f"  {stat_name:20s} {val_d:14.6f}  {val_o:32.6f}")
 
         fig = plt.figure(figsize=(12, 8))
         ax = evo_plot.prepare_axis(fig, evo_plot.PlotMode.xyz)
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_gt,
                       style='-', color='green', label='Ground Truth')
-        evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_init,
-                      style='--', color='red', label='Initial')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_odom,
-                      style='--', color='orange', label='Odometry (perturbed)')
+                      style='--', color='orange', label='Odometry Only Trajectory')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_opt,
-                      style='-', color='blue', label='Optimized')
+                      style='-', color='blue', label=estimate_legend)
         ax.invert_zaxis()
         ax.set_zlabel("Depth (m)")
         z_min, z_max = ax.get_zlim()
@@ -126,12 +122,10 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
             fig2 = plt.figure(figsize=(10, 4))
             ax_ape = fig2.add_subplot(111)
 
-        ax_ape.plot(ape_init.error, color='red', linewidth=0.8,
-                    alpha=0.6, label='Initial')
         ax_ape.plot(ape_odom.error, color='orange', linewidth=0.8,
-                    alpha=0.6, label='Odometry (perturbed)')
+                    alpha=0.6, label='Odometry Only Trajectory')
         ax_ape.plot(ape_opt.error, color='blue', linewidth=0.8,
-                    label='Optimized')
+                    label=estimate_legend)
         if gps_indices:
             gps_list = sorted(gps_indices)
             ax_ape.scatter(gps_list, [ape_opt.error[i] for i in gps_list],
@@ -238,11 +232,12 @@ def compare_results(solvers: list[FactorGraphSolver],
             ape_results.append(ape)
 
         # Print comparison table
-        col_w = max(14, *(len(l) + 2 for l in labels))
+        estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
+        col_w = max(14, *(len(l) + 2 for l in estimate_legends))
         print(f"\nRobot {robot_char} — APE (translation, {len(pose_chain)} poses):")
-        header = f"  {'':20s} {'Odometry':>{col_w}s}"
-        for label in labels:
-            header += f"  {label:>{col_w}s}"
+        header = f"  {'':20s} {'Odometry Only':>{col_w}s}"
+        for legend in estimate_legends:
+            header += f"  {legend:>{col_w}s}"
         print(header)
 
         for stat_name in ape_odom.get_all_statistics():
@@ -257,10 +252,10 @@ def compare_results(solvers: list[FactorGraphSolver],
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_gt,
                       style='-', color='green', label='Ground Truth')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_odom,
-                      style='--', color='orange', label='Odometry')
-        for i, (traj, label) in enumerate(zip(traj_results, labels)):
+                      style='--', color='orange', label='Odometry Only Trajectory')
+        for i, (traj, legend) in enumerate(zip(traj_results, estimate_legends)):
             evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj,
-                          style='-', color=colors[i % len(colors)], label=label)
+                          style='-', color=colors[i % len(colors)], label=legend)
         ax.invert_zaxis()
         ax.set_zlabel("Depth (m)")
         z_min, z_max = ax.get_zlim()
@@ -272,10 +267,10 @@ def compare_results(solvers: list[FactorGraphSolver],
         fig2 = plt.figure(figsize=(10, 4))
         ax2 = fig2.add_subplot(111)
         ax2.plot(ape_odom.error, color='orange', linewidth=0.8,
-                 alpha=0.6, linestyle='--', label='Odometry')
-        for i, (ape, label) in enumerate(zip(ape_results, labels)):
+                 alpha=0.6, linestyle='--', label='Odometry Only Trajectory')
+        for i, (ape, legend) in enumerate(zip(ape_results, estimate_legends)):
             ax2.plot(ape.error, color=colors[i % len(colors)],
-                     linewidth=0.8, label=label)
+                     linewidth=0.8, label=legend)
         ax2.set_xlabel("Pose index")
         ax2.set_ylabel("APE (m)")
         ax2.set_title(f"Robot {robot_char} — Absolute Pose Error Comparison")
