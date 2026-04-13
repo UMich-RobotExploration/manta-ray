@@ -136,6 +136,61 @@ def _scaled_sigmas(fractions: np.ndarray,
     return np.maximum(floor6, fractions * motion)
 
 
+def _depth_prior_error_analytic(gt_z: float):
+    """Factory for a CustomFactor error function constraining world-frame z."""
+    def err(this, values, H):
+        pose = values.atPose3(this.keys()[0])
+        e = np.array([pose.translation()[2] - gt_z])
+        if H is not None and len(H) > 0:
+            R = pose.rotation().matrix()
+            J = np.zeros((1, 6))
+            J[0, 3:] = R[2, :]
+            H[0] = J
+        return e
+    return err
+
+
+def _make_depth_prior_custom(key: int, gt_z: float, sigma_z: float):
+    """Build a 1-DoF CustomFactor that anchors pose.z to gt_z with stddev sigma_z."""
+    noise = gtsam.noiseModel.Isotropic.Sigma(1, sigma_z)
+    return gtsam.CustomFactor(noise, [key], _depth_prior_error_analytic(gt_z))
+
+
+def _check_depth_jacobian(atol: float = 1e-5) -> None:
+    """Validate the analytic depth-prior Jacobian against numerical differentiation.
+
+    Runs once per process. Catches sign/axis errors before they silently bias
+    every depth residual.
+    """
+    rng = np.random.default_rng(seed=0)
+    axis = rng.normal(size=3)
+    axis /= np.linalg.norm(axis)
+    pose = gtsam.Pose3(gtsam.Rot3.AxisAngle(axis, 0.7),
+                       np.array([1.3, -0.5, 2.1], dtype=np.float64))
+    gt_z = 1.75
+
+    def residual(p: gtsam.Pose3) -> float:
+        return p.translation()[2] - gt_z
+
+    eps = 1e-5
+    J_num = np.zeros((1, 6))
+    for i in range(6):
+        xi = np.zeros(6)
+        xi[i] = eps
+        J_num[0, i] = (residual(pose.retract(xi))
+                       - residual(pose.retract(-xi))) / (2 * eps)
+
+    R = pose.rotation().matrix()
+    J_ana = np.zeros((1, 6))
+    J_ana[0, 3:] = R[2, :]
+    if not np.allclose(J_ana, J_num, atol=atol):
+        raise RuntimeError(
+            f"DepthPrior Jacobian mismatch:\n  analytic={J_ana}\n  numerical={J_num}")
+
+
+_check_depth_jacobian()
+
+
 def extract_trajectory(values: gtsam.Values,
                        pose_keys: list[int],
                        name: str = "") -> PosePath3D:
@@ -179,6 +234,14 @@ class SolverConfig:
                              noise models on stationary deltas. Purely
                              numerical — not a modeling parameter.
                              Defaults to [1e-4, 1e-3] when None.
+        depth_prior_sigma:   Stddev (m) for per-pose z anchor to ground truth
+                             depth. None disables depth priors. When set, adds
+                             one depth prior per pose across all robot chains.
+        depth_prior_mode:    "pose3" or "custom". "pose3" adds a PriorFactorPose3
+                             with sigmas [1e6]*5 + [depth_prior_sigma] (GPS-style
+                             pattern). "custom" adds a 1-DoF CustomFactor with
+                             analytic Jacobian. Semantically equivalent; used
+                             for side-by-side numerical comparison.
         robust_range:        RobustConfig for range noise m-estimator.
                              None = standard Gaussian (no robustness).
         landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
@@ -202,6 +265,8 @@ class SolverConfig:
     between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     odom_noise_floor: np.ndarray | None = field(default=None, repr=False)
     gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
+    depth_prior_sigma: float | None = None
+    depth_prior_mode: str = "pose3"
     seed: int = 42
 
     def __post_init__(self):
@@ -241,6 +306,14 @@ class SolverConfig:
             raise ValueError(
                 f"landmark_prior_sigma must be positive, "
                 f"got {self.landmark_prior_sigma}")
+        if self.depth_prior_sigma is not None and self.depth_prior_sigma <= 0:
+            raise ValueError(
+                f"depth_prior_sigma must be positive, "
+                f"got {self.depth_prior_sigma}")
+        if self.depth_prior_mode not in ("pose3", "custom"):
+            raise ValueError(
+                f"depth_prior_mode must be 'pose3' or 'custom', "
+                f"got {self.depth_prior_mode!r}")
 
 
 class FactorGraphSolver:
@@ -374,6 +447,23 @@ class FactorGraphSolver:
                 noise = _pose3_noise(prior.translation_precision,
                                      prior.rotation_precision)
             self.graph.addPriorPose3(key, pose, noise)
+
+        if cfg.depth_prior_sigma is not None:
+            if cfg.depth_prior_mode == "pose3":
+                depth_noise = gtsam.noiseModel.Diagonal.Sigmas(np.array(
+                    [1e6] * 5 + [cfg.depth_prior_sigma], dtype=np.float64))
+                for pose_chain in fg.pose_variables:
+                    for pose in pose_chain:
+                        key = self.key_map[pose.name]
+                        self.graph.addPriorPose3(
+                            key, _pose3_from_pyfg(pose), depth_noise)
+            else:  # "custom"
+                for pose_chain in fg.pose_variables:
+                    for pose in pose_chain:
+                        key = self.key_map[pose.name]
+                        gt_z = float(pose.true_position[2])
+                        self.graph.add(_make_depth_prior_custom(
+                            key, gt_z, cfg.depth_prior_sigma))
 
         landmark_noise = (gtsam.noiseModel.Isotropic.Sigma(3, cfg.landmark_prior_sigma)
                           if cfg.landmark_prior_sigma is not None else None)

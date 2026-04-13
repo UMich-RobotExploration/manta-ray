@@ -100,11 +100,11 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         fig = plt.figure(figsize=(12, 8))
         ax = evo_plot.prepare_axis(fig, evo_plot.PlotMode.xyz)
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_gt,
-                      style='-', color='green', label='Ground Truth')
+                      style='--', color='black', label='Ground Truth')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_odom,
-                      style='--', color='orange', label='Odometry Only Trajectory')
+                      style='--', color='tab:orange', label='Odometry Only Trajectory')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_opt,
-                      style='-', color='blue', label=estimate_legend)
+                      style='-', color='tab:blue', label=estimate_legend)
         ax.invert_zaxis()
         ax.set_zlabel("Depth (m)")
         z_min, z_max = ax.get_zlim()
@@ -122,9 +122,9 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
             fig2 = plt.figure(figsize=(10, 4))
             ax_ape = fig2.add_subplot(111)
 
-        ax_ape.plot(ape_odom.error, color='orange', linewidth=0.8,
+        ax_ape.plot(ape_odom.error, color='tab:orange', linewidth=0.8,
                     alpha=0.6, label='Odometry Only Trajectory')
-        ax_ape.plot(ape_opt.error, color='blue', linewidth=0.8,
+        ax_ape.plot(ape_opt.error, color='tab:blue', linewidth=0.8,
                     label=estimate_legend)
         if gps_indices:
             gps_list = sorted(gps_indices)
@@ -206,7 +206,10 @@ def compare_results(solvers: list[FactorGraphSolver],
             raise RuntimeError(f"Solver '{labels[i]}' has no result — call solve() first")
 
     ref = solvers[0]
-    colors = plt.cm.tab10.colors
+    # Explicit palette for estimate trajectories.
+    # Avoids black (GT), tab:orange (odometry), and greens; ensures no repeats.
+    colors = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
+              'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
 
     for robot_idx, pose_chain in enumerate(ref.fg.pose_variables):
         if not pose_chain:
@@ -250,9 +253,9 @@ def compare_results(solvers: list[FactorGraphSolver],
         fig = plt.figure(figsize=(12, 8))
         ax = evo_plot.prepare_axis(fig, evo_plot.PlotMode.xyz)
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_gt,
-                      style='-', color='green', label='Ground Truth')
+                      style='--', color='black', label='Ground Truth')
         evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj_odom,
-                      style='--', color='orange', label='Odometry Only Trajectory')
+                      style='--', color='tab:orange', label='Odometry Only Trajectory')
         for i, (traj, legend) in enumerate(zip(traj_results, estimate_legends)):
             evo_plot.traj(ax, evo_plot.PlotMode.xyz, traj,
                           style='-', color=colors[i % len(colors)], label=legend)
@@ -266,7 +269,7 @@ def compare_results(solvers: list[FactorGraphSolver],
         # Figure 2: APE comparison
         fig2 = plt.figure(figsize=(10, 4))
         ax2 = fig2.add_subplot(111)
-        ax2.plot(ape_odom.error, color='orange', linewidth=0.8,
+        ax2.plot(ape_odom.error, color='tab:orange', linewidth=0.8,
                  alpha=0.6, linestyle='--', label='Odometry Only Trajectory')
         for i, (ape, legend) in enumerate(zip(ape_results, estimate_legends)):
             ax2.plot(ape.error, color=colors[i % len(colors)],
