@@ -15,6 +15,8 @@ from visualize_solver import (visualize, compare_results, compare_depth_error,
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom noise fractions of motion (per-component) in GTSAM Pose3 tangent order:
@@ -50,7 +52,7 @@ config = SolverConfig(
     landmark_prior_sigma=default_pos_prior,
     gps_prior_sigmas=gps_prior_sigmas,
     depth_prior_sigma=depth_prior_sigma,
-    depth_prior_mode="pose3",
+    depth_prior_mode="custom",
 )
 
 print(f"Reading {FILE_PATH} ...")
@@ -90,7 +92,7 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
           estimate_label="Idealized Ranges")
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
-print("\n=== Run 3: Measured Ranges + Custom Depth Factor ===")
+print("\n=== Run 3: Measured Ranges ===")
 config_custom_depth = deepcopy(config)
 config_custom_depth.depth_prior_mode = "custom"
 solver_custom_depth = FactorGraphSolver(fg_data, config_custom_depth)

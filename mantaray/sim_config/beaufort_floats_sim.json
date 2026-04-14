@@ -1,0 +1,78 @@
+{
+  "run_name": "beaufort_floats",
+  "output_dir": "results/arctic/beaufort-floats-long",
+  "env_config_file": "../../sim_config/beaufort_summer.json",
+  "rng_seed": 10020,
+  "bellhop_memory_mib": 80,
+  "timing": {
+    "end_time_hours": 24.0,
+    "physics_dt": 1.0,
+    "ping_interval_min": 60.0,
+    "bounds_check_interval_sec": 100.0
+  },
+  "acoustics": {
+    "tof_mode": "one_way",
+    "debug_range_error_pct": 2.00,
+    "num_beams": 100,
+    "beam_spread_deg": 15,
+    "max_beams": 1000,
+    "allow_multipath": false
+  },
+  "sensors": {
+    "gt_freq_hz": 0.01,
+    "odom_freq_hz": 0.01,
+    "gps_freq_hz": 0.01,
+    "odom_noise_stddev": 0.01,
+    "gps_xy_noise_stddev": 0.1,
+    "gps_z_noise_stddev": 0.0033
+  },
+  "robots": [
+    {
+      "type": "current_drift",
+      "position": [0.0, 0.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 60000.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 0.0
+    },
+    {
+      "type": "current_drift",
+      "position": [2500.0, 2500.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 60000.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 300.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-2500.0, 2500.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 60000.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 600.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-2500.0, -2500.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 60000.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 6000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [2500.0, -2500.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 60000.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 12800.0
+    }
+  ],
+  "pfg": {
+    "use_ground_truth_odometry": true,
+    "range_variance": 0.1,
+    "odom_rotation_variance": 0.00001,
+    "pose_prior_cov_diag": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    "landmark_prior_cov_diag": [0.1, 0.1, 0.1]
+  }
+}

@@ -44,6 +44,7 @@ inline void from_json(const nlohmann::json &j, CurrentDriftConfig &c) {
   c.surfaceHoldSeconds = j.value("surface_hold_seconds", c.surfaceHoldSeconds);
   c.verticalSpeed = j.value("vertical_speed", c.verticalSpeed);
   c.surfaceDepth = j.value("surface_depth", c.surfaceDepth);
+  c.startOffsetSeconds = j.value("start_offset_seconds", c.startOffsetSeconds);
 }
 } // namespace robots
 

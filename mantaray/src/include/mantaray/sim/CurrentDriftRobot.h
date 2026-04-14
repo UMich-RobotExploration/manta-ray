@@ -22,6 +22,10 @@ namespace robots {
  * @param surfaceHoldSeconds Time to hold at the surface before descending
  * @param verticalSpeed Magnitude of vertical speed during descent/ascent
  * @param surfaceDepth Depth considered "surface" for ending ascent
+ * @param startOffsetSeconds Phase offset in seconds applied at t=0. The state
+ *   machine is advanced as if this many seconds of the nominal cycle had
+ *   already elapsed before the sim began, so floats with different offsets
+ *   spend their surface/submerged phases out of sync.
  */
 struct CurrentDriftConfig {
   Eigen::Vector3d position;
@@ -30,6 +34,7 @@ struct CurrentDriftConfig {
   double surfaceHoldSeconds{60.0};
   double verticalSpeed{0.5};
   double surfaceDepth{0.01};
+  double startOffsetSeconds{0.0};
 };
 
 /**
@@ -63,6 +68,13 @@ private:
   double surfaceHoldSeconds_{60.0};
   double verticalSpeed_{0.5};
   double surfaceDepth_{0.01};
+
+  // Start-offset state: the first surface-hold phase uses startOffsetSeconds_
+  // as its duration so floats can be phase-staggered by delaying their first
+  // descent. After the first transition out of kHoldSurface, subsequent hold
+  // phases fall back to surfaceHoldSeconds_.
+  double startOffsetSeconds_{0.0};
+  bool firstSurfaceHold_{false};
 
   // State
   Phase phase_{Phase::kDescend};
