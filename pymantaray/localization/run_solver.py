@@ -53,6 +53,7 @@ config = SolverConfig(
     gps_prior_sigmas=gps_prior_sigmas,
     depth_prior_sigma=depth_prior_sigma,
     depth_prior_mode="custom",
+    odom_noise_floor=np.array([1E-4, 1.0])
 )
 
 print(f"Reading {FILE_PATH} ...")

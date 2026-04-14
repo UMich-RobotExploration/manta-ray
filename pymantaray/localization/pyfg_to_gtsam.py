@@ -122,18 +122,35 @@ def _odom_to_pose3(odom) -> gtsam.Pose3:
 def _scaled_sigmas(fractions: np.ndarray,
                    delta: gtsam.Pose3,
                    floor: np.ndarray) -> np.ndarray:
-    """Per-delta component-wise sigma = max(floor, fractions * |motion|).
+    """Per-delta sigma from a velocity-scale + per-edge drift model (quadrature).
+
+    Two independent noise sources combined in quadrature:
+      * velocity-scale error: sigma = fractions_i * |motion_i| (DVL-like,
+        grows with per-edge displacement).
+      * per-edge time-drift:  sigma = floor_i (time-integrated compass /
+        gyro / INS bias, constant per fixed-dt sample).
+
+    Returns the standard deviation:
+
+        sigma_i = sqrt( (fractions_i * |motion_i|)**2 + floor_i**2 )
+
+    The floor term is a physical per-edge drift, not just a numerical guard;
+    it dominates when |motion| -> 0 (e.g. bottom loiter) so drift keeps
+    accumulating even at near-zero per-edge displacement.
 
     Args:
-        fractions: 6-element [rot_x, rot_y, rot_z, tx, ty, tz] fractions of motion.
-        delta:     clean odom delta; sigmas are sized from its magnitude.
-        floor:     2-element [rot_floor_rad, trans_floor_m] for numerical stability.
+        fractions: 6-element [rot_x, rot_y, rot_z, tx, ty, tz] velocity-scale
+                   coefficients (rad/rad, m/m).
+        delta:     clean odom delta; scale term is sized from its magnitude.
+        floor:     2-element [rot_floor_rad, trans_floor_m] per-edge drift
+                   standard deviation (added in quadrature).
     """
     r = np.abs(gtsam.Rot3.Logmap(delta.rotation()))
     t = np.abs(delta.translation())
     motion = np.concatenate([r, t])
     floor6 = np.concatenate([np.full(3, floor[0]), np.full(3, floor[1])])
-    return np.maximum(floor6, fractions * motion)
+    scale = fractions * motion
+    return np.sqrt(scale * scale + floor6 * floor6)
 
 
 def _depth_prior_error_analytic(gt_z: float):
@@ -227,13 +244,15 @@ class SolverConfig:
                              clean delta). Independent of odom_noise_sigmas —
                              may be set larger for a pessimistic factor belief.
                              When None, falls back to PyFG precisions.
-        odom_noise_floor:    2-element minimum sigma
+        odom_noise_floor:    2-element per-edge drift standard deviation
                                  [rot_floor_rad, trans_floor_m]
-                             applied to both odom_noise_sigmas and
-                             between_noise_sigmas scaling to prevent singular
-                             noise models on stationary deltas. Purely
-                             numerical — not a modeling parameter.
-                             Defaults to [1e-4, 1e-3] when None.
+                             added in quadrature with the velocity-scale
+                             term in _scaled_sigmas. Represents time-based
+                             drift sources (compass / gyro / INS integration)
+                             present per fixed-dt sample regardless of motion
+                             magnitude. Default [1e-4 rad, 0.01 m] assumes
+                             ~1 Hz CSV sampling and mid-spec DVL/IMU; scale
+                             with dt if cadence differs.
         depth_prior_sigma:   Stddev (m) for per-pose z anchor to ground truth
                              depth. None disables depth priors. When set, adds
                              one depth prior per pose across all robot chains.
@@ -347,7 +366,7 @@ class FactorGraphSolver:
         self._odom_floor: np.ndarray = (
             self.config.odom_noise_floor
             if self.config.odom_noise_floor is not None
-            else np.array([1e-4, 1e-3], dtype=np.float64))
+            else np.array([1e-4, 0.01], dtype=np.float64))
 
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
         if self.config.odom_noise_sigmas is not None:
