@@ -25,7 +25,7 @@ default_pos_prior = 0.1 # meters
 
 angular_noise = 1E-6 # radians
 xy_frac = 0.05
-z_frac = 0.05
+z_frac = 0.01
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      xy_frac, xy_frac, z_frac])
@@ -77,6 +77,7 @@ visualize_landmarks(solver_measured, save_dir=WORK_DIR, prefix="measured")
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)
 config_true.use_true_ranges = True
+config_true.depth_prior_mode = "custom"
 solver_true = FactorGraphSolver(fg_data, config_true)
 solver_true.solve()
 print(f"GTSAM graph: {solver_true.graph.size()} factors, "
@@ -99,6 +100,17 @@ print(f"GTSAM graph: {solver_custom_depth.graph.size()} factors, "
 print(f"Initial error: {solver_custom_depth.graph.error(solver_custom_depth.initial):.4f}")
 print(f"Final   error: {solver_custom_depth.graph.error(solver_custom_depth.result):.4f}")
 
+print("\n=== Run 4: GPS + Depth (no ranging) ===")
+config_no_range = deepcopy(config)
+config_no_range.depth_prior_mode = "custom"
+config_no_range.include_ranges = False
+solver_no_range = FactorGraphSolver(fg_data, config_no_range)
+solver_no_range.solve()
+print(f"GTSAM graph: {solver_no_range.graph.size()} factors, "
+      f"{solver_no_range.initial.size()} variables")
+print(f"Initial error: {solver_no_range.graph.error(solver_no_range.initial):.4f}")
+print(f"Final   error: {solver_no_range.graph.error(solver_no_range.result):.4f}")
+
 # print("\n=== Run 4: Robust Ranges ===")
 # config_robust = deepcopy(config)
 # config_robust.depth_prior_mode= "custom"
@@ -117,30 +129,28 @@ print(f"Final   error: {solver_custom_depth.graph.error(solver_custom_depth.resu
 print("\n=== Comparison ===")
 compare_results(
     [
-        solver_measured,
-        solver_true,
+        solver_no_range,
         solver_custom_depth,
-        # solver_robust,
+        solver_true,
     ],
     [
-        "Ray-Traced Ranges (Pose3Prior Depth)",
+        "GPS + Depth",
+        "Ray-Traced Ranges",
         "Idealized Ranges",
-        "Ray-Traced Ranges (custom depth)",
-        # "Robust Ray-Traced Ranges",
     ],
     save_dir=WORK_DIR,
 )
 
 compare_depth_error(
     [
-        solver_measured,
-        solver_true,
+        solver_no_range,
         solver_custom_depth,
+        solver_true,
     ],
     [
+        "GPS + Depth",
         "Ray-Traced Ranges",
         "Idealized Ranges",
-        "Ray-Traced Ranges (custom depth)",
     ],
     save_dir=WORK_DIR,
 )
