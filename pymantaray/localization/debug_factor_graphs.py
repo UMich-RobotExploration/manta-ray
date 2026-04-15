@@ -59,6 +59,7 @@ class FactorRecord:
     endpoints: tuple[str, ...]
     whitened: float
     raw: float
+    leverage: float = float("nan")
 
 
 @dataclass
@@ -343,6 +344,225 @@ def plot_residual_distributions(stats: dict[str, FactorTypeStats],
     fig.tight_layout()
     if save_dir:
         path = os.path.join(save_dir, f"{prefix}_residual_distributions.png")
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        print(f"Saved {path}")
+
+
+# ───────────────────── marginal leverage (opt-in) ─────────────────────
+
+def compute_factor_leverages(solver, values) -> tuple[dict[int, float],
+                                                      "gtsam.Marginals | None"]:
+    """Per-factor marginal leverage tr(A · Σ_local · Aᵀ).
+
+    Σ_local is the posterior marginal covariance of the variables this
+    factor touches, computed conditional on every other factor in the
+    graph. Cost: one global Cholesky (shared across factors) plus one
+    back-solve per factor — opt-in only.
+
+    Returns (leverages_by_factor_index, marginals_object). The Marginals
+    object is returned so callers can reuse it for pose-marginal plots
+    without re-factorizing.
+    """
+    graph = solver.graph
+    try:
+        marginals = gtsam.Marginals(graph, values)
+    except RuntimeError as e:
+        print(f"[leverage] gtsam.Marginals failed (non-PD system?): {e}")
+        return {}, None
+
+    n = graph.size()
+    print(f"[leverage] computing {n:,} factor leverages...")
+    out: dict[int, float] = {}
+    for i in range(n):
+        f = graph.at(i)
+        if f is None:
+            continue
+        try:
+            gf = f.linearize(values)
+            A, _ = gf.jacobian()
+            keys = list(f.keys())
+            if not keys:
+                continue
+            kv = gtsam.KeyVector(keys)
+            Sigma = marginals.jointMarginalCovariance(kv).fullMatrix()
+            out[i] = float(np.trace(A @ Sigma @ A.T))
+        except Exception:
+            out[i] = float("nan")
+    return out, marginals
+
+
+def _attach_leverages_to_stats(stats: dict[str, "FactorTypeStats"],
+                               leverages: dict[int, float]) -> None:
+    """Fill FactorRecord.leverage in place from an index→leverage map."""
+    for s in stats.values():
+        for rec in s.records:
+            rec.leverage = leverages.get(rec.index, float("nan"))
+
+
+def print_leverage_importance_table(stats: dict[str, "FactorTypeStats"],
+                                    prefix: str = "") -> None:
+    """Per-type leverage summary: count, Σ, mean, median, max. Mirrors the
+    whitened-error importance table so the two can be compared side by side.
+    """
+    type_arrays: list[tuple[str, np.ndarray]] = []
+    for s in stats.values():
+        arr = np.array([r.leverage for r in s.records
+                        if np.isfinite(r.leverage)], dtype=float)
+        if arr.size:
+            type_arrays.append((s.type_label, arr))
+    if not type_arrays:
+        return
+
+    total_sum = sum(float(a.sum()) for _, a in type_arrays)
+    type_arrays.sort(key=lambda t: t[1].max(), reverse=True)
+
+    headers = ["Type", "Count", "Σ leverage", "% total",
+               "mean", "median", "max"]
+    aligns = ["l", "r", "r", "r", "r", "r", "r"]
+    rows = []
+    total_count = 0
+    for label, arr in type_arrays:
+        s_sum = float(arr.sum())
+        pct = (s_sum / total_sum * 100.0) if total_sum > 0 else 0.0
+        rows.append([
+            label,
+            f"{arr.size:,}",
+            f"{s_sum:,.4g}",
+            f"{pct:.1f}%",
+            f"{float(arr.mean()):,.4g}",
+            f"{float(np.median(arr)):,.4g}",
+            f"{float(arr.max()):,.4g}",
+        ])
+        total_count += arr.size
+
+    total_row = [
+        "TOTAL",
+        f"{total_count:,}",
+        f"{total_sum:,.4g}",
+        "100.0%" if total_sum > 0 else "—",
+        "", "", "",
+    ]
+    title = (f"Leverage by factor type — {prefix}" if prefix
+             else "Leverage by factor type")
+    print()
+    print(_render_table(headers, rows, aligns, total_row=total_row, title=title))
+    print()
+
+
+def print_top_leverages(stats: dict[str, "FactorTypeStats"],
+                        k: int = 20,
+                        prefix: str = "") -> list["FactorRecord"]:
+    """Box-drawn table of the top-K factors by marginal leverage."""
+    all_records: list[FactorRecord] = []
+    for s in stats.values():
+        all_records.extend(r for r in s.records if np.isfinite(r.leverage))
+    if not all_records:
+        return []
+    all_records.sort(key=lambda r: r.leverage, reverse=True)
+    top = all_records[:k]
+
+    headers = ["Rank", "Type", "Endpoints", "leverage", "whitened", "raw"]
+    aligns = ["r", "l", "l", "r", "r", "r"]
+    rows = []
+    for i, r in enumerate(top, start=1):
+        endpoints = " ↔ ".join(r.endpoints) if len(r.endpoints) > 1 \
+            else r.endpoints[0]
+        rows.append([
+            str(i),
+            r.type_label,
+            endpoints,
+            f"{r.leverage:,.4g}",
+            _fmt_float(r.whitened),
+            _fmt_float(r.raw),
+        ])
+
+    title = (f"Top {len(top)} factors by leverage — {prefix}" if prefix
+             else f"Top {len(top)} factors by leverage")
+    print(_render_table(headers, rows, aligns, title=title))
+    print()
+    return top
+
+
+def plot_pose_marginals(solver,
+                        marginals: "gtsam.Marginals",
+                        save_dir: str | None = None,
+                        prefix: str = "") -> None:
+    """Position-uncertainty traces along the pose chain, plus GPS-priored
+    pose markers. Reuses an existing Marginals object — no extra Cholesky.
+    """
+    pose_chains = solver.fg.pose_variables
+    if not pose_chains:
+        return
+
+    # Find GPS-priored pose names by scanning the graph for PriorFactorPose3.
+    gps_pose_names: set[str] = set()
+    reverse_map = _build_reverse_key_map(solver)
+    for i in range(solver.graph.size()):
+        f = solver.graph.at(i)
+        if isinstance(f, gtsam.PriorFactorPose3):
+            ks = list(f.keys())
+            if ks:
+                gps_pose_names.add(reverse_map.get(ks[0], ""))
+
+    fig, (ax_sig, ax_tr) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+
+    robot_colors = ["tab:blue", "tab:red", "tab:green", "tab:purple",
+                    "tab:orange"]
+    any_plotted = False
+    for r_idx, chain in enumerate(pose_chains):
+        if not chain:
+            continue
+        xs, sx, sy, sz, tr_vals = [], [], [], [], []
+        gps_marks: list[int] = []
+        color = robot_colors[r_idx % len(robot_colors)]
+        for p_idx, pose_var in enumerate(chain):
+            key = solver.key_map.get(pose_var.name)
+            if key is None:
+                continue
+            try:
+                cov = marginals.marginalCovariance(key)
+            except Exception:
+                continue
+            # Pose3 marginal is 6×6 [rot(3), trans(3)] — grab translation block.
+            pos_cov = np.asarray(cov)[3:6, 3:6]
+            diag = np.clip(np.diag(pos_cov), 0.0, None)
+            xs.append(p_idx)
+            sx.append(np.sqrt(diag[0]))
+            sy.append(np.sqrt(diag[1]))
+            sz.append(np.sqrt(diag[2]))
+            tr_vals.append(float(np.trace(pos_cov)))
+            if pose_var.name in gps_pose_names:
+                gps_marks.append(p_idx)
+
+        if not xs:
+            continue
+        any_plotted = True
+        ax_sig.plot(xs, sx, "-", color=color, alpha=0.9, label=f"r{r_idx} σx")
+        ax_sig.plot(xs, sy, "--", color=color, alpha=0.6, label=f"r{r_idx} σy")
+        ax_sig.plot(xs, sz, ":", color=color, alpha=0.6, label=f"r{r_idx} σz")
+        ax_tr.plot(xs, tr_vals, "-", color=color, label=f"robot {r_idx}")
+        for gx in gps_marks:
+            ax_sig.axvline(gx, color=color, alpha=0.15, linewidth=1)
+            ax_tr.axvline(gx, color=color, alpha=0.15, linewidth=1)
+
+    if not any_plotted:
+        plt.close(fig)
+        return
+
+    ax_sig.set_ylabel("position stddev (m)")
+    ax_sig.set_title("Per-axis position uncertainty (GPS-priored poses marked)")
+    ax_sig.legend(fontsize=8, ncol=3)
+    ax_sig.grid(True, alpha=0.3)
+    ax_tr.set_ylabel("tr(Σ_pos) (m²)")
+    ax_tr.set_xlabel("pose index")
+    ax_tr.set_title("Total position uncertainty")
+    ax_tr.legend(fontsize=8)
+    ax_tr.grid(True, alpha=0.3)
+
+    fig.suptitle(f"Pose marginals — {prefix}", fontsize=14)
+    fig.tight_layout()
+    if save_dir:
+        path = os.path.join(save_dir, f"{prefix}_pose_marginals.png")
         fig.savefig(path, dpi=150, bbox_inches="tight")
         print(f"Saved {path}")
 
@@ -746,6 +966,208 @@ def plot_factors_in_world(solver,
         plotter.close()
 
 
+# ───────────────────── PyVista leverage window ─────────────────────
+
+def plot_leverage_in_world(solver,
+                           stats: dict[str, FactorTypeStats],
+                           save_dir: str | None = None,
+                           prefix: str = "",
+                           label_k: int = 50,
+                           show: bool = True) -> None:
+    """Second PyVista window: range factors colored by marginal leverage.
+
+    Requires `rec.leverage` to be populated (via `_attach_leverages_to_stats`).
+    Shows only range factor types; between/odom drawn solid for context.
+    Slider filters by leverage ≥ threshold.
+    """
+    try:
+        import pyvista as pv
+    except ImportError:
+        print("[debug_factor_graphs] pyvista not installed — skipping "
+              "leverage 3D view.")
+        return
+    if solver.result is None:
+        return
+
+    values = solver.result
+    plotter = pv.Plotter(title=f"Marginal leverage — {prefix}")
+
+    # Trajectories + landmarks (shared with residual view for context).
+    robot_colors = ["royalblue", "firebrick", "darkgreen", "purple", "orange"]
+    traj_pts_all: list[np.ndarray] = []
+    for i, pose_chain in enumerate(solver.fg.pose_variables):
+        if not pose_chain:
+            continue
+        pts = np.array([_lookup_position(values, solver, p.name)
+                        for p in pose_chain], dtype=float)
+        pts = pts[np.all(np.isfinite(pts), axis=1)]
+        if len(pts) >= 2:
+            line = pv.lines_from_points(pts)
+            plotter.add_mesh(line, color=robot_colors[i % len(robot_colors)],
+                             line_width=3, name=f"traj_{i}")
+            traj_pts_all.append(pts)
+
+    lm_pts = np.empty((0, 3), dtype=float)
+    if solver.fg.landmark_variables:
+        lm_pts = np.array([_lookup_position(values, solver, lm.name)
+                           for lm in solver.fg.landmark_variables], dtype=float)
+        lm_pts = lm_pts[np.all(np.isfinite(lm_pts), axis=1)]
+
+    scale_stack = list(traj_pts_all)
+    if len(lm_pts):
+        scale_stack.append(lm_pts)
+    if scale_stack:
+        all_pts = np.vstack(scale_stack)
+        scene_diag = float(np.linalg.norm(
+            all_pts.max(axis=0) - all_pts.min(axis=0)))
+    else:
+        scene_diag = 0.0
+    glyph_radius = max(1.0, 0.005 * scene_diag)
+
+    if len(lm_pts):
+        lm_mesh = pv.PolyData(lm_pts).glyph(
+            geom=pv.Sphere(radius=glyph_radius), orient=False, scale=False)
+        plotter.add_mesh(lm_mesh, color="gold", name="landmarks")
+
+    # Range factors colored by leverage scalar. Use a truncated Reds
+    # colormap so the low end is a muted pink (still visible) instead of
+    # pure white, while the high end stays deep red for emphasis.
+    from matplotlib.colors import ListedColormap
+    leverage_cmap = ListedColormap(plt.cm.Reds(np.linspace(0.3, 1.0, 256)))
+
+    range_types = {FACTOR_TYPE_RANGE_PP, FACTOR_TYPE_RANGE_PL,
+                   FACTOR_TYPE_RANGE_LL}
+    range_data: dict[str, dict] = {}
+
+    for type_label, s in stats.items():
+        if type_label not in range_types:
+            continue
+        points_a, points_b, lev_vals = [], [], []
+        for rec in s.records:
+            endpoints = _factor_endpoints_xyz(solver, values, rec)
+            if endpoints is None or not np.isfinite(rec.leverage):
+                continue
+            points_a.append(endpoints[0])
+            points_b.append(endpoints[1])
+            lev_vals.append(rec.leverage)
+        if not points_a:
+            continue
+        pa = np.asarray(points_a, dtype=float)
+        pb = np.asarray(points_b, dtype=float)
+        lev = np.asarray(lev_vals, dtype=float)
+
+        n = len(pa)
+        pts = np.vstack([pa, pb])
+        cells = np.column_stack([
+            np.full(n, 2, dtype=np.int64),
+            np.arange(n, dtype=np.int64),
+            np.arange(n, 2 * n, dtype=np.int64),
+        ]).ravel()
+        poly = pv.PolyData(pts, lines=cells)
+        poly.cell_data["leverage"] = lev
+
+        # Single-tone colormap (pale → saturated red) + opacity that
+        # ramps from a floor (so low-leverage lines are still visible as
+        # faint context) up to fully opaque for high-leverage outliers.
+        # Single tone keeps the eye anchored on the bright end only —
+        # unlike turbo/inferno which pop at both extremes.
+        actor = plotter.add_mesh(
+            poly, scalars="leverage", cmap=leverage_cmap,
+            opacity=[0.25, 1.0], line_width=2,
+            name=f"lev_{type_label}",
+            scalar_bar_args={
+                "title": f"{type_label} leverage",
+                "vertical": True,
+                "position_x": 0.88,
+                "position_y": 0.10,
+                "width": 0.08,
+                "height": 0.7,
+                "title_font_size": 22,
+                "label_font_size": 20,
+                "n_labels": 5,
+                "fmt": "%.3g",
+            })
+        range_data[type_label] = {"pa": pa, "pb": pb, "lev": lev,
+                                  "actor": actor}
+
+    # Top-K leverage labels.
+    all_recs: list[FactorRecord] = []
+    for s in stats.values():
+        if s.type_label in range_types:
+            all_recs.extend(r for r in s.records if np.isfinite(r.leverage))
+    all_recs.sort(key=lambda r: r.leverage, reverse=True)
+    midpoints, labels = [], []
+    for rec in all_recs[:label_k]:
+        endpoints = _factor_endpoints_xyz(solver, values, rec)
+        if endpoints is None:
+            continue
+        mid = 0.5 * (endpoints[0] + endpoints[1])
+        midpoints.append(mid)
+        ep_str = "↔".join(rec.endpoints)
+        labels.append(f"{ep_str}\nlev={rec.leverage:.3g}")
+    if midpoints:
+        plotter.add_point_labels(
+            np.asarray(midpoints, dtype=float), labels,
+            font_size=18, text_color="black", shape="rounded_rect",
+            shape_color="white", shape_opacity=0.85, bold=True,
+            always_visible=True, point_size=0, name="lev_labels")
+
+    # Slider on leverage threshold.
+    if range_data:
+        all_lev = np.concatenate([d["lev"] for d in range_data.values()])
+        lev_max = float(max(1e-6, all_lev.max())) if all_lev.size else 1.0
+        state = {"threshold": 0.0}
+
+        def _apply(_=None):
+            for d in range_data.values():
+                mask = d["lev"] >= state["threshold"]
+                n = int(mask.sum())
+                actor = d["actor"]
+                if n == 0:
+                    actor.SetVisibility(False)
+                    continue
+                pa = d["pa"][mask]; pb = d["pb"][mask]
+                pts = np.vstack([pa, pb])
+                cells = np.column_stack([
+                    np.full(n, 2, dtype=np.int64),
+                    np.arange(n, dtype=np.int64),
+                    np.arange(n, 2 * n, dtype=np.int64),
+                ]).ravel()
+                new_poly = pv.PolyData(pts, lines=cells)
+                new_poly.cell_data["leverage"] = d["lev"][mask]
+                actor.GetMapper().SetInputData(new_poly)
+                actor.SetVisibility(True)
+            plotter.render()
+
+        def _on_slider(value):
+            state["threshold"] = float(value)
+            _apply()
+
+        plotter.add_slider_widget(
+            _on_slider, rng=[0.0, lev_max], value=0.0,
+            title="min leverage", pointa=(0.25, 0.08),
+            pointb=(0.75, 0.08), style="modern")
+
+    plotter.add_axes()
+    plotter.show_grid()
+    plotter.view_xz()
+    plotter.camera.up = (0.0, 0.0, -1.0)
+    plotter.reset_camera()
+
+    if save_dir:
+        html_path = os.path.join(save_dir, f"{prefix}_leverage_3d.html")
+        try:
+            plotter.export_html(html_path)
+            print(f"Saved {html_path}")
+        except Exception as e:
+            print(f"[debug_factor_graphs] export_html failed: {e}")
+
+    if show:
+        plotter.show()
+    else:
+        plotter.close()
+
+
 # ───────────────────── top-level entry point ─────────────────────
 
 def debug_factor_graph(solver,
@@ -753,8 +1175,15 @@ def debug_factor_graph(solver,
                        prefix: str = "",
                        top_k: int = 20,
                        label_k: int = 50,
-                       show_3d: bool = True) -> dict[str, FactorTypeStats]:
-    """Run all factor-graph diagnostics on a solved FactorGraphSolver."""
+                       show_3d: bool = True,
+                       show_leverage: bool = False) -> dict[str, FactorTypeStats]:
+    """Run all factor-graph diagnostics on a solved FactorGraphSolver.
+
+    `show_leverage=True` runs the opt-in marginal-leverage pass (one
+    global Cholesky + N back-solves) and opens a second PyVista window
+    + a pose-marginal matplotlib panel. Expensive — leave off in the
+    hot debug loop.
+    """
     if solver.result is None:
         print("[debug_factor_graphs] solver.result is None; call .solve() first.")
         return {}
@@ -773,14 +1202,29 @@ def debug_factor_graph(solver,
     plot_residual_distributions(stats, save_dir=save_dir, prefix=prefix)
     plot_prior_health(stats, save_dir=save_dir, prefix=prefix)
 
-    # Render matplotlib figures non-blocking so the user can study the
-    # breakdown + distribution charts, then launch the 3D view on top.
+    marginals_obj = None
+    if show_leverage:
+        leverages, marginals_obj = compute_factor_leverages(
+            solver, solver.result)
+        if leverages:
+            _attach_leverages_to_stats(stats, leverages)
+            print_leverage_importance_table(stats, prefix=prefix)
+            print_top_leverages(stats, k=top_k, prefix=prefix)
+        if marginals_obj is not None:
+            plot_pose_marginals(solver, marginals_obj,
+                                save_dir=save_dir, prefix=prefix)
+
+    # Render matplotlib figures non-blocking so the user can study them,
+    # then launch the 3D view(s) on top.
     if show_3d:
         plt.show(block=False)
         plt.pause(0.1)
 
     plot_factors_in_world(solver, stats, save_dir=save_dir, prefix=prefix,
                           label_k=label_k, show=show_3d)
+    if show_leverage and marginals_obj is not None:
+        plot_leverage_in_world(solver, stats, save_dir=save_dir,
+                               prefix=prefix, label_k=label_k, show=show_3d)
     return stats
 
 

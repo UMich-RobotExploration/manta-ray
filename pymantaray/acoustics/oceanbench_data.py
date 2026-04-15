@@ -17,7 +17,6 @@ from grid_exporters import export_bathymetry, export_ssp, export_uv
 ################################################################################
 # This is a scratch workbook and not true python code yet.
 
-# TODO: Fix AI slop that generated most of this
 ################################################################################
 
 

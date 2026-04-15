@@ -9,7 +9,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy<2",
     "py-factor-graph",
-    "pyvista>=0.43",
+    "pyvista[jupyter]>=0.43",
 ]
 
 [tool.uv.sources]

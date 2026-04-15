@@ -170,6 +170,139 @@ def build_ray_lines(rays: pd.DataFrame, max_rays: int = 2000,
     return line_set
 
 
+def plot_rays_2d(rays: pd.DataFrame,
+                 src_pos: np.ndarray,
+                 rcv_pos: np.ndarray,
+                 max_rays: int = 2000,
+                 rdp_tolerance: float = 25.0,
+                 plane_tolerance_m: float = 150.0,
+                 bty: dict | None = None,
+                 save_path: str | None = None) -> None:
+    """Flattened 2D (horizontal range vs depth) view of ray traces.
+
+    Projects every 3D ray point onto the vertical plane containing the
+    source and receiver: x-axis is horizontal distance from the source
+    along the source→receiver bearing (points behind the source show up
+    as negative range); y-axis is depth with positive downward. This is
+    the standard Bellhop-style view for seeing refraction from the
+    sound-speed profile and surface/bottom bounces.
+    """
+    if len(rays) == 0:
+        print("No rays to flatten.")
+        return
+
+    # Source→receiver horizontal bearing defines the projection plane.
+    delta = rcv_pos[:2] - src_pos[:2]
+    d = float(np.linalg.norm(delta))
+    if d < 1e-6:
+        print("Source and receiver share horizontal position — cannot flatten.")
+        return
+    u = delta / d  # unit vector along src→rcv in xy plane
+    n_perp = np.array([-u[1], u[0]])  # perpendicular in xy (out-of-plane axis)
+
+    # First pass: filter rays whose out-of-plane excursion stays within
+    # `plane_tolerance_m` of the vertical slice through src→rcv. Bellhop's
+    # 3D azimuthal fan produces rays that curve well off-plane; including
+    # them all clutters the 2D view and misrepresents refraction geometry.
+    n_total = len(rays)
+    in_plane_indices: list[int] = []
+    max_perp = []
+    for idx in range(n_total):
+        pts = np.asarray(rays.ray.iloc[idx])
+        perp = np.abs((pts[:, :2] - src_pos[:2]) @ n_perp)
+        mp = float(perp.max()) if perp.size else 0.0
+        max_perp.append(mp)
+        if mp <= plane_tolerance_m:
+            in_plane_indices.append(idx)
+
+    if not in_plane_indices:
+        # Fall back to the closest-to-plane rays so the figure isn't empty.
+        order = np.argsort(max_perp)
+        fallback = order[:min(50, n_total)].tolist()
+        in_plane_indices = list(fallback)
+        print(f"  [2D] no rays within {plane_tolerance_m:.0f} m of plane; "
+              f"showing the {len(fallback)} closest instead.")
+
+    if len(in_plane_indices) > max_rays:
+        step = len(in_plane_indices) / max_rays
+        indices = [in_plane_indices[int(i * step)] for i in range(max_rays)]
+    else:
+        indices = in_plane_indices
+
+    print(f"  [2D] {len(indices)}/{n_total} rays shown "
+          f"(in-plane tolerance {plane_tolerance_m:.0f} m)")
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    # Viridis is perceptually uniform and reads cleanly on white — easier
+    # to follow a color→depth mapping than plasma's red-to-yellow jump.
+    cmap = plt.cm.viridis
+    n_shown = len(indices)
+
+    for i, idx in enumerate(indices):
+        pts = np.array(rays.ray.iloc[idx])
+        pts = simplify_path(pts, rdp_tolerance)
+        if len(pts) < 2:
+            continue
+        # Signed range from source along the bearing direction.
+        r = (pts[:, :2] - src_pos[:2]) @ u
+        z = pts[:, 2]
+        color = cmap(i / max(n_shown - 1, 1))
+        ax.plot(r, z, color=color, linewidth=0.6, alpha=0.8)
+
+    # Bathymetry profile along the source→receiver bearing, if available.
+    if bty is not None:
+        x_vals = np.asarray(bty["ranges"])
+        y_vals = np.asarray(bty["crossranges"])
+        Z = np.asarray(bty["depths"])
+        interp = RegularGridInterpolator(
+            (x_vals, y_vals), Z, method="linear", bounds_error=False,
+            fill_value=None)
+        r_line = np.linspace(-0.1 * d, 1.3 * d, 400)
+        sample_xy = src_pos[:2][None, :] + np.outer(r_line, u)
+        try:
+            z_bot = interp(sample_xy)
+            ax.plot(r_line, z_bot, color="saddlebrown", linewidth=1.5,
+                    label="bathymetry (along bearing)")
+            ax.fill_between(r_line, z_bot, np.nanmax(z_bot) + 100,
+                            color="saddlebrown", alpha=0.15)
+        except Exception as e:
+            print(f"  [2D] bathymetry interpolation failed: {e}")
+
+    # Sea surface at z=0 (Bellhop convention).
+    ax.axhline(0.0, color="steelblue", linewidth=1.2, alpha=0.6,
+               label="sea surface")
+
+    # Straight-line reference: receiver → source in the src–rcv vertical
+    # plane. Rays curving away from this line show refraction.
+    ax.plot([d, 0.0], [rcv_pos[2], src_pos[2]],
+            linestyle="--", color="black", linewidth=1.6, alpha=0.8,
+            label="direct src↔rcv", zorder=4)
+
+    # Source + receiver markers (oversized so they're visible against rays).
+    ax.plot(0.0, src_pos[2], marker="o", color="red", markersize=18,
+            markeredgecolor="black", markeredgewidth=1.2,
+            label="source", zorder=6)
+    ax.plot(d, rcv_pos[2], marker="o", color="limegreen", markersize=18,
+            markeredgecolor="black", markeredgewidth=1.2,
+            label="receiver", zorder=6)
+
+    ax.invert_yaxis()  # depth positive downward
+    ax.set_xlabel("horizontal range from source (m)", fontsize=14)
+    ax.set_ylabel("depth (m)", fontsize=14)
+    ax.set_title(f"Ray trace — vertical plane (src→rcv bearing), "
+                 f"{n_shown}/{n_total} rays shown", fontsize=15)
+    ax.tick_params(axis="both", which="major", labelsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower right", fontsize=12)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"Saved {save_path}")
+    # Do not call plt.show() here — the Open3D main loops below would
+    # otherwise block the matplotlib event loop and the figure would
+    # never paint. __main__ calls plt.show() once at the end.
+
+
 def find_connecting_rays(rays: pd.DataFrame, rcv_pos: np.ndarray,
                          threshold_m: float = 500.0):
     """Find all rays that pass within threshold of the receiver.
@@ -374,8 +507,8 @@ if __name__ == "__main__":
         print(f"Bathy X (range)  : [{bty['ranges'][0]:.1f}, {bty['ranges'][-1]:.1f}] m  ({len(bty['ranges'])} pts)")
         print(f"Bathy Y (xrange) : [{bty['crossranges'][0]:.1f}, {bty['crossranges'][-1]:.1f}] m  ({len(bty['crossranges'])} pts)")
         print(f"Bathy depth      : [{bty['depths'].min():.1f}, {bty['depths'].max():.1f}] m  shape={bty['depths'].shape}")
-        mesh = build_bathy_mesh(bty_path)
-        geometries.append(mesh)
+        # mesh = build_bathy_mesh(bty_path)
+        # geometries.append(mesh)
         print(f"Loaded bathymetry: {bty_path}")
     else:
         print(f"No bathymetry file: {bty_path}")
@@ -424,6 +557,13 @@ if __name__ == "__main__":
         line_set = build_ray_lines(rays_df)
         geometries.append(line_set)
 
+        # 2D flattened (range vs depth) view — shows refraction from SSP.
+        if os.path.exists(env_path):
+            bty_for_profile = read_bty_3d(bty_path) if os.path.exists(bty_path) \
+                else None
+            plot_rays_2d(rays_df, src_pos, rcv_pos, bty=bty_for_profile,
+                         save_path=file_root + "_rays_2d.png")
+
         if os.path.exists(env_path):
             threshold_m = 50
             connecting = find_connecting_rays(rays_df, rcv_pos, threshold_m=threshold_m)
@@ -460,8 +600,8 @@ if __name__ == "__main__":
         vis2 = o3d.visualization.Visualizer()
         vis2.create_window(window_name="Connecting Rays", width=960, height=720,
                            left=980)
-        if os.path.exists(bty_path):
-            vis2.add_geometry(build_bathy_mesh(bty_path))
+        # if os.path.exists(bty_path):
+        #     # vis2.add_geometry(build_bathy_mesh(bty_path))
         vis2.add_geometry(create_sphere(src_pos, [1, 0, 0], radius=50.0))
         vis2.add_geometry(create_sphere(rcv_pos, [0, 1, 0], radius=50.0))
 
@@ -506,3 +646,7 @@ if __name__ == "__main__":
     else:
         vis.run()
         vis.destroy_window()
+
+    # Block on the matplotlib 2D ray-refraction figure last, so it
+    # stays open after the Open3D windows have closed.
+    plt.show()

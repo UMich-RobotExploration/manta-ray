@@ -89,7 +89,7 @@ print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
 debug_factor_graph(solver_measured, save_dir=WORK_DIR, prefix="measured",
-                   show_3d=True)
+                   show_3d=True, show_leverage=True)
 
 print("\n--- Measured Ranges ---")
 visualize(solver_measured, save_dir=WORK_DIR, prefix="measured",
@@ -107,8 +107,8 @@ print(f"GTSAM graph: {solver_true.graph.size()} factors, "
 print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
 
-debug_factor_graph(solver_true, save_dir=WORK_DIR, prefix="true",
-                   show_3d=False)
+# debug_factor_graph(solver_true, save_dir=WORK_DIR, prefix="true",
+#                    show_3d=False)
 
 print("\n--- True Ranges ---")
 visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
@@ -116,19 +116,19 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
 
-print("\n=== Run 3: GPS + Depth (no ranging) ===")
-config_no_range = deepcopy(config)
-config_no_range.depth_prior_mode = "custom"
-config_no_range.include_ranges = False
-solver_no_range = FactorGraphSolver(fg_data, config_no_range)
-solver_no_range.solve()
-print(f"GTSAM graph: {solver_no_range.graph.size()} factors, "
-      f"{solver_no_range.initial.size()} variables")
-print(f"Initial error: {solver_no_range.graph.error(solver_no_range.initial):.4f}")
-print(f"Final   error: {solver_no_range.graph.error(solver_no_range.result):.4f}")
-
-debug_factor_graph(solver_no_range, save_dir=WORK_DIR, prefix="no_range",
-                   show_3d=False)
+# print("\n=== Run 3: GPS + Depth (no ranging) ===")
+# config_no_range = deepcopy(config)
+# config_no_range.depth_prior_mode = "custom"
+# config_no_range.include_ranges = False
+# solver_no_range = FactorGraphSolver(fg_data, config_no_range)
+# solver_no_range.solve()
+# print(f"GTSAM graph: {solver_no_range.graph.size()} factors, "
+#       f"{solver_no_range.initial.size()} variables")
+# print(f"Initial error: {solver_no_range.graph.error(solver_no_range.initial):.4f}")
+# print(f"Final   error: {solver_no_range.graph.error(solver_no_range.result):.4f}")
+#
+# debug_factor_graph(solver_no_range, save_dir=WORK_DIR, prefix="no_range",
+#                    show_3d=False)
 
 # print("\n=== Run 4: Robust Ranges ===")
 # config_robust = deepcopy(config)
@@ -148,12 +148,12 @@ debug_factor_graph(solver_no_range, save_dir=WORK_DIR, prefix="no_range",
 print("\n=== Comparison ===")
 compare_results(
     [
-        solver_no_range,
+        # solver_no_range,
         solver_measured,
         solver_true,
     ],
     [
-        "GPS + Depth",
+        # "GPS + Depth",
         "Ray-Traced Ranges",
         "Idealized Ranges",
     ],
