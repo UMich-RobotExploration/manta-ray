@@ -27,6 +27,7 @@ FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-mu
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 

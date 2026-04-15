@@ -119,6 +119,25 @@ def _odom_to_pose3(odom) -> gtsam.Pose3:
                                 dtype=np.float64))
 
 
+def odom_cadence_from_fg(fg: FactorGraphData) -> float:
+    """Return the per-edge odom dt (seconds) from a PyFG's edge timestamps.
+
+    Walks the first odom chain with >=2 populated timestamps and returns the
+    median of consecutive differences. Raises ValueError if no chain has
+    usable timestamps - caller should handle that by passing an explicit
+    cadence to SolverConfig.
+    """
+    for chain in fg.odom_measurements:
+        ts = [m.timestamp for m in chain]
+        if len(ts) >= 2 and all(t is not None for t in ts):
+            diffs = np.diff(np.asarray(ts, dtype=np.float64))
+            if np.all(diffs > 0):
+                return float(np.median(diffs))
+    raise ValueError(
+        "No odom chain with usable timestamps - pass odom_cadence_dt "
+        "explicitly to SolverConfig.")
+
+
 def _scaled_sigmas(fractions: np.ndarray,
                    delta: gtsam.Pose3,
                    floor: np.ndarray) -> np.ndarray:
@@ -249,10 +268,23 @@ class SolverConfig:
                              added in quadrature with the velocity-scale
                              term in _scaled_sigmas. Represents time-based
                              drift sources (compass / gyro / INS integration)
-                             present per fixed-dt sample regardless of motion
-                             magnitude. Default [1e-4 rad, 0.01 m] assumes
-                             ~1 Hz CSV sampling and mid-spec DVL/IMU; scale
-                             with dt if cadence differs.
+                             present per sample regardless of motion
+                             magnitude. When set, takes priority over
+                             (odom_cadence_dt, odom_drift_rate_*). When all
+                             three are None, defaults to [1e-4 rad, 0.01 m].
+        odom_cadence_dt:     Seconds per odom edge (fixed cadence). Combined
+                             with odom_drift_rate_* to derive the per-edge
+                             drift floor as `drift_rate * dt` (linear scaling).
+                             None disables the derivation (falls back to
+                             odom_noise_floor or the default).
+        odom_drift_rate_trans: Per-axis translation INS drift rate in m/s.
+                             Multiplied by odom_cadence_dt to form the
+                             translation floor. Typical values: 0.001 m/s
+                             (tactical IMU), 0.002 m/s (mid-spec INS),
+                             0.01+ m/s (MEMS). None treats as 0.
+        odom_drift_rate_rot: Per-axis rotation drift rate in rad/s (gyro
+                             bias). Multiplied by odom_cadence_dt to form
+                             the rotation floor. None treats as 0.
         depth_prior_sigma:   Stddev (m) for per-pose z anchor to ground truth
                              depth. None disables depth priors. When set, adds
                              one depth prior per pose across all robot chains.
@@ -283,6 +315,9 @@ class SolverConfig:
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
     odom_noise_floor: np.ndarray | None = field(default=None, repr=False)
+    odom_cadence_dt: float | None = None
+    odom_drift_rate_trans: float | None = None
+    odom_drift_rate_rot: float | None = None
     gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
     depth_prior_sigma: float | None = None
     depth_prior_mode: str = "pose3"
@@ -325,6 +360,18 @@ class SolverConfig:
             raise ValueError(
                 f"landmark_prior_sigma must be positive, "
                 f"got {self.landmark_prior_sigma}")
+        if self.odom_cadence_dt is not None and self.odom_cadence_dt <= 0:
+            raise ValueError(
+                f"odom_cadence_dt must be positive (seconds), "
+                f"got {self.odom_cadence_dt}")
+        if self.odom_drift_rate_trans is not None and self.odom_drift_rate_trans < 0:
+            raise ValueError(
+                f"odom_drift_rate_trans must be non-negative (m/s), "
+                f"got {self.odom_drift_rate_trans}")
+        if self.odom_drift_rate_rot is not None and self.odom_drift_rate_rot < 0:
+            raise ValueError(
+                f"odom_drift_rate_rot must be non-negative (rad/s), "
+                f"got {self.odom_drift_rate_rot}")
         if self.depth_prior_sigma is not None and self.depth_prior_sigma <= 0:
             raise ValueError(
                 f"depth_prior_sigma must be positive, "
@@ -363,10 +410,7 @@ class FactorGraphSolver:
         for landmark in fg.landmark_variables:
             self.key_map[landmark.name] = _name_to_key(landmark.name)
 
-        self._odom_floor: np.ndarray = (
-            self.config.odom_noise_floor
-            if self.config.odom_noise_floor is not None
-            else np.array([1e-4, 0.01], dtype=np.float64))
+        self._odom_floor: np.ndarray = self._resolve_odom_floor()
 
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
         if self.config.odom_noise_sigmas is not None:
@@ -382,12 +426,35 @@ class FactorGraphSolver:
         self.gt_values = self._build_gt_values()
         self.odom_values = self._build_odom_values()
 
+    def _resolve_odom_floor(self) -> np.ndarray:
+        """Pick the per-edge drift floor [rot_rad, trans_m] for _scaled_sigmas.
+
+        Priority:
+          1. Explicit config.odom_noise_floor (backward-compat override).
+          2. Derived from (odom_cadence_dt, odom_drift_rate_trans/rot) as
+             `drift_rate * dt` — physically meaningful INS-like drift.
+          3. Default [1e-4 rad, 0.01 m] — historical sane values.
+        """
+        cfg = self.config
+        if cfg.odom_noise_floor is not None:
+            return cfg.odom_noise_floor
+        has_rate = (cfg.odom_drift_rate_trans is not None
+                    or cfg.odom_drift_rate_rot is not None)
+        if cfg.odom_cadence_dt is not None and has_rate:
+            dt = cfg.odom_cadence_dt
+            trans_rate = cfg.odom_drift_rate_trans or 0.0
+            rot_rate = cfg.odom_drift_rate_rot or 0.0
+            return np.array([rot_rate * dt, trans_rate * dt],
+                            dtype=np.float64)
+        return np.array([1e-4, 0.01], dtype=np.float64)
+
     def _perturb_odom_deltas(self, fractions: np.ndarray) -> list[list[gtsam.Pose3]]:
         """Sample noisy odom deltas via Pose3 tangent-space perturbation.
 
-        Sigmas are sized per delta and per component from the clean motion
-        magnitude: sigma_i = max(floor, fractions_i * |motion_i|). The draw
-        xi ~ N(0, diag(sigmas^2)) is then composed onto the clean delta:
+        Per-edge sigma is a quadrature composite of the velocity-scale term
+        (fractions * |motion|) and the per-edge time-drift floor; see
+        `_scaled_sigmas`. The draw xi ~ N(0, diag(sigmas^2)) is composed
+        onto the clean delta:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
         rng = np.random.default_rng(seed=self.config.seed)

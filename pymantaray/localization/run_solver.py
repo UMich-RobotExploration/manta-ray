@@ -7,27 +7,31 @@ from copy import deepcopy
 import numpy as np
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
-from pyfg_to_gtsam import FactorGraphSolver, SolverConfig, RobustConfig
+from pyfg_to_gtsam import (FactorGraphSolver, SolverConfig, RobustConfig,
+                           odom_cadence_from_fg)
 from visualize_solver import (visualize, compare_results, compare_depth_error,
                                visualize_landmarks)
 
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
-# Odom noise fractions of motion (per-component) in GTSAM Pose3 tangent order:
-#   [rot_x, rot_y, rot_z, tx, ty, tz]
-# Per delta, sigma_i = max(floor, frac_i * |motion_i|).
-# Translation: 5% of distance traveled on x/y; z drift is much smaller.
+# Odom noise model (per-edge, GTSAM Pose3 tangent order [rx, ry, rz, tx, ty, tz]).
+#
+#   sigma_i = sqrt( (frac_i * |motion_i|)**2 + (drift_rate_i * cadence_dt)**2 )
+#
+# The first term is velocity-scale error on the recorded motion (DVL + current
+# advection already baked into the GT delta). The second term is time-based
+# INS drift — constant per edge at fixed cadence, independent of |motion|.
 default_pos_prior = 0.1 # meters
 
-angular_noise = 1E-6 # radians
-xy_frac = 0.05
-z_frac = 0.01
+angular_noise = 1E-6 # radians (velocity-scale fraction for rotation)
+xy_frac = 0.05       # 5% scale error on recorded xy motion
+z_frac = 0.01        # 1% scale error on recorded z motion
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      xy_frac, xy_frac, z_frac])
@@ -37,12 +41,29 @@ odom_gtsam_noise[:3] = 1E-2   # factor-graph rotation belief (rad-per-rad)
 # odom_gtsam_noise[2] = 0.10
 # Translation fractions stay equal to odom_noise (matched factor belief).
 
+# Per-time INS drift: constant per-edge σ = drift_rate * cadence_dt.
+# Translation: 2 mm/s ≈ mid-spec INS. Rotation: 1e-6 rad/s ≈ tactical gyro.
+# cadence_dt is read from the loaded PyFG below (odom_cadence_from_fg).
+odom_drift_rate_trans = 0.01    # m/s, translation INS drift rate
+odom_drift_rate_rot = 1e-6       # rad/s, rotation INS drift rate
+
 # GPS prior: position stddev 0.1 m, rotation stddev 2 rad (effectively unconstrained).
 # Order is Pose3 tangent [rot_x, rot_y, rot_z, tx, ty, tz].
 gps_prior_sigmas = np.array([2, 2, 2, default_pos_prior, default_pos_prior, default_pos_prior],
                             dtype=np.float64)
 
 depth_prior_sigma = 0.01/3.0  # meters — pressure-sensor stddev
+
+print(f"Reading {FILE_PATH} ...")
+fg_data = read_from_pyfg_text(FILE_PATH)
+
+odom_cadence_dt = odom_cadence_from_fg(fg_data)
+
+print(f"  {fg_data.dimension}D, {fg_data.num_poses} poses, "
+      f"{fg_data.num_landmarks} landmarks, "
+      f"{fg_data.num_odom_measurements} odom, "
+      f"{len(fg_data.range_measurements)} range, "
+      f"cadence dt={odom_cadence_dt:.3f}s")
 
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
@@ -53,16 +74,10 @@ config = SolverConfig(
     gps_prior_sigmas=gps_prior_sigmas,
     depth_prior_sigma=depth_prior_sigma,
     depth_prior_mode="custom",
-    odom_noise_floor=np.array([1E-4, 1.0])
+    odom_cadence_dt=odom_cadence_dt,
+    odom_drift_rate_trans=odom_drift_rate_trans,
+    odom_drift_rate_rot=odom_drift_rate_rot,
 )
-
-print(f"Reading {FILE_PATH} ...")
-fg_data = read_from_pyfg_text(FILE_PATH)
-
-print(f"  {fg_data.dimension}D, {fg_data.num_poses} poses, "
-      f"{fg_data.num_landmarks} landmarks, "
-      f"{fg_data.num_odom_measurements} odom, "
-      f"{len(fg_data.range_measurements)} range")
 
 print("\n=== Run 1: Measured Ranges ===")
 solver_measured = FactorGraphSolver(fg_data, config)
@@ -93,17 +108,8 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
           estimate_label="Idealized Ranges")
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
-print("\n=== Run 3: Measured Ranges ===")
-config_custom_depth = deepcopy(config)
-config_custom_depth.depth_prior_mode = "custom"
-solver_custom_depth = FactorGraphSolver(fg_data, config_custom_depth)
-solver_custom_depth.solve()
-print(f"GTSAM graph: {solver_custom_depth.graph.size()} factors, "
-      f"{solver_custom_depth.initial.size()} variables")
-print(f"Initial error: {solver_custom_depth.graph.error(solver_custom_depth.initial):.4f}")
-print(f"Final   error: {solver_custom_depth.graph.error(solver_custom_depth.result):.4f}")
 
-print("\n=== Run 4: GPS + Depth (no ranging) ===")
+print("\n=== Run 3: GPS + Depth (no ranging) ===")
 config_no_range = deepcopy(config)
 config_no_range.depth_prior_mode = "custom"
 config_no_range.include_ranges = False
@@ -133,7 +139,7 @@ print("\n=== Comparison ===")
 compare_results(
     [
         solver_no_range,
-        solver_custom_depth,
+        solver_measured,
         solver_true,
     ],
     [
