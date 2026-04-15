@@ -11,6 +11,7 @@ from pyfg_to_gtsam import (FactorGraphSolver, SolverConfig, RobustConfig,
                            odom_cadence_from_fg)
 from visualize_solver import (visualize, compare_results, compare_depth_error,
                                visualize_landmarks)
+from debug_factor_graphs import debug_factor_graph
 
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
@@ -87,6 +88,9 @@ print(f"GTSAM graph: {solver_measured.graph.size()} factors, "
 print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f}")
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
+debug_factor_graph(solver_measured, save_dir=WORK_DIR, prefix="measured",
+                   show_3d=True)
+
 print("\n--- Measured Ranges ---")
 visualize(solver_measured, save_dir=WORK_DIR, prefix="measured",
           estimate_label="Ray-Traced Ranges")
@@ -102,6 +106,9 @@ print(f"GTSAM graph: {solver_true.graph.size()} factors, "
       f"{solver_true.initial.size()} variables")
 print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
+
+debug_factor_graph(solver_true, save_dir=WORK_DIR, prefix="true",
+                   show_3d=False)
 
 print("\n--- True Ranges ---")
 visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
@@ -119,6 +126,9 @@ print(f"GTSAM graph: {solver_no_range.graph.size()} factors, "
       f"{solver_no_range.initial.size()} variables")
 print(f"Initial error: {solver_no_range.graph.error(solver_no_range.initial):.4f}")
 print(f"Final   error: {solver_no_range.graph.error(solver_no_range.result):.4f}")
+
+debug_factor_graph(solver_no_range, save_dir=WORK_DIR, prefix="no_range",
+                   show_3d=False)
 
 # print("\n=== Run 4: Robust Ranges ===")
 # config_robust = deepcopy(config)
@@ -150,16 +160,3 @@ compare_results(
     save_dir=WORK_DIR,
 )
 
-compare_depth_error(
-    [
-        solver_no_range,
-        solver_custom_depth,
-        solver_true,
-    ],
-    [
-        "GPS + Depth",
-        "Ray-Traced Ranges",
-        "Idealized Ranges",
-    ],
-    save_dir=WORK_DIR,
-)
