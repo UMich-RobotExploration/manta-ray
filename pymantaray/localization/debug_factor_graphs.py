@@ -59,7 +59,9 @@ class FactorRecord:
     endpoints: tuple[str, ...]
     whitened: float
     raw: float
+    dof: int = 1
     leverage: float = float("nan")
+    cook: float = float("nan")
 
 
 @dataclass
@@ -138,9 +140,15 @@ def compute_factor_stats(graph, values, reverse_key_map: dict[int, str]
 
         whitened = float(f.error(values))
         raw = _raw_norm(f, values)
+        try:
+            dof = int(f.dim())
+        except Exception:
+            dof = 1
+        if dof <= 0:
+            dof = 1
 
         rec = FactorRecord(index=i, type_label=label, endpoints=endpoints,
-                           whitened=whitened, raw=raw)
+                           whitened=whitened, raw=raw, dof=dof)
         stats.setdefault(label, FactorTypeStats(type_label=label)).records.append(rec)
     return stats
 
@@ -478,6 +486,107 @@ def print_top_leverages(stats: dict[str, "FactorTypeStats"],
 
     title = (f"Top {len(top)} factors by leverage — {prefix}" if prefix
              else f"Top {len(top)} factors by leverage")
+    print(_render_table(headers, rows, aligns, title=title))
+    print()
+    return top
+
+
+# ───────────────────── influence (Cook's distance) ─────────────────────
+
+def _attach_cook_to_stats(stats: dict[str, "FactorTypeStats"]) -> None:
+    """Fill FactorRecord.cook in place: D = (h/dof) * (whitened/(1-h)).
+
+    Requires `leverage` already populated. Clamps (1-h) away from zero so
+    a saturated leverage doesn't produce inf.
+    """
+    eps = 1e-9
+    for s in stats.values():
+        for rec in s.records:
+            h = rec.leverage
+            if not np.isfinite(h) or not np.isfinite(rec.whitened):
+                continue
+            denom = max(1.0 - h, eps)
+            rec.cook = (h / max(rec.dof, 1)) * (rec.whitened / denom)
+
+
+def print_influence_importance_table(stats: dict[str, "FactorTypeStats"],
+                                     prefix: str = "") -> None:
+    """Per-type Cook's-distance summary: count, Σ, mean, median, max."""
+    type_arrays: list[tuple[str, np.ndarray]] = []
+    for s in stats.values():
+        arr = np.array([r.cook for r in s.records
+                        if np.isfinite(r.cook)], dtype=float)
+        if arr.size:
+            type_arrays.append((s.type_label, arr))
+    if not type_arrays:
+        return
+
+    total_sum = sum(float(a.sum()) for _, a in type_arrays)
+    type_arrays.sort(key=lambda t: float(t[1].sum()), reverse=True)
+
+    headers = ["Type", "Count", "Σ Cook", "% total",
+               "mean", "median", "max"]
+    aligns = ["l", "r", "r", "r", "r", "r", "r"]
+    rows = []
+    total_count = 0
+    for label, arr in type_arrays:
+        s_sum = float(arr.sum())
+        pct = (s_sum / total_sum * 100.0) if total_sum > 0 else 0.0
+        rows.append([
+            label,
+            f"{arr.size:,}",
+            f"{s_sum:,.4g}",
+            f"{pct:.1f}%",
+            f"{float(arr.mean()):,.4g}",
+            f"{float(np.median(arr)):,.4g}",
+            f"{float(arr.max()):,.4g}",
+        ])
+        total_count += arr.size
+
+    total_row = [
+        "TOTAL",
+        f"{total_count:,}",
+        f"{total_sum:,.4g}",
+        "100.0%" if total_sum > 0 else "—",
+        "", "", "",
+    ]
+    title = (f"Factor influence (Cook's D) — {prefix}" if prefix
+             else "Factor influence (Cook's D)")
+    print()
+    print(_render_table(headers, rows, aligns, total_row=total_row, title=title))
+    print()
+
+
+def print_top_influence(stats: dict[str, "FactorTypeStats"],
+                        k: int = 20,
+                        prefix: str = "") -> list["FactorRecord"]:
+    """Box-drawn table of the top-K factors by Cook's distance."""
+    all_records: list[FactorRecord] = []
+    for s in stats.values():
+        all_records.extend(r for r in s.records if np.isfinite(r.cook))
+    if not all_records:
+        return []
+    all_records.sort(key=lambda r: r.cook, reverse=True)
+    top = all_records[:k]
+
+    headers = ["Rank", "Type", "Endpoints", "Cook", "leverage", "whitened", "raw"]
+    aligns = ["r", "l", "l", "r", "r", "r", "r"]
+    rows = []
+    for i, r in enumerate(top, start=1):
+        endpoints = " ↔ ".join(r.endpoints) if len(r.endpoints) > 1 \
+            else r.endpoints[0]
+        rows.append([
+            str(i),
+            r.type_label,
+            endpoints,
+            f"{r.cook:,.4g}",
+            f"{r.leverage:,.4g}",
+            _fmt_float(r.whitened),
+            _fmt_float(r.raw),
+        ])
+
+    title = (f"Top {len(top)} most influential factors — {prefix}" if prefix
+             else f"Top {len(top)} most influential factors")
     print(_render_table(headers, rows, aligns, title=title))
     print()
     return top
@@ -1210,6 +1319,9 @@ def debug_factor_graph(solver,
             _attach_leverages_to_stats(stats, leverages)
             print_leverage_importance_table(stats, prefix=prefix)
             print_top_leverages(stats, k=top_k, prefix=prefix)
+            _attach_cook_to_stats(stats)
+            print_influence_importance_table(stats, prefix=prefix)
+            print_top_influence(stats, k=top_k, prefix=prefix)
         if marginals_obj is not None:
             plot_pose_marginals(solver, marginals_obj,
                                 save_dir=save_dir, prefix=prefix)
