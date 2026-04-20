@@ -22,6 +22,8 @@ from py_factor_graph.utils.plot_utils import (
 from py_factor_graph.variables import PoseVariable3D
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
+from vtk_plots import plot_range_errors_vtk
+
 
 FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
@@ -337,3 +339,4 @@ if __name__ == "__main__":
     plot_range_diagnostics(fg_data, save_dir=WORK_DIR)
     plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
                          save_dir=WORK_DIR)
+    plot_range_errors_vtk(fg_data, save_dir=WORK_DIR)
