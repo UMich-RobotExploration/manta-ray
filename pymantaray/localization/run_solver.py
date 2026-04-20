@@ -69,6 +69,7 @@ print(f"  {fg_data.dimension}D, {fg_data.num_poses} poses, "
 config = SolverConfig(
     odom_noise_sigmas=odom_noise,
     range_noise_stddev=1.0,
+    add_range_noise=True,
     include_ranges=True,
     between_noise_sigmas=odom_gtsam_noise,
     landmark_prior_sigma=default_pos_prior,
@@ -88,8 +89,8 @@ print(f"GTSAM graph: {solver_measured.graph.size()} factors, "
 print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f}")
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
-debug_factor_graph(solver_measured, save_dir=WORK_DIR, prefix="measured",
-                   show_3d=True, show_leverage=True)
+# debug_factor_graph(solver_measured, save_dir=WORK_DIR, prefix="measured",
+#                    show_3d=True, show_leverage=True)
 
 print("\n--- Measured Ranges ---")
 visualize(solver_measured, save_dir=WORK_DIR, prefix="measured",
@@ -116,34 +117,19 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
 
-# print("\n=== Run 3: GPS + Depth (no ranging) ===")
-# config_no_range = deepcopy(config)
-# config_no_range.depth_prior_mode = "custom"
-# config_no_range.include_ranges = False
-# solver_no_range = FactorGraphSolver(fg_data, config_no_range)
-# solver_no_range.solve()
-# print(f"GTSAM graph: {solver_no_range.graph.size()} factors, "
-#       f"{solver_no_range.initial.size()} variables")
-# print(f"Initial error: {solver_no_range.graph.error(solver_no_range.initial):.4f}")
-# print(f"Final   error: {solver_no_range.graph.error(solver_no_range.result):.4f}")
-#
-# debug_factor_graph(solver_no_range, save_dir=WORK_DIR, prefix="no_range",
-#                    show_3d=False)
+print("\n=== Run 4: Robust Ranges ===")
+config_robust = deepcopy(config)
+config_robust.robust_range = RobustConfig(kernel="cauchy", param=300.0)
+solver_robust = FactorGraphSolver(fg_data, config_robust)
+solver_robust.solve()
+print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
+      f"{solver_robust.initial.size()} variables")
+print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
+print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
 
-# print("\n=== Run 4: Robust Ranges ===")
-# config_robust = deepcopy(config)
-# config_robust.depth_prior_mode= "custom"
-# config_robust.robust_range = RobustConfig(kernel="welsch", param=15.0)
-# solver_robust = FactorGraphSolver(fg_data, config_robust)
-# solver_robust.solve()
-# print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
-#       f"{solver_robust.initial.size()} variables")
-# print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
-# print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
-
-# print("\n--- Robust Ranges ---")
-# visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
-# visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
+print("\n--- Robust Ranges ---")
+visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
 
 print("\n=== Comparison ===")
 compare_results(
@@ -151,11 +137,13 @@ compare_results(
         # solver_no_range,
         solver_measured,
         solver_true,
+        solver_robust,
     ],
     [
         # "GPS + Depth",
         "Ray-Traced Ranges",
         "Idealized Ranges",
+        "Robust Ray-Traced Ranges",
     ],
     save_dir=WORK_DIR,
 )

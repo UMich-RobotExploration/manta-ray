@@ -248,6 +248,13 @@ class SolverConfig:
         include_gps_priors:  Include GPS pose priors (all except first-pose priors).
         include_ranges:      Include range measurement factors.
         range_noise_stddev:  Stddev (meters) for range factor noise model.
+        add_range_noise:     When True, draw N(0, range_noise_stddev) per
+                             range measurement and add it to `rm.dist`
+                             before the factor is built. Applies to both
+                             the bellhop-measured source and the idealized
+                             ranges produced when use_true_ranges=True,
+                             so the additive σ equals the solver's noise
+                             model σ by construction.
         odom_noise_sigmas:   6-element per-component fractions of motion in
                              GTSAM Pose3 tangent order
                                  [rot_x, rot_y, rot_z, tx, ty, tz]
@@ -310,6 +317,7 @@ class SolverConfig:
     include_gps_priors: bool = True
     include_ranges: bool = True
     range_noise_stddev: float = 4.0
+    add_range_noise: bool = False
     robust_range: RobustConfig | None = None
     landmark_prior_sigma: float | None = None
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
@@ -470,6 +478,24 @@ class FactorGraphSolver:
             noisy_deltas.append(chain)
         return noisy_deltas
 
+    def _perturb_ranges(self, measurements, stddev: float):
+        """Return new FGRangeMeasurement instances with N(0, stddev) added to dist.
+
+        Used when SolverConfig.add_range_noise is True — the additive σ is
+        deliberately tied to the GTSAM factor's noise model σ so residuals
+        are chi-square distributed. Seeded off config.seed, matching
+        `_perturb_odom_deltas`.
+        """
+        from py_factor_graph.measurements import FGRangeMeasurement
+        rng = np.random.default_rng(seed=self.config.seed)
+        out = []
+        for rm in measurements:
+            noisy_dist = float(rm.dist) + float(rng.normal(0.0, stddev))
+            noisy_dist = max(noisy_dist, 1e-6)
+            out.append(FGRangeMeasurement(
+                rm.association, noisy_dist, rm.stddev, rm.timestamp))
+        return out
+
     def _get_odom_delta(self, chain_idx: int, meas_idx: int, odom) -> gtsam.Pose3:
         """Return odom delta, perturbed if noise was requested."""
         if self._odom_deltas is not None:
@@ -593,10 +619,15 @@ class FactorGraphSolver:
 
         pose_keys = fg.pose_variables_dict
         if cfg.use_true_ranges:
-            true_fg = make_all_ranges_perfect(fg)
-            range_source = true_fg.range_measurements
+            src_measurements = make_all_ranges_perfect(fg).range_measurements
         else:
-            range_source = fg.range_measurements
+            src_measurements = fg.range_measurements
+
+        if cfg.add_range_noise:
+            range_source = self._perturb_ranges(
+                src_measurements, cfg.range_noise_stddev)
+        else:
+            range_source = src_measurements
 
         for rm in range_source:
             name_a, name_b = rm.association
