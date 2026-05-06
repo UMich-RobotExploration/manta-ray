@@ -8,18 +8,80 @@ comparison using the evo library.
 from __future__ import annotations
 
 import os
+import textwrap
 
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 from evo.core import metrics
 from evo.tools import plot as evo_plot
 
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
+from hull_utils import build_landmark_hull, inside_hull_mask
 from pyfg_to_gtsam import FactorGraphSolver, extract_trajectory
+
+
+def _shade_mask_spans(ax, mask: np.ndarray, *,
+                      color: str, alpha: float, label: str) -> None:
+    """Shade contiguous True-runs in mask using ax.axvspan.
+
+    Only the first run carries the legend label so the legend stays clean.
+    No-op when mask is all False.
+    """
+    if mask.size == 0 or not mask.any():
+        return
+    edges = np.diff(mask.astype(np.int8), prepend=0, append=0)
+    starts = np.where(edges == 1)[0]
+    ends = np.where(edges == -1)[0] - 1
+    for i, (s, e) in enumerate(zip(starts, ends)):
+        ax.axvspan(s - 0.5, e + 0.5, color=color, alpha=alpha,
+                   label=label if i == 0 else None, zorder=0)
+
+
+def _mask_run_boundaries(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return (entry_indices, exit_indices) for each contiguous True-run.
+
+    Empty arrays when the mask has no True values. Each entry index is
+    the first True pose in a run; each exit index is the last True pose.
+    """
+    if mask.size == 0 or not mask.any():
+        return np.empty(0, dtype=int), np.empty(0, dtype=int)
+    edges = np.diff(mask.astype(np.int8), prepend=0, append=0)
+    entries = np.where(edges == 1)[0]
+    exits = np.where(edges == -1)[0] - 1
+    return entries, exits
+
+
+def _label_mask_boundaries(ax, mask: np.ndarray, *,
+                           color: str = "darkgreen",
+                           fontsize: int = 8) -> None:
+    """Annotate entry / exit pose indices of each True-run on `ax`.
+
+    Each transition gets a thin vertical tick spanning the axis and a
+    text label rendered in axes-fraction coordinates near the top, so
+    labels sit above APE curves regardless of y-axis scale.
+    """
+    entries, exits = _mask_run_boundaries(mask)
+    if entries.size == 0:
+        return
+    bbox = dict(facecolor="white", edgecolor="none", alpha=0.8, pad=1.0)
+    for idx in entries:
+        ax.axvline(idx, color=color, alpha=0.4, linewidth=0.8, linestyle=":")
+        ax.text(idx, 0.98, f"→{idx}",
+                transform=ax.get_xaxis_transform(),
+                ha="left", va="top",
+                fontsize=fontsize, color=color, bbox=bbox)
+    for idx in exits:
+        ax.axvline(idx, color=color, alpha=0.4, linewidth=0.8, linestyle=":")
+        ax.text(idx, 0.98, f"{idx}←",
+                transform=ax.get_xaxis_transform(),
+                ha="right", va="top",
+                fontsize=fontsize, color=color, bbox=bbox)
 
 
 def _measurement_pose_indices(solver: FactorGraphSolver,
@@ -51,9 +113,169 @@ def _measurement_pose_indices(solver: FactorGraphSolver,
     return range_indices, gps_indices
 
 
+def plot_ape_histogram(ape_opt: metrics.APE,
+                       ape_odom: metrics.APE,
+                       robot_char: str,
+                       estimate_label: str,
+                       save_path: str | None = None) -> None:
+    """Histogram of APE values with mean/median/RMSE overlays.
+
+    Sibling to the per-pose-index APE line plot. Shows the population shape
+    of the estimated trajectory's error vs. odometry-only.
+    """
+    if len(ape_opt.error) < 2:
+        print(f"[ape-dist] robot {robot_char}: too few poses, skipping histogram")
+        return
+
+    estimate_legend = f"Estimated Traj w/ {estimate_label}"
+    stats = ape_opt.get_all_statistics()
+    mean_v = stats["mean"]
+    median_v = stats["median"]
+    rmse_v = stats["rmse"]
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.hist(ape_odom.error, bins=50, alpha=0.45, color="tab:orange",
+            label="Odometry Only Trajectory")
+    ax.hist(ape_opt.error, bins=50, alpha=0.65, color="tab:blue",
+            label=estimate_legend)
+    ax.axvline(mean_v, color="black", linestyle="-", linewidth=1.2,
+               label=f"mean = {mean_v:.3f} m")
+    ax.axvline(median_v, color="black", linestyle="--", linewidth=1.2,
+               label=f"median = {median_v:.3f} m")
+    ax.axvline(rmse_v, color="black", linestyle=":", linewidth=1.2,
+               label=f"RMSE = {rmse_v:.3f} m")
+    ax.set_xlabel("APE (m)")
+    ax.set_ylabel("Count")
+    ax.set_title(f"Robot {robot_char} — APE Distribution")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper right")
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150)
+
+
+def plot_trajectories_topdown_compare(traj_gt,
+                                      traj_odom,
+                                      traj_results: list,
+                                      labels: list[str],
+                                      landmark_xyz: np.ndarray,
+                                      hull,
+                                      robot_char: str,
+                                      save_path: str | None = None) -> None:
+    """Top-down (XY) projection of GT, odometry, and N optimized trajectories.
+
+    Companion to the 3D comparison view. Drops the depth axis so the
+    horizontal beacon footprint and trajectory layout read directly. The
+    color palette matches the 3D / APE compare plots so a line here
+    corresponds to the same-color trace in the other views.
+
+    Args:
+        traj_gt, traj_odom, traj_results: evo PosePath3D instances.
+        labels: One legend label per entry in traj_results.
+        landmark_xyz: (N, 3) landmark positions; the Z column is dropped.
+                      Pass an empty array to skip beacon markers.
+        hull: LandmarkHull or None. When not None, the 2D hull polygon
+              outline is drawn under the trajectories.
+    """
+    palette = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
+               'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
+    estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    if hull is not None:
+        loop = np.vstack([hull.xy_vertices, hull.xy_vertices[:1]])
+        ax.fill(loop[:, 0], loop[:, 1],
+                facecolor="tab:green", alpha=0.10,
+                edgecolor="tab:green", linewidth=1.2,
+                label="LBL hull (XY)", zorder=0)
+
+    gt_xy = traj_gt.positions_xyz[:, :2]
+    odom_xy = traj_odom.positions_xyz[:, :2]
+    ax.plot(gt_xy[:, 0], gt_xy[:, 1], '--', color='black',
+            linewidth=1.2, label='Ground Truth', zorder=2)
+    ax.plot(odom_xy[:, 0], odom_xy[:, 1], '--', color='tab:orange',
+            linewidth=1.0, alpha=0.8,
+            label='Odometry Only Trajectory', zorder=2)
+    for i, (traj, legend) in enumerate(zip(traj_results, estimate_legends)):
+        xy = traj.positions_xyz[:, :2]
+        ax.plot(xy[:, 0], xy[:, 1], '-',
+                color=palette[i % len(palette)],
+                linewidth=1.0, label=legend, zorder=3)
+
+    if landmark_xyz.size:
+        ax.scatter(landmark_xyz[:, 0], landmark_xyz[:, 1],
+                   marker='*', s=120, color='gold',
+                   edgecolor='black', linewidth=0.8,
+                   label='Landmarks', zorder=4)
+
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_xlabel("X (m)")
+    ax.set_ylabel("Y (m)")
+    ax.set_title(f"Robot {robot_char} — Top-Down Trajectory Comparison")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=9)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150)
+
+
+def plot_ape_distribution_compare(ape_results: list[metrics.APE],
+                                  labels: list[str],
+                                  ape_odom: metrics.APE,
+                                  robot_char: str,
+                                  save_path: str | None = None) -> None:
+    """evo-style APE distribution view: violin per series.
+
+    Quartiles are drawn inline on each violin, preserving the box-plot
+    information without the visual heaviness. Colors match the palette
+    used in the line-plot view in `compare_results`.
+    """
+    if not ape_results:
+        return
+    if any(len(a.error) < 2 for a in ape_results) or len(ape_odom.error) < 2:
+        print(f"[ape-dist] robot {robot_char}: too few poses, skipping plot")
+        return
+
+    palette = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
+               'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
+    estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
+    raw_labels = estimate_legends + ["Odometry Only"]
+    series_colors = [palette[i % len(palette)]
+                     for i in range(len(ape_results))] + ["tab:orange"]
+    all_apes = [*ape_results, ape_odom]
+
+    long_df = pd.DataFrame({
+        "series": np.concatenate(
+            [np.full(len(a.error), lbl) for a, lbl
+             in zip(all_apes, raw_labels)]),
+        "APE (m)": np.concatenate([a.error for a in all_apes]),
+    })
+
+    fig, ax_violin = plt.subplots(
+        figsize=(max(9, 1.9 * len(all_apes)), 6))
+
+    sns.violinplot(
+        data=long_df, x="series", y="APE (m)",
+        hue="series", palette=dict(zip(raw_labels, series_colors)),
+        inner="quartile", cut=0, ax=ax_violin, legend=False)
+    ax_violin.set_xticks(range(len(raw_labels)))
+    ax_violin.set_xticklabels(
+        [textwrap.fill(t, width=18) for t in raw_labels])
+    ax_violin.set_xlabel("")
+    ax_violin.set_title(
+        f"Robot {robot_char} — APE Distribution Comparison")
+    ax_violin.grid(True, alpha=0.3, axis="y")
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150)
+
+
 def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
               prefix: str = "", show_range_error: bool = True,
-              estimate_label: str = "Estimate"):
+              estimate_label: str = "Estimate",
+              show_landmark_hull: bool = False):
     """Plot ground-truth, initial, and optimized trajectories with APE.
 
     Per robot, shows:
@@ -68,6 +290,9 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         prefix: Filename prefix for saved figures (e.g. "measured", "true").
         show_range_error: Show range error subplot below APE. Disable for
                           true-range runs where error is always zero.
+        show_landmark_hull: Tint the APE plot green where the GT pose lies
+                            inside the 2D-XY convex hull of the LBL beacons.
+                            Off by default.
     """
     if solver.result is None:
         raise RuntimeError("Call solver.solve() before visualize()")
@@ -120,6 +345,17 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         else:
             fig2 = plt.figure(figsize=(10, 4))
             ax_ape = fig2.add_subplot(111)
+
+        if show_landmark_hull and solver.fg.landmark_variables:
+            landmark_xyz = np.array(
+                [np.asarray(lm.true_position, dtype=float)
+                 for lm in solver.fg.landmark_variables],
+                dtype=np.float64)
+            hull = build_landmark_hull(landmark_xyz)
+            inside_mask = inside_hull_mask(traj_gt.positions_xyz, hull)
+            _shade_mask_spans(ax_ape, inside_mask,
+                              color="tab:green", alpha=0.12,
+                              label="Inside LBL hull")
 
         ax_ape.plot(ape_odom.error, color='tab:orange', linewidth=0.8,
                     alpha=0.6, label='Odometry Only Trajectory')
@@ -175,13 +411,21 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
             fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=150)
             fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=150)
 
+        tag = f"{prefix}_" if prefix else ""
+        hist_path = (os.path.join(save_dir, f"{tag}robot_{robot_char}_ape_dist.png")
+                     if save_dir else None)
+        plot_ape_histogram(ape_opt, ape_odom, robot_char,
+                           estimate_label, save_path=hist_path)
+
     plt.show()
 
 
 def compare_results(solvers: list[FactorGraphSolver],
                     labels: list[str],
                     save_dir: str | None = None,
-                    prefix: str = ""):
+                    prefix: str = "",
+                    show_landmark_hull: bool = False,
+                    show_topdown: bool = False):
     """Compare multiple solver results against a shared ground truth.
 
     Plots all optimized trajectories on the same 3D figure and overlays
@@ -197,6 +441,12 @@ def compare_results(solvers: list[FactorGraphSolver],
         labels:  One label per solver (e.g. ["Bellhop Ranges", "True Ranges"]).
         save_dir: Directory to save figures. If None, only shows interactively.
         prefix:  Filename prefix for saved figures.
+        show_landmark_hull: Tint the APE plot green where the GT pose lies
+                            inside the 2D-XY convex hull of the LBL beacons,
+                            and label entry/exit pose indices. Off by default.
+        show_topdown: Save an additional top-down (XY) trajectory comparison
+                      figure as `{prefix}robot_{char}_compare_trajectory_topdown.png`.
+                      Off by default.
     """
     if len(solvers) != len(labels):
         raise ValueError(f"Got {len(solvers)} solvers but {len(labels)} labels")
@@ -263,9 +513,28 @@ def compare_results(solvers: list[FactorGraphSolver],
         ax.legend()
         ax.set_title(f"Robot {robot_char} — Trajectory Comparison")
 
+        # Shared landmark/hull data for both APE shading and top-down view.
+        if ref.fg.landmark_variables:
+            landmark_xyz = np.array(
+                [np.asarray(lm.true_position, dtype=float)
+                 for lm in ref.fg.landmark_variables],
+                dtype=np.float64)
+        else:
+            landmark_xyz = np.empty((0, 3), dtype=np.float64)
+        hull = (build_landmark_hull(landmark_xyz)
+                if landmark_xyz.size else None)
+
         # Figure 2: APE comparison
         fig2 = plt.figure(figsize=(10, 4))
         ax2 = fig2.add_subplot(111)
+
+        inside_mask = np.zeros(0, dtype=bool)
+        if show_landmark_hull and hull is not None:
+            inside_mask = inside_hull_mask(traj_gt.positions_xyz, hull)
+            _shade_mask_spans(ax2, inside_mask,
+                              color="tab:green", alpha=0.12,
+                              label="Inside LBL hull")
+
         ax2.plot(ape_odom.error, color='tab:orange', linewidth=0.8,
                  alpha=0.6, linestyle='--', label='Odometry Only Trajectory')
         for i, (ape, legend) in enumerate(zip(ape_results, estimate_legends)):
@@ -276,12 +545,36 @@ def compare_results(solvers: list[FactorGraphSolver],
         ax2.set_title(f"Robot {robot_char} — Absolute Pose Error Comparison")
         ax2.legend()
         ax2.grid(True, alpha=0.3)
+
+        if show_landmark_hull:
+            _label_mask_boundaries(ax2, inside_mask)
+            if inside_mask.any():
+                entries, exits = _mask_run_boundaries(inside_mask)
+                spans = list(zip(entries.tolist(), exits.tolist()))
+                print(f"Robot {robot_char} — hull spans (pose idx): {spans}")
+
         fig2.tight_layout()
 
         if save_dir:
             tag = f"{prefix}_" if prefix else ""
             fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=150)
             fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=150)
+
+        tag = f"{prefix}_" if prefix else ""
+        dist_path = (os.path.join(save_dir,
+                                  f"{tag}robot_{robot_char}_compare_ape_dist.png")
+                     if save_dir else None)
+        plot_ape_distribution_compare(ape_results, labels, ape_odom,
+                                      robot_char, save_path=dist_path)
+
+        if show_topdown:
+            topdown_path = (os.path.join(
+                save_dir,
+                f"{tag}robot_{robot_char}_compare_trajectory_topdown.png")
+                if save_dir else None)
+            plot_trajectories_topdown_compare(
+                traj_gt, traj_odom, traj_results, labels,
+                landmark_xyz, hull, robot_char, save_path=topdown_path)
 
     plt.show()
 

@@ -15,10 +15,11 @@ from debug_factor_graphs import debug_factor_graph
 
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple-doubled-noise/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom noise model (per-edge, GTSAM Pose3 tangent order [rx, ry, rz, tx, ty, tz]).
@@ -41,10 +42,6 @@ odom_gtsam_noise = deepcopy(odom_noise)
 odom_gtsam_noise[:3] = 1E-2   # factor-graph rotation belief (rad-per-rad)
 # odom_gtsam_noise[2] = 0.10
 # Translation fractions stay equal to odom_noise (matched factor belief).
-
-# Per-time INS drift: constant per-edge σ = drift_rate * cadence_dt.
-# Translation: 2 mm/s ≈ mid-spec INS. Rotation: 1e-6 rad/s ≈ tactical gyro.
-# cadence_dt is read from the loaded PyFG below (odom_cadence_from_fg).
 odom_drift_rate_trans = 0.01    # m/s, translation INS drift rate
 odom_drift_rate_rot = 1e-6       # rad/s, rotation INS drift rate
 
@@ -53,7 +50,7 @@ odom_drift_rate_rot = 1e-6       # rad/s, rotation INS drift rate
 gps_prior_sigmas = np.array([2, 2, 2, default_pos_prior, default_pos_prior, default_pos_prior],
                             dtype=np.float64)
 
-depth_prior_sigma = 0.01/3.0  # meters — pressure-sensor stddev
+depth_prior_sigma = 0.01  # meters (1 cm) — pressure-sensor stddev
 
 print(f"Reading {FILE_PATH} ...")
 fg_data = read_from_pyfg_text(FILE_PATH)
@@ -76,6 +73,7 @@ config = SolverConfig(
     gps_prior_sigmas=gps_prior_sigmas,
     depth_prior_sigma=depth_prior_sigma,
     depth_prior_mode="custom",
+    add_depth_noise=True,
     odom_cadence_dt=odom_cadence_dt,
     odom_drift_rate_trans=odom_drift_rate_trans,
     odom_drift_rate_rot=odom_drift_rate_rot,
@@ -117,19 +115,19 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
 
-print("\n=== Run 4: Robust Ranges ===")
-config_robust = deepcopy(config)
-config_robust.robust_range = RobustConfig(kernel="cauchy", param=300.0)
-solver_robust = FactorGraphSolver(fg_data, config_robust)
-solver_robust.solve()
-print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
-      f"{solver_robust.initial.size()} variables")
-print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
-print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
-
-print("\n--- Robust Ranges ---")
-visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
-visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
+# print("\n=== Run 4: Robust Ranges ===")
+# config_robust = deepcopy(config)
+# config_robust.robust_range = RobustConfig(kernel="cauchy", param=300.0)
+# solver_robust = FactorGraphSolver(fg_data, config_robust)
+# solver_robust.solve()
+# print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
+#       f"{solver_robust.initial.size()} variables")
+# print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
+# print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
+#
+# print("\n--- Robust Ranges ---")
+# visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+# visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
 
 print("\n=== Comparison ===")
 compare_results(
@@ -137,14 +135,16 @@ compare_results(
         # solver_no_range,
         solver_measured,
         solver_true,
-        solver_robust,
+        # solver_robust,
     ],
     [
         # "GPS + Depth",
         "Ray-Traced Ranges",
         "Idealized Ranges",
-        "Robust Ray-Traced Ranges",
+        # "Robust Ray-Traced Ranges",
     ],
     save_dir=WORK_DIR,
+    show_landmark_hull= True,
+    show_topdown=True,
 )
 

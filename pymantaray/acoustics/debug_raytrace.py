@@ -20,6 +20,7 @@ file_root = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simpl
 file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/noarrival_R0_to_L2_12600s"
 file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/debug_R0_to_L1_19800s"
 file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/debug_R3_to_R1_7200s"
+file_root = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/noarrival_R0_to_R2_68400s"
 
 
 def build_bathy_mesh(bty_path: str, min_grid: int = 200) -> o3d.geometry.TriangleMesh:
@@ -170,35 +171,34 @@ def build_ray_lines(rays: pd.DataFrame, max_rays: int = 2000,
     return line_set
 
 
-def plot_rays_2d(rays: pd.DataFrame,
-                 src_pos: np.ndarray,
-                 rcv_pos: np.ndarray,
-                 max_rays: int = 2000,
-                 rdp_tolerance: float = 25.0,
-                 plane_tolerance_m: float = 150.0,
-                 bty: dict | None = None,
-                 save_path: str | None = None) -> None:
-    """Flattened 2D (horizontal range vs depth) view of ray traces.
+def _draw_ray_slice(ax,
+                    rays: pd.DataFrame,
+                    src_pos: np.ndarray,
+                    rcv_pos: np.ndarray,
+                    *,
+                    max_rays: int = 2000,
+                    rdp_tolerance: float = 25.0,
+                    plane_tolerance_m: float = 150.0,
+                    bty: dict | None = None) -> tuple[int, int] | None:
+    """Draw rays+bathy+markers onto ``ax``. Shared body of plot_rays_2d and
+    plot_rays_2d_with_ssp so the two differ only in figure layout.
 
-    Projects every 3D ray point onto the vertical plane containing the
-    source and receiver: x-axis is horizontal distance from the source
-    along the source→receiver bearing (points behind the source show up
-    as negative range); y-axis is depth with positive downward. This is
-    the standard Bellhop-style view for seeing refraction from the
-    sound-speed profile and surface/bottom bounces.
+    Does **not** invert the y-axis, set a ylabel, or save — the caller owns
+    figure-level concerns (title, ylabel, saving). Returns (n_shown, n_total)
+    for titles, or None when there's nothing to draw.
     """
     if len(rays) == 0:
         print("No rays to flatten.")
-        return
+        return None
 
     # Source→receiver horizontal bearing defines the projection plane.
     delta = rcv_pos[:2] - src_pos[:2]
     d = float(np.linalg.norm(delta))
     if d < 1e-6:
         print("Source and receiver share horizontal position — cannot flatten.")
-        return
-    u = delta / d  # unit vector along src→rcv in xy plane
-    n_perp = np.array([-u[1], u[0]])  # perpendicular in xy (out-of-plane axis)
+        return None
+    u = delta / d
+    n_perp = np.array([-u[1], u[0]])
 
     # First pass: filter rays whose out-of-plane excursion stays within
     # `plane_tolerance_m` of the vertical slice through src→rcv. Bellhop's
@@ -232,7 +232,6 @@ def plot_rays_2d(rays: pd.DataFrame,
     print(f"  [2D] {len(indices)}/{n_total} rays shown "
           f"(in-plane tolerance {plane_tolerance_m:.0f} m)")
 
-    fig, ax = plt.subplots(figsize=(14, 6))
     # Viridis is perceptually uniform and reads cleanly on white — easier
     # to follow a color→depth mapping than plasma's red-to-yellow jump.
     cmap = plt.cm.viridis
@@ -243,13 +242,11 @@ def plot_rays_2d(rays: pd.DataFrame,
         pts = simplify_path(pts, rdp_tolerance)
         if len(pts) < 2:
             continue
-        # Signed range from source along the bearing direction.
         r = (pts[:, :2] - src_pos[:2]) @ u
         z = pts[:, 2]
         color = cmap(i / max(n_shown - 1, 1))
         ax.plot(r, z, color=color, linewidth=0.6, alpha=0.8)
 
-    # Bathymetry profile along the source→receiver bearing, if available.
     if bty is not None:
         x_vals = np.asarray(bty["ranges"])
         y_vals = np.asarray(bty["crossranges"])
@@ -268,17 +265,14 @@ def plot_rays_2d(rays: pd.DataFrame,
         except Exception as e:
             print(f"  [2D] bathymetry interpolation failed: {e}")
 
-    # Sea surface at z=0 (Bellhop convention).
     ax.axhline(0.0, color="steelblue", linewidth=1.2, alpha=0.6,
                label="sea surface")
 
-    # Straight-line reference: receiver → source in the src–rcv vertical
-    # plane. Rays curving away from this line show refraction.
+    # Straight-line reference: rays curving away show refraction.
     ax.plot([d, 0.0], [rcv_pos[2], src_pos[2]],
             linestyle="--", color="black", linewidth=1.6, alpha=0.8,
             label="direct src↔rcv", zorder=4)
 
-    # Source + receiver markers (oversized so they're visible against rays).
     ax.plot(0.0, src_pos[2], marker="o", color="red", markersize=18,
             markeredgecolor="black", markeredgewidth=1.2,
             label="source", zorder=6)
@@ -286,14 +280,44 @@ def plot_rays_2d(rays: pd.DataFrame,
             markeredgecolor="black", markeredgewidth=1.2,
             label="receiver", zorder=6)
 
-    ax.invert_yaxis()  # depth positive downward
     ax.set_xlabel("horizontal range from source (m)", fontsize=14)
-    ax.set_ylabel("depth (m)", fontsize=14)
-    ax.set_title(f"Ray trace — vertical plane (src→rcv bearing), "
-                 f"{n_shown}/{n_total} rays shown", fontsize=15)
     ax.tick_params(axis="both", which="major", labelsize=12)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="lower right", fontsize=12)
+
+    return n_shown, n_total
+
+
+def plot_rays_2d(rays: pd.DataFrame,
+                 src_pos: np.ndarray,
+                 rcv_pos: np.ndarray,
+                 max_rays: int = 2000,
+                 rdp_tolerance: float = 25.0,
+                 plane_tolerance_m: float = 150.0,
+                 bty: dict | None = None,
+                 save_path: str | None = None) -> None:
+    """Flattened 2D (horizontal range vs depth) view of ray traces.
+
+    Projects every 3D ray point onto the vertical plane containing the
+    source and receiver: x-axis is horizontal distance from the source
+    along the source→receiver bearing (points behind the source show up
+    as negative range); y-axis is depth with positive downward. This is
+    the standard Bellhop-style view for seeing refraction from the
+    sound-speed profile and surface/bottom bounces.
+    """
+    fig, ax = plt.subplots(figsize=(14, 6))
+    counts = _draw_ray_slice(ax, rays, src_pos, rcv_pos,
+                             max_rays=max_rays, rdp_tolerance=rdp_tolerance,
+                             plane_tolerance_m=plane_tolerance_m, bty=bty)
+    if counts is None:
+        plt.close(fig)
+        return
+    n_shown, n_total = counts
+
+    ax.invert_yaxis()
+    ax.set_ylabel("depth (m)", fontsize=14)
+    ax.set_title(f"Ray trace — vertical plane (src→rcv bearing), "
+                 f"{n_shown}/{n_total} rays shown", fontsize=15)
     fig.tight_layout()
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -301,6 +325,201 @@ def plot_rays_2d(rays: pd.DataFrame,
     # Do not call plt.show() here — the Open3D main loops below would
     # otherwise block the matplotlib event loop and the figure would
     # never paint. __main__ calls plt.show() once at the end.
+
+
+def plot_rays_2d_with_ssp(rays: pd.DataFrame,
+                          src_pos: np.ndarray,
+                          rcv_pos: np.ndarray,
+                          ssp_src: dict,
+                          ssp_rcv: dict,
+                          max_rays: int = 2000,
+                          rdp_tolerance: float = 25.0,
+                          plane_tolerance_m: float = 150.0,
+                          bty: dict | None = None,
+                          save_path: str | None = None) -> None:
+    """Two-panel companion to plot_rays_2d. Left narrow panel shows c(z) at
+    the source and receiver grid cells from the associated .ssp file; right
+    wide panel is the same ray-slice as plot_rays_2d. The depth y-axis is
+    shared via sharey=True, so interactive zoom/pan on either panel moves
+    the other in lockstep.
+    """
+    fig, (ax_ssp, ax_rays) = plt.subplots(
+        1, 2, figsize=(16, 6), sharey=True,
+        gridspec_kw={"width_ratios": [1, 6]},
+    )
+    counts = _draw_ray_slice(ax_rays, rays, src_pos, rcv_pos,
+                             max_rays=max_rays, rdp_tolerance=rdp_tolerance,
+                             plane_tolerance_m=plane_tolerance_m, bty=bty)
+    if counts is None:
+        plt.close(fig)
+        return
+    n_shown, n_total = counts
+
+    ax_ssp.plot(ssp_src["speeds"], ssp_src["depths"], color="red",
+                linewidth=1.5, label="source")
+    ax_ssp.plot(ssp_rcv["speeds"], ssp_rcv["depths"], color="limegreen",
+                linewidth=1.5, label="receiver")
+    ax_ssp.axhline(src_pos[2], color="red", linestyle=":", linewidth=1.0,
+                   alpha=0.8)
+    ax_ssp.axhline(rcv_pos[2], color="limegreen", linestyle=":",
+                   linewidth=1.0, alpha=0.8)
+    ax_ssp.set_xlabel("sound speed (m/s)", fontsize=17)
+    ax_ssp.set_ylabel("depth (m)", fontsize=18)
+    ax_ssp.set_title("SSP", fontsize=17)
+    ax_ssp.tick_params(axis="both", which="major", labelsize=15)
+    ax_ssp.grid(True, alpha=0.3)
+    ax_ssp.legend(loc="lower left", fontsize=14)
+
+    # Scale up the right-panel text (ax_rays was populated by _draw_ray_slice
+    # with the sizes plot_rays_2d uses; override them here so the SSP variant
+    # reads cleanly at figure size).
+    ax_rays.set_xlabel("horizontal range from source (m)", fontsize=17)
+    ax_rays.tick_params(axis="both", which="major", labelsize=15)
+    legend = ax_rays.get_legend()
+    if legend is not None:
+        handles, labels = ax_rays.get_legend_handles_labels()
+        ax_rays.legend(handles, labels, loc="lower right", fontsize=14)
+
+    # Single invert on the shared y-axis propagates to ax_rays via sharey.
+    ax_ssp.invert_yaxis()
+    ax_rays.set_title(f"Ray trace — vertical plane (src→rcv bearing), "
+                      f"{n_shown}/{n_total} rays shown", fontsize=18)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"Saved {save_path}")
+
+
+def plot_source_zoom(rays: pd.DataFrame,
+                     src_pos: np.ndarray,
+                     rcv_pos: np.ndarray,
+                     alpha_range: tuple[float, float] | None = None,
+                     beta_range: tuple[float, float] | None = None,
+                     zoom_m: float = 100.0,
+                     max_rays: int = 400,
+                     rdp_tolerance: float = 1.0,
+                     plane_tolerance_m: float = 150.0,
+                     save_path: str | None = None) -> None:
+    """Source-centered zoom for sanity-checking Bellhop's beam aim.
+
+    Draws the rays near the source, the direct src→rcv line, and (if
+    alpha/beta were parsed from the env) the beam fan center direction.
+    If the yellow fan-center arrow and the black dashed direct line point
+    the same way, Bellhop's fan is aimed at the receiver. If they diverge
+    by more than the fan's half-width (alpha/beta spread), the receiver
+    sits outside the fan — which would explain a missing arrival even
+    with friendly SSP/bathymetry.
+
+    Annotates the elevation/azimuth of both vectors and the out-of-plane
+    offset of the fan center, so you can read the divergence quantitatively.
+    """
+    delta = rcv_pos[:2] - src_pos[:2]
+    d = float(np.linalg.norm(delta))
+    if d < 1e-6:
+        print("[zoom] src and rcv share xy — nothing to compare.")
+        return
+    u = delta / d
+    n_perp = np.array([-u[1], u[0]])
+
+    n_total = len(rays)
+    indices: list[int] = []
+    for idx in range(n_total):
+        pts = np.asarray(rays.ray.iloc[idx])
+        perp = np.abs((pts[:, :2] - src_pos[:2]) @ n_perp)
+        mp = float(perp.max()) if perp.size else 0.0
+        if mp <= plane_tolerance_m:
+            indices.append(idx)
+    if not indices:
+        indices = list(range(min(n_total, max_rays)))
+    if len(indices) > max_rays:
+        step = len(indices) / max_rays
+        indices = [indices[int(i * step)] for i in range(max_rays)]
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    cmap = plt.cm.viridis
+    n_shown = len(indices)
+
+    for i, idx in enumerate(indices):
+        pts = np.array(rays.ray.iloc[idx])
+        pts = simplify_path(pts, rdp_tolerance)
+        if len(pts) < 2:
+            continue
+        r = (pts[:, :2] - src_pos[:2]) @ u
+        z = pts[:, 2]
+        ax.plot(r, z, color=cmap(i / max(n_shown - 1, 1)),
+                linewidth=0.8, alpha=0.85)
+
+    ax.axhline(0.0, color="steelblue", linewidth=1.2, alpha=0.6,
+               label="sea surface")
+
+    # Direct src→rcv line, extended beyond the zoom window so it reads as
+    # a through-ray rather than an arrow-to-nowhere.
+    ax.plot([0.0, d], [src_pos[2], rcv_pos[2]],
+            linestyle="--", color="black", linewidth=2.0, alpha=0.9,
+            label="direct src↔rcv", zorder=5)
+
+    direct_elev_deg = float(np.degrees(np.arctan2(rcv_pos[2] - src_pos[2], d)))
+    direct_bear_deg = float(np.degrees(np.arctan2(delta[1], delta[0])))
+
+    fan_line = None
+    if alpha_range is not None and beta_range is not None:
+        center_elev = np.radians(np.mean(alpha_range))
+        center_bear = np.radians(np.mean(beta_range))
+        fan_dir = np.array([
+            np.cos(center_elev) * np.cos(center_bear),
+            np.cos(center_elev) * np.sin(center_bear),
+            np.sin(center_elev),
+        ])
+        r_comp = float(fan_dir[:2] @ u)
+        op_comp = float(fan_dir[:2] @ n_perp)
+        z_comp = float(fan_dir[2])
+
+        # Extend the fan-center line beyond the zoom window in both signs of r
+        # so the aim direction is obvious regardless of which way it points.
+        scale = zoom_m * 3.0
+        ax.plot([-scale * r_comp, scale * r_comp],
+                [src_pos[2] - scale * z_comp, src_pos[2] + scale * z_comp],
+                color="goldenrod", linewidth=2.0, alpha=0.95,
+                label="fan center (α,β midpoint)", zorder=6)
+        fan_line = {
+            "elev_deg": float(np.degrees(center_elev)),
+            "bear_deg": float(np.degrees(center_bear)),
+            "op_comp": op_comp,
+        }
+
+    ax.plot(0.0, src_pos[2], marker="o", color="red", markersize=18,
+            markeredgecolor="black", markeredgewidth=1.2,
+            label="source", zorder=7)
+
+    ax.set_xlim(-zoom_m, zoom_m)
+    ax.set_ylim(src_pos[2] - zoom_m, src_pos[2] + zoom_m)
+    ax.invert_yaxis()
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("horizontal range from source (m)", fontsize=13)
+    ax.set_ylabel("depth (m)", fontsize=13)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower right", fontsize=11)
+
+    info = (f"direct: elev={direct_elev_deg:+.2f}°, "
+            f"bearing={direct_bear_deg:+.2f}°")
+    if fan_line is not None:
+        # Bellhop3D elevation convention: positive α = downward. Flip sign
+        # for comparison to the geometric elevation of the src→rcv line.
+        fan_elev_down = fan_line["elev_deg"]
+        delev = fan_elev_down - direct_elev_deg
+        dbear = (fan_line["bear_deg"] - direct_bear_deg + 180.0) % 360.0 - 180.0
+        info += (f"\nfan ctr: elev={fan_elev_down:+.2f}°, "
+                 f"bearing={fan_line['bear_deg']:+.2f}°")
+        info += (f"\nΔelev={delev:+.2f}°, Δbearing={dbear:+.2f}°, "
+                 f"out-of-plane={fan_line['op_comp']:+.3f} (unit)")
+    ax.set_title(f"Source zoom (±{zoom_m:.0f} m) — {n_shown}/{n_total} rays\n"
+                 f"{info}", fontsize=12)
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"Saved {save_path}")
+    # Same note as plot_rays_2d: __main__ calls plt.show() at the very end.
 
 
 def find_connecting_rays(rays: pd.DataFrame, rcv_pos: np.ndarray,
@@ -422,6 +641,63 @@ def parse_env(env_path: str):
     beta_range = (float(beta_parts[0]), float(beta_parts[1]))
 
     return src_pos, rcv_pos, alpha_range, beta_range
+
+
+def load_ssp_at_xy(ssp_path: str, xy: np.ndarray) -> dict:
+    """Return {"depths": ndarray[m], "speeds": ndarray[m/s]} at the
+    grid cell nearest to ``xy`` (metres) in a 3D hexahedral .ssp file.
+
+    Parses the header directly rather than calling readers_1_8.read_ssp_3d:
+    that reader multiplies the depth axis by 1000 (treats it as km), but
+    bellhopcuda's .ssp files in this repo already write depths in metres
+    (z samples run 0…5000, only physical as metres). x/y are in km in the
+    file; we convert to metres locally.
+    """
+    with open(ssp_path) as f:
+        def _next():
+            while True:
+                line = f.readline()
+                if not line:
+                    raise EOFError(f"unexpected EOF in {ssp_path}")
+                s = line.strip()
+                if s and not s.startswith("!"):
+                    return s.split("!")[0].strip()
+
+        nx = int(_next())
+        x_km = np.array([float(v) for v in _next().replace(",", " ").split()])
+        ny = int(_next())
+        y_km = np.array([float(v) for v in _next().replace(",", " ").split()])
+        nz = int(_next())
+        z_m = np.array([float(v) for v in _next().replace(",", " ").split()])
+
+        if len(x_km) != nx or len(y_km) != ny or len(z_m) != nz:
+            raise ValueError(
+                f"{ssp_path}: header axis lengths disagree with counts "
+                f"({len(x_km)} vs {nx}, {len(y_km)} vs {ny}, {len(z_m)} vs {nz})")
+
+        rows = []
+        for line in f:
+            s = line.replace(",", " ").strip()
+            if not s:
+                continue
+            vals = [float(v) for v in s.split()]
+            if len(vals) != nx:
+                raise ValueError(
+                    f"{ssp_path}: speed row has {len(vals)} values, expected {nx}")
+            rows.append(vals)
+
+        if len(rows) != ny * nz:
+            raise ValueError(
+                f"{ssp_path}: expected {ny}*{nz}={ny * nz} speed rows, got {len(rows)}")
+
+    speeds_all = np.array(rows).reshape(nz, ny, nx, order="C")
+
+    x_m = x_km * 1000.0
+    y_m = y_km * 1000.0
+    ix = int(np.argmin(np.abs(x_m - xy[0])))
+    iy = int(np.argmin(np.abs(y_m - xy[1])))
+
+    return {"depths": z_m, "speeds": speeds_all[:, iy, ix]}
 
 
 def build_fan_center_arrow(src_pos: np.ndarray,
@@ -563,6 +839,22 @@ if __name__ == "__main__":
                 else None
             plot_rays_2d(rays_df, src_pos, rcv_pos, bty=bty_for_profile,
                          save_path=file_root + "_rays_2d.png")
+
+            ssp_path = file_root + ".ssp"
+            if os.path.exists(ssp_path):
+                ssp_src = load_ssp_at_xy(ssp_path, src_pos[:2])
+                ssp_rcv = load_ssp_at_xy(ssp_path, rcv_pos[:2])
+                plot_rays_2d_with_ssp(
+                    rays_df, src_pos, rcv_pos, ssp_src, ssp_rcv,
+                    bty=bty_for_profile,
+                    save_path=file_root + "_rays_2d_ssp.png")
+            else:
+                print(f"No ssp file: {ssp_path} — skipping SSP panel variant")
+
+            plot_source_zoom(
+                rays_df, src_pos, rcv_pos,
+                alpha_range=alpha_range, beta_range=beta_range,
+                save_path=file_root + "_source_zoom.png")
 
         if os.path.exists(env_path):
             threshold_m = 50

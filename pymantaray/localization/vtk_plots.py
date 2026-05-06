@@ -100,6 +100,42 @@ _RANGE_LINE_WIDTH = 6
 _TRAJ_LINE_WIDTH = 2 * _RANGE_LINE_WIDTH
 
 
+def _add_landmark_hull_layer(plotter, lm_pts: np.ndarray, *,
+                             toggle_position: tuple[int, int],
+                             color: str = "limegreen",
+                             opacity: float = 0.18,
+                             button_size: int = 28) -> bool:
+    """Add a translucent 3D-hull mesh of the landmarks plus a checkbox
+    widget that toggles its visibility.
+
+    Returns True when the hull was added, False when no hull was
+    available (fewer than 4 non-coplanar landmarks). The boolean lets
+    callers skip allocating a row of vertical space for the toggle.
+    """
+    from hull_utils import build_landmark_hull
+    hull = build_landmark_hull(lm_pts)
+    if hull is None or hull.mesh is None:
+        return False
+    actor = plotter.add_mesh(
+        hull.mesh, color=color, opacity=opacity,
+        show_edges=True, edge_color=color,
+        line_width=1.5, name="landmark_hull")
+
+    def _toggle(state, a=actor):
+        a.SetVisibility(state)
+
+    plotter.add_checkbox_button_widget(
+        _toggle, value=True,
+        position=toggle_position,
+        size=button_size, border_size=2,
+        color_on=color, color_off="gray")
+    plotter.add_text(
+        " landmark hull",
+        position=(toggle_position[0] + button_size + 8, toggle_position[1]),
+        font_size=20, color="black")
+    return True
+
+
 # ───────────────────── residual view ─────────────────────
 
 def plot_factors_in_world(solver,
@@ -107,7 +143,8 @@ def plot_factors_in_world(solver,
                           save_dir: str | None = None,
                           prefix: str = "",
                           label_k: int = 50,
-                          show: bool = True) -> None:
+                          show: bool = True,
+                          show_landmark_hull: bool = False) -> None:
     """Interactive PyVista view of the solved factor graph.
 
     Each factor type is one PolyData trace (bulk line rendering). Cell
@@ -351,6 +388,14 @@ def plot_factors_in_world(solver,
         plotter.add_text(" metric: raw (on) / whitened (off)",
                          position=(10 + btn_size + 8, toggle_y),
                          font_size=18, color="black")
+        hull_y = toggle_y + row_h
+    else:
+        hull_y = 10 + len(type_actors) * row_h + 10
+
+    if show_landmark_hull and len(lm_pts):
+        _add_landmark_hull_layer(plotter, lm_pts,
+                                 toggle_position=(10, hull_y),
+                                 button_size=btn_size)
 
     plotter.add_axes(label_size=(0.08, 0.08))
     plotter.show_grid(font_size=20)
@@ -383,7 +428,8 @@ def plot_leverage_in_world(solver,
                            save_dir: str | None = None,
                            prefix: str = "",
                            label_k: int = 50,
-                           show: bool = True) -> None:
+                           show: bool = True,
+                           show_landmark_hull: bool = False) -> None:
     """Second PyVista window: range factors colored by marginal leverage.
 
     Requires `rec.leverage` to be populated (via `_attach_leverages_to_stats`).
@@ -542,6 +588,10 @@ def plot_leverage_in_world(solver,
             title="min leverage", pointa=(0.25, 0.08),
             pointb=(0.75, 0.08), style="modern")
 
+    if show_landmark_hull and len(lm_pts):
+        _add_landmark_hull_layer(plotter, lm_pts,
+                                 toggle_position=(10, 10))
+
     plotter.add_axes(label_size=(0.08, 0.08))
     plotter.show_grid(font_size=20)
     plotter.view_xz()
@@ -585,7 +635,8 @@ def _resolve_xyz(name: str, pose_dict, landmark_dict) -> np.ndarray | None:
 
 def plot_range_errors_vtk(fg_data,
                           save_dir: str | None = None,
-                          show: bool = True) -> None:
+                          show: bool = True,
+                          show_landmark_hull: bool = False) -> None:
     """PyVista view of every range measurement colored by |measured - true|.
 
     Lines are split into two bundles (robot↔robot and robot↔landmark) so
@@ -613,8 +664,8 @@ def plot_range_errors_vtk(fg_data,
     pose_dict = fg_data.pose_variables_dict
     landmark_dict = fg_data.landmark_variables_dict
 
-    rr_a, rr_b, rr_err = [], [], []
-    rl_a, rl_b, rl_err = [], [], []
+    rr_a, rr_b, rr_abs, rr_pct = [], [], [], []
+    rl_a, rl_b, rl_abs, rl_pct = [], [], [], []
     skipped = 0
     for meas, true_meas in zip(fg_data.range_measurements,
                                true_fg.range_measurements):
@@ -625,12 +676,18 @@ def plot_range_errors_vtk(fg_data,
             skipped += 1
             continue
         abs_err = abs(meas.dist - true_meas.dist)
+        # Relative error as |Δ| / true * 100. Degenerate true=0 is rare for
+        # ranges; collapse to 0 so per-measurement lengths stay aligned.
+        pct_err = (100.0 * abs_err / true_meas.dist
+                   if true_meas.dist != 0 else 0.0)
         a_is_pose = name_a in pose_dict
         b_is_pose = name_b in pose_dict
         if a_is_pose and b_is_pose:
-            rr_a.append(p_a); rr_b.append(p_b); rr_err.append(abs_err)
+            rr_a.append(p_a); rr_b.append(p_b)
+            rr_abs.append(abs_err); rr_pct.append(pct_err)
         elif a_is_pose or b_is_pose:
-            rl_a.append(p_a); rl_b.append(p_b); rl_err.append(abs_err)
+            rl_a.append(p_a); rl_b.append(p_b)
+            rl_abs.append(abs_err); rl_pct.append(pct_err)
         else:
             skipped += 1
     if skipped:
@@ -638,18 +695,23 @@ def plot_range_errors_vtk(fg_data,
 
     rr_a = np.asarray(rr_a, dtype=float) if rr_a else np.empty((0, 3))
     rr_b = np.asarray(rr_b, dtype=float) if rr_b else np.empty((0, 3))
-    rr_err = np.asarray(rr_err, dtype=float)
+    rr_abs = np.asarray(rr_abs, dtype=float)
+    rr_pct = np.asarray(rr_pct, dtype=float)
     rl_a = np.asarray(rl_a, dtype=float) if rl_a else np.empty((0, 3))
     rl_b = np.asarray(rl_b, dtype=float) if rl_b else np.empty((0, 3))
-    rl_err = np.asarray(rl_err, dtype=float)
+    rl_abs = np.asarray(rl_abs, dtype=float)
+    rl_pct = np.asarray(rl_pct, dtype=float)
 
-    if rr_err.size == 0 and rl_err.size == 0:
+    if rr_abs.size == 0 and rl_abs.size == 0:
         print("[vtk_plots] no resolvable range measurements; skipping view.")
         return
 
-    all_err = np.concatenate([e for e in (rr_err, rl_err) if e.size])
-    err_max = float(max(1e-6, all_err.max()))
-    clim = [0.0, err_max]
+    all_abs = np.concatenate([e for e in (rr_abs, rl_abs) if e.size])
+    all_pct = np.concatenate([e for e in (rr_pct, rl_pct) if e.size])
+    abs_max = float(max(1e-6, all_abs.max()))
+    pct_max = float(max(1e-6, all_pct.max() if all_pct.size else 1e-6))
+    clim_abs = [0.0, abs_max]
+    clim_pct = [0.0, pct_max]
 
     plotter = pv.Plotter(title="Range error |measured - true|")
 
@@ -699,17 +761,21 @@ def plot_range_errors_vtk(fg_data,
     # (high error) so the extremes are legible in a presentation still.
     err_cmap = "turbo"
 
-    bundles: dict[str, dict] = {}
+    # Two parallel bundles per pair (abs / pct) so the toggle can flip
+    # between metrics without rebuilding mappers — only visibility changes.
+    bundles: dict[tuple[str, str], dict] = {}
 
-    def _add_bundle(key: str, pa: np.ndarray, pb: np.ndarray,
-                    err: np.ndarray, bar_title: str, bar_y: float) -> None:
+    def _add_bundle(metric: str, key: str, pa: np.ndarray, pb: np.ndarray,
+                    err: np.ndarray, bar_title: str, bar_y: float,
+                    clim: list[float]) -> None:
         if pa.shape[0] == 0:
             return
         poly = _build_line_poly(pa, pb)
-        poly.cell_data["abs_err"] = err
+        poly.cell_data["err"] = err
         actor = plotter.add_mesh(
-            poly, scalars="abs_err", cmap=err_cmap, clim=clim,
-            opacity=[0.25, 1.0], line_width=_RANGE_LINE_WIDTH, name=f"rng_{key}",
+            poly, scalars="err", cmap=err_cmap, clim=clim,
+            opacity=[0.25, 1.0], line_width=_RANGE_LINE_WIDTH,
+            name=f"rng_{metric}_{key}",
             scalar_bar_args={
                 "title": bar_title,
                 "vertical": True,
@@ -717,63 +783,86 @@ def plot_range_errors_vtk(fg_data,
                 "position_y": bar_y,
                 "width": 0.08,
                 "height": 0.35,
-                "title_font_size": 24,
-                "label_font_size": 22,
+                "title_font_size": 36,
+                "label_font_size": 32,
                 "n_labels": 5,
                 "fmt": "%.3g",
             })
-        bundles[key] = {"pa": pa, "pb": pb, "err": err, "actor": actor}
+        bundles[(metric, key)] = {"pa": pa, "pb": pb, "err": err,
+                                  "actor": actor}
 
-    _add_bundle("rr", rr_a, rr_b, rr_err, "|err| rr (m)", 0.55)
-    _add_bundle("rl", rl_a, rl_b, rl_err, "|err| rl (m)", 0.10)
+    _add_bundle("abs", "rr", rr_a, rr_b, rr_abs, "error (m)", 0.55, clim_abs)
+    _add_bundle("abs", "rl", rl_a, rl_b, rl_abs, "error (m)", 0.10, clim_abs)
+    _add_bundle("pct", "rr", rr_a, rr_b, rr_pct, "error (%)", 0.55, clim_pct)
+    _add_bundle("pct", "rl", rl_a, rl_b, rl_pct, "error (%)", 0.10, clim_pct)
 
-    # --- slider on |error| threshold ---
-    state = {"threshold": 0.0}
+    # --- state: which metric is active + slider threshold (fraction of max) ---
+    state = {"metric": "abs", "frac": 0.0}
+    metric_max = {"abs": abs_max, "pct": pct_max}
+    metric_bar_titles = {"abs": "error (m)", "pct": "error (%)"}
 
-    def _apply(_=None):
-        for d in bundles.values():
-            mask = d["err"] >= state["threshold"]
-            n = int(mask.sum())
-            actor = d["actor"]
-            if n == 0:
-                actor.SetVisibility(False)
-                continue
-            new_poly = _build_line_poly(d["pa"][mask], d["pb"][mask])
-            new_poly.cell_data["abs_err"] = d["err"][mask]
-            actor.GetMapper().SetInputData(new_poly)
-            actor.SetVisibility(True)
-        plotter.render()
-
-    def _on_slider(value):
-        state["threshold"] = float(value)
-        _apply()
-
-    plotter.add_slider_widget(
-        _on_slider, rng=[0.0, err_max], value=0.0,
-        title="min |range error| (m)",
-        pointa=(0.25, 0.08), pointb=(0.75, 0.08), style="modern")
-
-    # --- checkboxes: rr / rl / robots / landmarks ---
-    row_h = 40
-    btn_size = 28
     rr_state = {"on": True}
     rl_state = {"on": True}
+
+    def _set_scalar_bar_visibility() -> None:
+        for m, title in metric_bar_titles.items():
+            try:
+                plotter.scalar_bars[title].SetVisibility(
+                    1 if m == state["metric"] else 0)
+            except (KeyError, AttributeError):
+                pass
+
+    def _apply(_=None):
+        threshold = state["frac"] * metric_max[state["metric"]]
+        for (metric, key), d in bundles.items():
+            kind_on = rr_state["on"] if key == "rr" else rl_state["on"]
+            if metric != state["metric"] or not kind_on:
+                d["actor"].SetVisibility(False)
+                continue
+            mask = d["err"] >= threshold
+            n = int(mask.sum())
+            if n == 0:
+                d["actor"].SetVisibility(False)
+                continue
+            new_poly = _build_line_poly(d["pa"][mask], d["pb"][mask])
+            new_poly.cell_data["err"] = d["err"][mask]
+            d["actor"].GetMapper().SetInputData(new_poly)
+            d["actor"].SetVisibility(True)
+        plotter.render()
+
+    # Hide the inactive metric's bundles + scalar bars on first paint.
+    _apply()
+    _set_scalar_bar_visibility()
+
+    def _on_slider(value):
+        state["frac"] = float(value)
+        _apply()
+
+    # Slider in fraction-of-max so semantics stay consistent across both
+    # metrics — the absolute threshold is `frac * current-metric-max`.
+    plotter.add_slider_widget(
+        _on_slider, rng=[0.0, 1.0], value=0.0,
+        title="min error threshold (fraction of max)",
+        pointa=(0.25, 0.08), pointb=(0.75, 0.08), style="modern")
+
+    # --- checkboxes: rr / rl / relative-toggle / robots / landmarks ---
+    row_h = 40
+    btn_size = 28
     robots_state = {"on": True}
     lm_state = {"on": True}
 
     def _toggle_rr(on: bool):
         rr_state["on"] = on
-        actor = bundles.get("rr", {}).get("actor")
-        if actor is not None:
-            actor.SetVisibility(on)
-        plotter.render()
+        _apply()
 
     def _toggle_rl(on: bool):
         rl_state["on"] = on
-        actor = bundles.get("rl", {}).get("actor")
-        if actor is not None:
-            actor.SetVisibility(on)
-        plotter.render()
+        _apply()
+
+    def _toggle_relative(on: bool):
+        state["metric"] = "pct" if on else "abs"
+        _set_scalar_bar_visibility()
+        _apply()
 
     def _toggle_robots(on: bool):
         robots_state["on"] = on
@@ -788,19 +877,26 @@ def plot_range_errors_vtk(fg_data,
         plotter.render()
 
     entries = [
-        ("Robot↔Robot ranges",     _toggle_rr,        "mediumorchid"),
-        ("Robot↔Landmark ranges",  _toggle_rl,        "tomato"),
-        ("Robots",                 _toggle_robots,    "royalblue"),
-        ("Landmarks",              _toggle_landmarks, "gold"),
+        ("Robot↔Robot ranges",     _toggle_rr,        "mediumorchid", True),
+        ("Robot↔Landmark ranges",  _toggle_rl,        "tomato",       True),
+        ("Relative error (%)",     _toggle_relative,  "lightgreen",   False),
+        ("Robots",                 _toggle_robots,    "royalblue",    True),
+        ("Landmarks",              _toggle_landmarks, "gold",         True),
     ]
-    for idx, (label_text, cb, color_on) in enumerate(entries):
+    for idx, (label_text, cb, color_on, init_on) in enumerate(entries):
         plotter.add_checkbox_button_widget(
-            cb, value=True, position=(10, 10 + idx * row_h),
+            cb, value=init_on, position=(10, 10 + idx * row_h),
             size=btn_size, border_size=2,
             color_on=color_on, color_off="gray")
         plotter.add_text(f" {label_text}",
                          position=(10 + btn_size + 8, 10 + idx * row_h),
                          font_size=20, color="black")
+
+    if show_landmark_hull and lm_pts.size:
+        _add_landmark_hull_layer(
+            plotter, lm_pts,
+            toggle_position=(10, 10 + len(entries) * row_h),
+            button_size=btn_size)
 
     plotter.add_axes(label_size=(0.08, 0.08))
     plotter.show_grid(font_size=20)

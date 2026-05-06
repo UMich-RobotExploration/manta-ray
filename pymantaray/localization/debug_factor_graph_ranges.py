@@ -26,10 +26,10 @@ from vtk_plots import plot_range_errors_vtk
 
 
 FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
@@ -175,6 +175,314 @@ def plot_range_diagnostics(fg_data, save_dir: str | None = None):
     if save_dir:
         fig.savefig(os.path.join(save_dir, "range_diagnostics.png"), dpi=150)
     plt.show()
+
+
+def _split_range_errors(fg_data) -> dict[str, dict[str, np.ndarray]]:
+    """Split range measurements into R↔R and R↔L populations.
+
+    Returns a dict keyed by category name with np.ndarray values for
+    'true_dist' (geometric range, m), 'abs_err' (signed metres,
+    measured - true) and 'pct_err' (signed percent). Categories with
+    no measurements are omitted.
+    """
+    true_fg = make_all_ranges_perfect(fg_data)
+    pose_keys = set(fg_data.pose_variables_dict.keys())
+
+    cats: dict[str, dict[str, list[float]]] = {
+        "Robot ↔ Robot": {"true_dist": [], "abs_err": [], "pct_err": []},
+        "Robot ↔ Landmark": {"true_dist": [], "abs_err": [], "pct_err": []},
+    }
+    for meas, true_meas in zip(fg_data.range_measurements,
+                               true_fg.range_measurements):
+        if true_meas.dist == 0:
+            continue
+        name_a, name_b = meas.association
+        a_is_pose = name_a in pose_keys
+        b_is_pose = name_b in pose_keys
+        if a_is_pose and b_is_pose:
+            cat = "Robot ↔ Robot"
+        elif a_is_pose or b_is_pose:
+            cat = "Robot ↔ Landmark"
+        else:
+            continue
+        abs_err = meas.dist - true_meas.dist
+        pct_err = 100.0 * abs_err / true_meas.dist
+        cats[cat]["true_dist"].append(true_meas.dist)
+        cats[cat]["abs_err"].append(abs_err)
+        cats[cat]["pct_err"].append(pct_err)
+
+    return {
+        name: {k: np.asarray(v, dtype=float) for k, v in d.items()}
+        for name, d in cats.items()
+        if len(d["abs_err"]) > 0
+    }
+
+
+def _draw_distribution_axis(ax, values: np.ndarray, *,
+                            color: str, title: str,
+                            xlabel: str | None = None) -> None:
+    """Histogram + mean/median/RMSE markers + zero-bias guide on `ax`."""
+    ax.hist(values, bins=40, alpha=0.75, color=color, edgecolor="black",
+            linewidth=0.4)
+
+    mean_v = float(values.mean())
+    median_v = float(np.median(values))
+    rmse_v = float(np.sqrt(np.mean(values ** 2)))
+
+    ax.axvline(0.0, color="0.4", linestyle="-", linewidth=0.8, alpha=0.6)
+    ax.axvline(mean_v,   color="black", linestyle="-",  linewidth=1.2,
+               label=f"mean = {mean_v:.3g}")
+    ax.axvline(median_v, color="black", linestyle="--", linewidth=1.2,
+               label=f"median = {median_v:.3g}")
+    ax.axvline(rmse_v,   color="black", linestyle=":",  linewidth=1.2,
+               label=f"RMSE = {rmse_v:.3g}")
+
+    ax.set_title(f"{title}  (N = {values.size})")
+    ax.set_ylabel("Count")
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper right", fontsize=9)
+
+
+def plot_range_output_distributions(fg_data,
+                                    save_dir: str | None = None) -> None:
+    """Thesis-clean range error distribution figures.
+
+    Produces two PNGs in `save_dir`:
+      - `range_abs_err_dist.png` — absolute error (m), R↔R top, R↔L bottom.
+      - `range_rel_err_dist.png` — relative error (%), R↔R top, R↔L bottom.
+
+    Each figure carries mean / median / RMSE marker lines per axis and a
+    zero-bias guide. Distinct from the diagnostic outputs of
+    `plot_range_histogram` / `plot_range_diagnostics` so both can coexist.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements; skipping output distributions.")
+        return
+
+    cats = _split_range_errors(fg_data)
+    if not cats:
+        print("No classifiable range measurements; skipping output "
+              "distributions.")
+        return
+
+    # Build the panel list once. Categories with no measurements are
+    # dropped entirely so the figure shrinks rather than rendering a
+    # placeholder axis.
+    panels = []
+    if "Robot ↔ Robot" in cats:
+        panels.append(("Robot ↔ Robot", "tab:purple",
+                       cats["Robot ↔ Robot"]))
+    if "Robot ↔ Landmark" in cats:
+        panels.append(("Robot ↔ Landmark", "tab:red",
+                       cats["Robot ↔ Landmark"]))
+
+    def _render(metric_key: str, xlabel: str, suptitle: str,
+                save_name: str) -> None:
+        n = len(panels)
+        height = 4.0 if n == 1 else 6.5
+        fig, axes = plt.subplots(n, 1, figsize=(9, height), sharex=True)
+        if n == 1:
+            axes = [axes]
+        for ax, (title, color, data) in zip(axes, panels):
+            _draw_distribution_axis(
+                ax, data[metric_key], color=color,
+                title=title,
+                xlabel=xlabel if ax is axes[-1] else None)
+        fig.suptitle(suptitle, fontsize=13)
+        fig.tight_layout()
+        if save_dir:
+            fig.savefig(os.path.join(save_dir, save_name), dpi=150)
+
+    _render("abs_err", "Range Error (m)", "Range Absolute Error",
+            "range_abs_err_dist.png")
+    _render("pct_err", "Range Error (%)", "Range Relative Error",
+            "range_rel_err_dist.png")
+
+
+def plot_range_error_vs_range(fg_data,
+                              save_dir: str | None = None) -> None:
+    """Thesis-clean scatter of |range error| vs. true range.
+
+    Plots the magnitude of the bellhop range error so any trend with
+    range is legible — signed errors cancel visually. Both axes show
+    |error|: left = |measured - true| in metres, right = same in
+    percent.
+
+    Produces `range_err_vs_range.png` in `save_dir`. Two stacked
+    subplots sharing the x-axis (R↔R top, R↔L bottom) auto-shrink
+    when one population is empty. Each subplot has a twin y-axis:
+    |absolute error| (m, blue, left) and |relative error| (%,
+    orange, right). Y-axis labels, ticks, and spines are
+    color-matched to their series so a print reader can attribute
+    markers without consulting the legend.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements; skipping range-vs-error scatter.")
+        return
+
+    cats = _split_range_errors(fg_data)
+    if not cats:
+        print("No classifiable range measurements; skipping "
+              "range-vs-error scatter.")
+        return
+
+    panels = []
+    if "Robot ↔ Robot" in cats:
+        panels.append(("Robot ↔ Robot", cats["Robot ↔ Robot"]))
+    if "Robot ↔ Landmark" in cats:
+        panels.append(("Robot ↔ Landmark", cats["Robot ↔ Landmark"]))
+
+    abs_color = "tab:blue"
+    rel_color = "tab:orange"
+
+    n = len(panels)
+    height = 4.0 if n == 1 else 7.0
+    fig, axes = plt.subplots(n, 1, figsize=(9, height), sharex=True)
+    if n == 1:
+        axes = [axes]
+
+    for ax, (title, data) in zip(axes, panels):
+        true_d = data["true_dist"]
+        abs_e = np.abs(data["abs_err"])
+        pct_e = np.abs(data["pct_err"])
+
+        ax.scatter(true_d, abs_e, s=14, alpha=0.5,
+                   color=abs_color, label="|Absolute error| (m)",
+                   edgecolor="none")
+        ax.set_ylabel("|Absolute error| (m)", color=abs_color)
+        ax.set_ylim(bottom=0.0)
+        ax.tick_params(axis="y", labelcolor=abs_color)
+        ax.spines["left"].set_color(abs_color)
+
+        ax_r = ax.twinx()
+        ax_r.scatter(true_d, pct_e, s=14, alpha=0.5,
+                     color=rel_color, label="|Relative error| (%)",
+                     edgecolor="none")
+        ax_r.set_ylabel("|Relative error| (%)", color=rel_color)
+        ax_r.set_ylim(bottom=0.0)
+        ax_r.tick_params(axis="y", labelcolor=rel_color)
+        ax_r.spines["right"].set_color(rel_color)
+        ax_r.spines["left"].set_color(abs_color)
+
+        ax.set_title(f"{title}  (N = {true_d.size})")
+        ax.grid(True, axis="x", alpha=0.3)
+
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax_r.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, loc="upper left", fontsize=9)
+
+    axes[-1].set_xlabel("True range (m)")
+    fig.suptitle("Absolute Range Error vs. Range", fontsize=13)
+    fig.tight_layout()
+    if save_dir:
+        fig.savefig(os.path.join(save_dir, "range_err_vs_range.png"),
+                    dpi=150)
+
+
+def _split_range_measurements(fg_data) -> dict[str, np.ndarray]:
+    """Split measured range distances into R↔R and R↔L populations.
+
+    Companion to `_split_range_errors` for the raw measurement view.
+    Returns a dict keyed by category with a 1D numpy array of measured
+    distances; categories with no measurements are omitted so the
+    downstream plotter can drop empty panels.
+    """
+    pose_keys = set(fg_data.pose_variables_dict.keys())
+    cats: dict[str, list[float]] = {
+        "Robot ↔ Robot": [],
+        "Robot ↔ Landmark": [],
+    }
+    for meas in fg_data.range_measurements:
+        name_a, name_b = meas.association
+        a_is_pose = name_a in pose_keys
+        b_is_pose = name_b in pose_keys
+        if a_is_pose and b_is_pose:
+            cats["Robot ↔ Robot"].append(float(meas.dist))
+        elif a_is_pose or b_is_pose:
+            cats["Robot ↔ Landmark"].append(float(meas.dist))
+    return {name: np.asarray(v, dtype=float)
+            for name, v in cats.items() if v}
+
+
+def _draw_range_axis(ax, values: np.ndarray, *,
+                     color: str, title: str,
+                     xlabel: str | None = None) -> None:
+    """Histogram of measured ranges + min/max/mean/median markers.
+
+    Sibling to `_draw_distribution_axis`; stats chosen to *frame* the
+    ranging envelope (operational extent) rather than centering on a
+    zero-bias residual.
+    """
+    ax.hist(values, bins=40, alpha=0.75, color=color, edgecolor="black",
+            linewidth=0.4)
+
+    min_v = float(values.min())
+    max_v = float(values.max())
+    mean_v = float(values.mean())
+    median_v = float(np.median(values))
+
+    ax.axvline(min_v,    color="black", linestyle="-",  linewidth=1.4,
+               label=f"min = {min_v:.0f} m")
+    ax.axvline(max_v,    color="black", linestyle="-",  linewidth=1.4,
+               label=f"max = {max_v:.0f} m")
+    ax.axvline(mean_v,   color="0.3",   linestyle="--", linewidth=1.2,
+               label=f"mean = {mean_v:.0f} m")
+    ax.axvline(median_v, color="0.3",   linestyle=":",  linewidth=1.2,
+               label=f"median = {median_v:.0f} m")
+
+    ax.set_title(f"{title}  (N = {values.size})")
+    ax.set_ylabel("Count")
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper right", fontsize=9)
+
+
+def plot_range_measurement_distribution(fg_data,
+                                        save_dir: str | None = None) -> None:
+    """Thesis-clean histogram of bellhop range measurements.
+
+    Produces `range_measurement_dist.png` in `save_dir`. Two stacked
+    subplots sharing the x-axis: R↔R on top (purple), R↔L on bottom
+    (red). Min / max / mean / median vertical markers per axis frame
+    the operational ranging envelope of the simulation. Empty
+    populations are dropped — the figure shrinks rather than rendering
+    a placeholder.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements; skipping range-distribution plot.")
+        return
+
+    cats = _split_range_measurements(fg_data)
+    if not cats:
+        print("No classifiable range measurements; skipping range-"
+              "distribution plot.")
+        return
+
+    panels = []
+    if "Robot ↔ Robot" in cats:
+        panels.append(("Robot ↔ Robot", "tab:purple",
+                       cats["Robot ↔ Robot"]))
+    if "Robot ↔ Landmark" in cats:
+        panels.append(("Robot ↔ Landmark", "tab:red",
+                       cats["Robot ↔ Landmark"]))
+
+    n = len(panels)
+    height = 4.0 if n == 1 else 6.5
+    fig, axes = plt.subplots(n, 1, figsize=(9, height), sharex=True)
+    if n == 1:
+        axes = [axes]
+    for ax, (title, color, data) in zip(axes, panels):
+        _draw_range_axis(
+            ax, data, color=color, title=title,
+            xlabel="Measured Range (m)" if ax is axes[-1] else None)
+    fig.suptitle("Bellhop Measured Range Distribution", fontsize=13)
+    fig.tight_layout()
+    if save_dir:
+        fig.savefig(os.path.join(save_dir, "range_measurement_dist.png"),
+                    dpi=150)
 
 
 def print_worst_ranges(fg_data, n: int = 20):
@@ -335,8 +643,16 @@ if __name__ == "__main__":
     print(f"  Range measurements: {len(fg_data.range_measurements)}")
 
     print_worst_ranges(fg_data)
-    plot_range_histogram(fg_data, save_dir=WORK_DIR)
-    plot_range_diagnostics(fg_data, save_dir=WORK_DIR)
+
+    # --- Debug diagnostics (cluttered, not for thesis) ---
+    # plot_range_histogram(fg_data, save_dir=WORK_DIR)
+    # plot_range_diagnostics(fg_data, save_dir=WORK_DIR)
+
+    # --- Thesis-clean outputs ---
+    plot_range_output_distributions(fg_data, save_dir=WORK_DIR)
+    plot_range_measurement_distribution(fg_data, save_dir=WORK_DIR)
+    plot_range_error_vs_range(fg_data, save_dir=WORK_DIR)
+
     plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
                          save_dir=WORK_DIR)
-    plot_range_errors_vtk(fg_data, save_dir=WORK_DIR)
+    plot_range_errors_vtk(fg_data, save_dir=WORK_DIR, show_landmark_hull=True)

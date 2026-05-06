@@ -300,6 +300,13 @@ class SolverConfig:
                              pattern). "custom" adds a 1-DoF CustomFactor with
                              analytic Jacobian. Semantically equivalent; used
                              for side-by-side numerical comparison.
+        add_depth_noise:     When True, draw N(0, depth_prior_sigma) per pose
+                             and add it to the ground-truth z before building
+                             the depth-prior factor — models a real pressure
+                             sensor's measurement noise. Additive σ equals
+                             the depth factor's noise-model σ by construction,
+                             matching the add_range_noise convention. Requires
+                             depth_prior_sigma is not None.
         robust_range:        RobustConfig for range noise m-estimator.
                              None = standard Gaussian (no robustness).
         landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
@@ -309,8 +316,11 @@ class SolverConfig:
                              ordering as odom_noise_sigmas. When set,
                              overrides per-prior PyFG precisions. First-pose
                              priors always use PyFG precisions.
-        seed:                RNG seed for all random number generation
-                             (odom perturbation).
+        seed:                Root RNG seed. SeedSequence-spawned into
+                             independent child streams for odom, range,
+                             and depth perturbation, so toggling one noise
+                             source on/off does not change the draws for
+                             the others.
     """
     use_odom_initial: bool = False
     use_true_ranges: bool = False
@@ -329,6 +339,7 @@ class SolverConfig:
     gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
     depth_prior_sigma: float | None = None
     depth_prior_mode: str = "pose3"
+    add_depth_noise: bool = False
     seed: int = 42
 
     def __post_init__(self):
@@ -388,6 +399,9 @@ class SolverConfig:
             raise ValueError(
                 f"depth_prior_mode must be 'pose3' or 'custom', "
                 f"got {self.depth_prior_mode!r}")
+        if self.add_depth_noise and self.depth_prior_sigma is None:
+            raise ValueError(
+                "add_depth_noise requires depth_prior_sigma to be set")
 
 
 class FactorGraphSolver:
@@ -410,6 +424,14 @@ class FactorGraphSolver:
         self.fg = fg
         self.config = config or SolverConfig()
         self.result: gtsam.Values | None = None
+
+        ss = np.random.SeedSequence(self.config.seed)
+        odom_ss, range_ss, depth_ss = ss.spawn(3)
+        self._rngs: dict[str, np.random.Generator] = {
+            "odom":  np.random.default_rng(odom_ss),
+            "range": np.random.default_rng(range_ss),
+            "depth": np.random.default_rng(depth_ss),
+        }
 
         self.key_map: dict[str, int] = {}
         for pose_chain in fg.pose_variables:
@@ -465,7 +487,7 @@ class FactorGraphSolver:
         onto the clean delta:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
-        rng = np.random.default_rng(seed=self.config.seed)
+        rng = self._rngs["odom"]
         noisy_deltas: list[list[gtsam.Pose3]] = []
         for odom_chain in self.fg.odom_measurements:
             chain: list[gtsam.Pose3] = []
@@ -478,16 +500,34 @@ class FactorGraphSolver:
             noisy_deltas.append(chain)
         return noisy_deltas
 
+    def _perturbed_depths(self, sigma: float) -> dict[str, float]:
+        """Return a dict mapping pose-name → noisy z = true_z + N(0, sigma).
+
+        Models a pressure sensor's additive Gaussian noise. Drawn once at
+        graph-build time from the spawned depth child stream, so it's
+        reproducible and statistically independent of the range and odom
+        streams. Additive σ matches the factor's noise-model σ so
+        residuals are χ²-distributed.
+        """
+        rng = self._rngs["depth"]
+        out: dict[str, float] = {}
+        for pose_chain in self.fg.pose_variables:
+            for pose in pose_chain:
+                out[pose.name] = (float(pose.true_position[2])
+                                  + float(rng.normal(0.0, sigma)))
+        return out
+
     def _perturb_ranges(self, measurements, stddev: float):
         """Return new FGRangeMeasurement instances with N(0, stddev) added to dist.
 
         Used when SolverConfig.add_range_noise is True — the additive σ is
         deliberately tied to the GTSAM factor's noise model σ so residuals
-        are chi-square distributed. Seeded off config.seed, matching
-        `_perturb_odom_deltas`.
+        are chi-square distributed. Drawn from the spawned range child
+        stream so it's reproducible and statistically independent of the
+        odom and depth streams.
         """
         from py_factor_graph.measurements import FGRangeMeasurement
-        rng = np.random.default_rng(seed=self.config.seed)
+        rng = self._rngs["range"]
         out = []
         for rm in measurements:
             noisy_dist = float(rm.dist) + float(rng.normal(0.0, stddev))
@@ -561,21 +601,29 @@ class FactorGraphSolver:
             self.graph.addPriorPose3(key, pose, noise)
 
         if cfg.depth_prior_sigma is not None:
+            noisy_z = (self._perturbed_depths(cfg.depth_prior_sigma)
+                       if cfg.add_depth_noise else None)
             if cfg.depth_prior_mode == "pose3":
                 depth_noise = gtsam.noiseModel.Diagonal.Sigmas(np.array(
                     [1e6] * 5 + [cfg.depth_prior_sigma], dtype=np.float64))
                 for pose_chain in fg.pose_variables:
                     for pose in pose_chain:
                         key = self.key_map[pose.name]
+                        prior_pose = _pose3_from_pyfg(pose)
+                        if noisy_z is not None:
+                            t = prior_pose.translation().copy()
+                            t[2] = noisy_z[pose.name]
+                            prior_pose = gtsam.Pose3(prior_pose.rotation(), t)
                         self.graph.addPriorPose3(
-                            key, _pose3_from_pyfg(pose), depth_noise)
+                            key, prior_pose, depth_noise)
             else:  # "custom"
                 for pose_chain in fg.pose_variables:
                     for pose in pose_chain:
                         key = self.key_map[pose.name]
-                        gt_z = float(pose.true_position[2])
+                        z_used = (noisy_z[pose.name] if noisy_z is not None
+                                  else float(pose.true_position[2]))
                         self.graph.add(_make_depth_prior_custom(
-                            key, gt_z, cfg.depth_prior_sigma))
+                            key, z_used, cfg.depth_prior_sigma))
 
         landmark_noise = (gtsam.noiseModel.Isotropic.Sigma(3, cfg.landmark_prior_sigma)
                           if cfg.landmark_prior_sigma is not None else None)
