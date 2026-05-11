@@ -17,9 +17,9 @@ from debug_factor_graphs import debug_factor_graph
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple-doubled-noise/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Odom noise model (per-edge, GTSAM Pose3 tangent order [rx, ry, rz, tx, ty, tz]).
@@ -33,7 +33,7 @@ default_pos_prior = 0.1 # meters
 
 angular_noise = 1E-6 # radians (velocity-scale fraction for rotation)
 xy_frac = 0.05       # 5% scale error on recorded xy motion
-z_frac = 0.01        # 1% scale error on recorded z motion
+z_frac = 0.05        # 5% scale error on recorded z motion
 odom_noise = np.array(
     [angular_noise, angular_noise, angular_noise,
      xy_frac, xy_frac, z_frac])
@@ -145,6 +145,6 @@ compare_results(
     ],
     save_dir=WORK_DIR,
     show_landmark_hull= True,
-    show_topdown=True,
+    show_xyz_stack=True,
 )
 

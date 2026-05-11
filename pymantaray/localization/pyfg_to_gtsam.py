@@ -286,9 +286,9 @@ class SolverConfig:
                              odom_noise_floor or the default).
         odom_drift_rate_trans: Per-axis translation INS drift rate in m/s.
                              Multiplied by odom_cadence_dt to form the
-                             translation floor. Typical values: 0.001 m/s
-                             (tactical IMU), 0.002 m/s (mid-spec INS),
-                             0.01+ m/s (MEMS). None treats as 0.
+                             translation floor. Typical values: 0.001 m/s^2
+                             (tactical IMU), 0.002 m/s^2 (mid-spec INS),
+                             0.01+ m/s^2 (MEMS). None treats as 0.
         odom_drift_rate_rot: Per-axis rotation drift rate in rad/s (gyro
                              bias). Multiplied by odom_cadence_dt to form
                              the rotation floor. None treats as 0.

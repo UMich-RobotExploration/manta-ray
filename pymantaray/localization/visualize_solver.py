@@ -220,6 +220,135 @@ def plot_trajectories_topdown_compare(traj_gt,
         fig.savefig(save_path, dpi=150)
 
 
+def plot_range_depth_disparity_collaborative(fg,
+                                             save_path: str | None = None) -> None:
+    """Per-pose-index RSS of inter-endpoint depth disparities, collaborative.
+
+    Aggregates every range edge in the factor graph (peer-to-peer and
+    peer-to-landmark) into a single trace indexed by pose index. At each
+    bin the value is `sqrt(sum(|Δz_i|^2))` over every range edge that
+    happened at that pose index. Dips mark times when the collaborative
+    range geometry is mostly horizontal, so paths sample little of the
+    sound-speed profile and the ray-traced range residual collapses
+    toward the idealized value.
+
+    All depths come from ground-truth `true_position[2]` so the metric
+    reflects measurement geometry, not estimator state.
+
+    Args:
+        fg: PyFG factor graph (provides pose_variables, landmark_variables,
+            range_measurements).
+        save_path: If provided, save figure at this path.
+    """
+    z_lookup: dict[str, float] = {}
+    idx_lookup: dict[str, int] = {}
+    for chain in fg.pose_variables:
+        for i, p in enumerate(chain):
+            z_lookup[p.name] = float(p.true_position[2])
+            idx_lookup[p.name] = i
+    for lm in fg.landmark_variables:
+        z_lookup[lm.name] = float(lm.true_position[2])
+
+    n_poses = max((len(c) for c in fg.pose_variables), default=0)
+    if n_poses == 0:
+        return
+    sumsq = np.zeros(n_poses)
+    count = np.zeros(n_poses, dtype=int)
+
+    for rm in fg.range_measurements:
+        name_a, name_b = rm.association
+        if name_a not in z_lookup or name_b not in z_lookup:
+            continue
+        a_is_pose = name_a in idx_lookup
+        b_is_pose = name_b in idx_lookup
+        if a_is_pose and b_is_pose:
+            bin_idx = min(idx_lookup[name_a], idx_lookup[name_b])
+        elif a_is_pose:
+            bin_idx = idx_lookup[name_a]
+        elif b_is_pose:
+            bin_idx = idx_lookup[name_b]
+        else:
+            continue
+        if bin_idx >= n_poses:
+            continue
+        sumsq[bin_idx] += (z_lookup[name_a] - z_lookup[name_b]) ** 2
+        count[bin_idx] += 1
+
+    populated = np.where(count > 0)[0]
+    rss = np.sqrt(sumsq[populated])
+
+    fig, ax = plt.subplots(figsize=(11, 3.5))
+    ax.scatter(populated, rss,
+               s=22, color='tab:blue',
+               edgecolor='black', linewidth=0.4,
+               alpha=0.85, zorder=3,
+               label=r'$D_t$')
+    ax.set_xlabel(r"Tick $t$")
+    ax.set_ylabel(r"$D_t$ (m)")
+    ax.set_title("Collaborative Range-Edge Depth Disparity")
+    ax.set_xlim(0, n_poses - 1)
+    ax.set_ylim(bottom=0)
+    ax.minorticks_on()
+    ax.grid(which='major', linestyle='-', linewidth=0.6, alpha=0.45, zorder=0)
+    ax.grid(which='minor', linestyle=':', linewidth=0.4, alpha=0.25, zorder=0)
+    ax.legend(loc="best", fontsize=9, framealpha=0.9)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=200)
+
+
+def plot_trajectory_xyz_stacked_compare(traj_gt,
+                                        traj_odom,
+                                        traj_results: list,
+                                        labels: list[str],
+                                        robot_char: str,
+                                        save_path: str | None = None) -> None:
+    """Per-axis stacked view of GT, odometry, and N optimized trajectories.
+
+    Plots X(t), Y(t), Z(t) as three vertically stacked subplots against
+    pose index. Unlike the top-down projection, near-vertical mission
+    segments (descents and ascents) do not collapse into clusters here,
+    so estimator divergence remains legible during cycling profiles.
+    Color and dash conventions match the 3D and top-down comparison
+    views.
+    """
+    palette = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
+               'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
+    estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
+
+    fig, (ax_x, ax_y, ax_z) = plt.subplots(3, 1, sharex=True,
+                                           figsize=(9, 8))
+
+    def _plot_axes(traj, **kwargs):
+        idx = np.arange(traj.positions_xyz.shape[0])
+        ax_x.plot(idx, traj.positions_xyz[:, 0], **kwargs)
+        ax_y.plot(idx, traj.positions_xyz[:, 1], **kwargs)
+        ax_z.plot(idx, traj.positions_xyz[:, 2], **kwargs)
+
+    _plot_axes(traj_gt, linestyle='--', color='black',
+               linewidth=1.2, label='Ground Truth', zorder=2)
+    _plot_axes(traj_odom, linestyle='--', color='tab:orange',
+               linewidth=1.0, alpha=0.8,
+               label='Odometry Only Trajectory', zorder=2)
+    for i, (traj, legend) in enumerate(zip(traj_results, estimate_legends)):
+        _plot_axes(traj, linestyle='-',
+                   color=palette[i % len(palette)],
+                   linewidth=1.0, label=legend, zorder=3)
+
+    ax_x.set_ylabel("X (m)")
+    ax_y.set_ylabel("Y (m)")
+    ax_z.set_ylabel("Depth (m)")
+    ax_z.invert_yaxis()
+    ax_z.set_xlabel("Pose index")
+    ax_x.set_title(f"Robot {robot_char} — Per-Axis Trajectory Comparison")
+    for ax in (ax_x, ax_y, ax_z):
+        ax.grid(True, alpha=0.3)
+    ax_x.legend(loc="best", fontsize=9)
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150)
+
+
 def plot_ape_distribution_compare(ape_results: list[metrics.APE],
                                   labels: list[str],
                                   ape_odom: metrics.APE,
@@ -425,7 +554,8 @@ def compare_results(solvers: list[FactorGraphSolver],
                     save_dir: str | None = None,
                     prefix: str = "",
                     show_landmark_hull: bool = False,
-                    show_topdown: bool = False):
+                    show_topdown: bool = False,
+                    show_xyz_stack: bool = True):
     """Compare multiple solver results against a shared ground truth.
 
     Plots all optimized trajectories on the same 3D figure and overlays
@@ -446,7 +576,12 @@ def compare_results(solvers: list[FactorGraphSolver],
                             and label entry/exit pose indices. Off by default.
         show_topdown: Save an additional top-down (XY) trajectory comparison
                       figure as `{prefix}robot_{char}_compare_trajectory_topdown.png`.
-                      Off by default.
+                      Off by default; only useful for static-depth missions
+                      where descents and ascents do not collapse the projection.
+        show_xyz_stack: Save a per-axis (X(t), Y(t), Z(t)) stacked trajectory
+                        comparison figure as
+                        `{prefix}robot_{char}_compare_trajectory_xyz.png`.
+                        On by default.
     """
     if len(solvers) != len(labels):
         raise ValueError(f"Got {len(solvers)} solvers but {len(labels)} labels")
@@ -575,6 +710,22 @@ def compare_results(solvers: list[FactorGraphSolver],
             plot_trajectories_topdown_compare(
                 traj_gt, traj_odom, traj_results, labels,
                 landmark_xyz, hull, robot_char, save_path=topdown_path)
+
+        if show_xyz_stack:
+            xyz_path = (os.path.join(
+                save_dir,
+                f"{tag}robot_{robot_char}_compare_trajectory_xyz.png")
+                if save_dir else None)
+            plot_trajectory_xyz_stacked_compare(
+                traj_gt, traj_odom, traj_results, labels,
+                robot_char, save_path=xyz_path)
+
+    if save_dir:
+        tag = f"{prefix}_" if prefix else ""
+        plot_range_depth_disparity_collaborative(
+            ref.fg,
+            save_path=os.path.join(save_dir,
+                                   f"{tag}range_depth_disparity.png"))
 
     plt.show()
 
