@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import gtsam
 import numpy as np
+from evo.core import metrics
 from evo.core.trajectory import PosePath3D
 
 from py_factor_graph.factor_graph import FactorGraphData
@@ -238,6 +239,30 @@ def extract_trajectory(values: gtsam.Values,
     return PosePath3D(poses_se3=matrices)
 
 
+def per_pose_ape(solver: "FactorGraphSolver") -> dict[str, np.ndarray]:
+    """Per-pose translation APE for the optimized trajectory, keyed by robot.
+
+    Returns {robot_char: 1D ndarray of APE values}, one entry per pose in the
+    corresponding `solver.fg.pose_variables[i]` chain. Robot char is the first
+    letter of the chain's pose names (e.g. 'A' for poses 'A0', 'A1', ...).
+    """
+    if solver.result is None:
+        raise RuntimeError("Call solver.solve() before per_pose_ape()")
+
+    out: dict[str, np.ndarray] = {}
+    for pose_chain in solver.fg.pose_variables:
+        if not pose_chain:
+            continue
+        robot_char = pose_chain[0].name[0]
+        keys_ordered = [solver.key_map[p.name] for p in pose_chain]
+        traj_gt = extract_trajectory(solver.gt_values, keys_ordered)
+        traj_opt = extract_trajectory(solver.result, keys_ordered)
+        ape = metrics.APE(metrics.PoseRelation.translation_part)
+        ape.process_data((traj_gt, traj_opt))
+        out[robot_char] = np.asarray(ape.error, dtype=np.float64)
+    return out
+
+
 @dataclass
 class SolverConfig:
     """Configuration for FactorGraphSolver.
@@ -251,7 +276,7 @@ class SolverConfig:
         add_range_noise:     When True, draw N(0, range_noise_stddev) per
                              range measurement and add it to `rm.dist`
                              before the factor is built. Applies to both
-                             the bellhop-measured source and the idealized
+                             the bellhop-measured source and the straight-line
                              ranges produced when use_true_ranges=True,
                              so the additive σ equals the solver's noise
                              model σ by construction.

@@ -79,7 +79,7 @@ def plot_range_histogram(fg_data, save_dir: str | None = None):
 
     plt.tight_layout()
     if save_dir:
-        fig.savefig(os.path.join(save_dir, "range_histogram.png"), dpi=150)
+        fig.savefig(os.path.join(save_dir, "range_histogram.png"), dpi=300)
     plt.show()
 
 
@@ -174,7 +174,7 @@ def plot_range_diagnostics(fg_data, save_dir: str | None = None):
 
     fig.tight_layout()
     if save_dir:
-        fig.savefig(os.path.join(save_dir, "range_diagnostics.png"), dpi=150)
+        fig.savefig(os.path.join(save_dir, "range_diagnostics.png"), dpi=300)
     plt.show()
 
 
@@ -294,7 +294,7 @@ def plot_range_output_distributions(fg_data,
         fig.suptitle(suptitle, fontsize=13)
         fig.tight_layout()
         if save_dir:
-            fig.savefig(os.path.join(save_dir, save_name), dpi=150)
+            fig.savefig(os.path.join(save_dir, save_name), dpi=300)
 
     _render("abs_err", "Range Error (m)", "Range Absolute Error",
             "range_abs_err_dist.png")
@@ -379,7 +379,7 @@ def plot_range_error_vs_range(fg_data,
     fig.tight_layout()
     if save_dir:
         fig.savefig(os.path.join(save_dir, "range_err_vs_range.png"),
-                    dpi=150)
+                    dpi=300)
 
 
 def _split_range_measurements(fg_data) -> dict[str, np.ndarray]:
@@ -483,7 +483,7 @@ def plot_range_measurement_distribution(fg_data,
     fig.tight_layout()
     if save_dir:
         fig.savefig(os.path.join(save_dir, "range_measurement_dist.png"),
-                    dpi=150)
+                    dpi=300)
 
 
 def print_worst_ranges(fg_data, n: int = 20):
@@ -626,7 +626,7 @@ def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
     ax.set_title(f'3D Factor Graph - {fg_data.num_robots} Robot(s), {len(fg_data.landmark_variables)} Landmarks')
 
     if save_dir:
-        fig.savefig(os.path.join(save_dir, "factor_graph_3d.png"), dpi=150)
+        fig.savefig(os.path.join(save_dir, "factor_graph_3d.png"), dpi=300)
     plt.show()
 
 

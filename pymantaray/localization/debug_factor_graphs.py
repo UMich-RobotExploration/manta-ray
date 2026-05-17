@@ -312,7 +312,7 @@ def plot_factor_breakdown(stats: dict[str, FactorTypeStats],
     fig.tight_layout()
     if save_dir:
         path = os.path.join(save_dir, f"{prefix}_factor_breakdown.png")
-        fig.savefig(path, dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=300, bbox_inches="tight")
         print(f"Saved {path}")
 
 
@@ -352,7 +352,7 @@ def plot_residual_distributions(stats: dict[str, FactorTypeStats],
     fig.tight_layout()
     if save_dir:
         path = os.path.join(save_dir, f"{prefix}_residual_distributions.png")
-        fig.savefig(path, dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=300, bbox_inches="tight")
         print(f"Saved {path}")
 
 
@@ -672,7 +672,7 @@ def plot_pose_marginals(solver,
     fig.tight_layout()
     if save_dir:
         path = os.path.join(save_dir, f"{prefix}_pose_marginals.png")
-        fig.savefig(path, dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=300, bbox_inches="tight")
         print(f"Saved {path}")
 
 
@@ -741,7 +741,7 @@ def plot_prior_health(stats: dict[str, "FactorTypeStats"],
     fig.tight_layout()
     if save_dir:
         path = os.path.join(save_dir, f"{prefix}_prior_health.png")
-        fig.savefig(path, dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=300, bbox_inches="tight")
         print(f"Saved {path}")
 
 

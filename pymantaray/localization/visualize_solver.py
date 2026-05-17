@@ -11,6 +11,7 @@ import os
 import textwrap
 
 import matplotlib
+from matplotlib.collections import LineCollection
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
@@ -144,14 +145,14 @@ def plot_ape_histogram(ape_opt: metrics.APE,
                label=f"median = {median_v:.3f} m")
     ax.axvline(rmse_v, color="black", linestyle=":", linewidth=1.2,
                label=f"RMSE = {rmse_v:.3f} m")
-    ax.set_xlabel("APE (m)")
+    ax.set_xlabel("ATE (m)")
     ax.set_ylabel("Count")
-    ax.set_title(f"Robot {robot_char} — APE Distribution")
+    ax.set_title(f"Robot {robot_char}: ATE Distribution")
     ax.grid(True, alpha=0.3)
     ax.legend(loc="upper right")
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=150)
+        fig.savefig(save_path, dpi=300)
 
 
 def plot_trajectories_topdown_compare(traj_gt,
@@ -217,7 +218,7 @@ def plot_trajectories_topdown_compare(traj_gt,
     ax.legend(loc="best", fontsize=9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=150)
+        fig.savefig(save_path, dpi=300)
 
 
 def plot_range_depth_disparity_collaborative(fg,
@@ -229,8 +230,8 @@ def plot_range_depth_disparity_collaborative(fg,
     bin the value is `sqrt(sum(|Δz_i|^2))` over every range edge that
     happened at that pose index. Dips mark times when the collaborative
     range geometry is mostly horizontal, so paths sample little of the
-    sound-speed profile and the ray-traced range residual collapses
-    toward the idealized value.
+    sound-speed profile and the refracted range residual collapses
+    toward the straight-line value.
 
     All depths come from ground-truth `true_position[2]` so the metric
     reflects measurement geometry, not estimator state.
@@ -294,7 +295,7 @@ def plot_range_depth_disparity_collaborative(fg,
     ax.legend(loc="best", fontsize=9, framealpha=0.9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=200)
+        fig.savefig(save_path, dpi=300)
 
 
 def plot_trajectory_xyz_stacked_compare(traj_gt,
@@ -346,65 +347,272 @@ def plot_trajectory_xyz_stacked_compare(traj_gt,
     ax_x.legend(loc="best", fontsize=9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=150)
+        fig.savefig(save_path, dpi=300)
 
 
-def plot_ape_distribution_compare(ape_results: list[metrics.APE],
+def plot_ape_distribution_compare(ape_results: list[np.ndarray],
                                   labels: list[str],
-                                  ape_odom: metrics.APE,
-                                  robot_char: str,
+                                  ape_odom: np.ndarray | None = None,
+                                  robot_char: str = "",
                                   save_path: str | None = None) -> None:
     """evo-style APE distribution view: violin per series.
 
     Quartiles are drawn inline on each violin, preserving the box-plot
     information without the visual heaviness. Colors match the palette
     used in the line-plot view in `compare_results`.
+
+    `ape_results` is a list of 1D APE arrays (one per series) and `ape_odom`
+    is an optional odometry-only APE array; pass None to omit the odometry
+    violin (e.g. when plotting pooled MC samples that have no per-pose odom
+    reference).
     """
     if not ape_results:
         return
-    if any(len(a.error) < 2 for a in ape_results) or len(ape_odom.error) < 2:
+    if (any(len(a) < 2 for a in ape_results)
+            or (ape_odom is not None and len(ape_odom) < 2)):
         print(f"[ape-dist] robot {robot_char}: too few poses, skipping plot")
         return
 
     palette = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
                'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
     estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
-    raw_labels = estimate_legends + ["Odometry Only"]
-    series_colors = [palette[i % len(palette)]
-                     for i in range(len(ape_results))] + ["tab:orange"]
-    all_apes = [*ape_results, ape_odom]
+    series_colors = [palette[i % len(palette)] for i in range(len(ape_results))]
+    all_apes = list(ape_results)
+    raw_labels = list(estimate_legends)
+    if ape_odom is not None:
+        all_apes.append(ape_odom)
+        raw_labels.append("Odometry Only")
+        series_colors.append("tab:orange")
 
     long_df = pd.DataFrame({
         "series": np.concatenate(
-            [np.full(len(a.error), lbl) for a, lbl
-             in zip(all_apes, raw_labels)]),
-        "APE (m)": np.concatenate([a.error for a in all_apes]),
+            [np.full(len(a), lbl) for a, lbl in zip(all_apes, raw_labels)]),
+        "ATE (m)": np.concatenate(all_apes),
     })
 
     fig, ax_violin = plt.subplots(
         figsize=(max(9, 1.9 * len(all_apes)), 6))
 
     sns.violinplot(
-        data=long_df, x="series", y="APE (m)",
+        data=long_df, x="series", y="ATE (m)",
         hue="series", palette=dict(zip(raw_labels, series_colors)),
         inner="quartile", cut=0, ax=ax_violin, legend=False)
     ax_violin.set_xticks(range(len(raw_labels)))
     ax_violin.set_xticklabels(
         [textwrap.fill(t, width=18) for t in raw_labels])
     ax_violin.set_xlabel("")
-    ax_violin.set_title(
-        f"Robot {robot_char} — APE Distribution Comparison")
+    if len(robot_char) == 1:
+        title = f"Robot {robot_char}: ATE Distribution Comparison"
+    elif robot_char:
+        title = f"ATE Distribution Comparison ({robot_char})"
+    else:
+        title = "ATE Distribution Comparison"
+    ax_violin.set_title(title)
     ax_violin.grid(True, alpha=0.3, axis="y")
 
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=150)
+        fig.savefig(save_path, dpi=300)
+
+
+def plot_paired_ape_delta(delta: np.ndarray,
+                          seeds: list[int] | np.ndarray,
+                          save_dir: str | None = None,
+                          prefix: str = "mc",
+                          minuend_label: str = "Straight-line",
+                          subtrahend_label: str = "Refracted",
+                          robot_char: str = "",
+                          show: bool = True) -> None:
+    """Plot per-pose paired APE difference across seeds.
+
+    `delta` is shape (n_seeds, n_poses), `delta[i, p] = APE(minuend)[p] -
+    APE(subtrahend)[p]` under noise seed i. With the same seed used for both
+    legs, odom/depth/range injection noise cancels and the per-pose
+    difference isolates the mean-shift between the two range sources
+    (e.g. refraction bias vs. straight-line mean).
+
+    Renders, back to front:
+      - per-seed traces (very faint gray, rasterized) as background texture
+      - IQR (25-75%) band
+      - min and max envelope (dashed)
+      - mean curve (solid, bold)
+      - y=0 reference line
+
+    Note: matplotlib alpha-blends overlapping segments even within a single
+    LineCollection; the very low alpha and rasterization keep overlap
+    darkening mild rather than removing it entirely.
+    """
+    delta = np.asarray(delta, dtype=np.float64)
+    if delta.ndim != 2:
+        raise ValueError(
+            f"delta must be 2D (n_seeds, n_poses), got shape {delta.shape}")
+
+    n_seeds, n_poses = delta.shape
+    x = np.arange(n_poses)
+
+    mean_curve = np.mean(delta, axis=0)
+    min_curve = np.min(delta, axis=0)
+    max_curve = np.max(delta, axis=0)
+    q25 = np.percentile(delta, 25, axis=0)
+    q75 = np.percentile(delta, 75, axis=0)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    segments = [np.column_stack([x, delta[i]]) for i in range(n_seeds)]
+    seeds_lc = LineCollection(segments,
+                              colors="lightsteelblue",
+                              linewidths=0.8,
+                              alpha=0.55,
+                              zorder=0)
+    seeds_lc.set_rasterized(True)
+    ax.add_collection(seeds_lc)
+
+    ax.fill_between(x, q25, q75, color="tab:blue", alpha=0.50,
+                    label="IQR (25-75%)", zorder=1)
+    ax.plot(x, min_curve, color="indianred", linewidth=1.0, linestyle="--",
+            label="Min / Max", zorder=2)
+    ax.plot(x, max_curve, color="indianred", linewidth=1.0, linestyle="--",
+            zorder=2)
+    ax.plot(x, mean_curve, color="black", linewidth=2.0,
+            label="Mean", zorder=3)
+    ax.axhline(0.0, color="black", linewidth=0.8, linestyle=":", zorder=4)
+    ax.set_xlabel("Pose index")
+    ax.set_ylabel(f"ATE({minuend_label}) - ATE({subtrahend_label})  [m]")
+    if len(robot_char) == 1:
+        title = (f"Robot {robot_char}: Paired per-pose ATE difference  "
+                 f"(N={n_seeds} seeds)")
+    elif robot_char:
+        title = (f"Paired per-pose ATE difference ({robot_char})  "
+                 f"(N={n_seeds} seeds)")
+    else:
+        title = f"Paired per-pose ATE difference  (N={n_seeds} seeds)"
+    ax.set_title(title)
+    handles, labels = ax.get_legend_handles_labels()
+    legend_order = ["Mean", "Min / Max", "IQR (25-75%)"]
+    ordered = [(handles[labels.index(name)], name)
+               for name in legend_order if name in labels]
+    if ordered:
+        ax.legend([h for h, _ in ordered], [n for _, n in ordered],
+                  loc="best")
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+
+    if save_dir is not None:
+        fig.savefig(os.path.join(save_dir, f"{prefix}_paired_ape_delta.png"),
+                    dpi=300)
+    if show:
+        plt.show()
+
+
+def plot_collaborative_ape_box_compare(per_robot_ape: list[tuple[str, list[metrics.APE]]],
+                                       labels: list[str],
+                                       save_path: str | None = None) -> None:
+    """Per-robot paired box plot of estimator APE distributions.
+
+    Each robot occupies an x-axis group containing one box per estimator label.
+    Within each group, any "Straight-line*" label is placed first and the remaining
+    labels follow their order in `labels`. Outliers are suppressed so the
+    visual focus stays on median, IQR, and whiskers.
+    """
+    if len(per_robot_ape) < 2:
+        return
+    if any(len(ape.error) < 2 for _, apes in per_robot_ape for ape in apes):
+        print("[collab-box] too few poses on at least one robot, skipping plot")
+        return
+
+    def _straight_line_first(lbls: list[str]) -> list[str]:
+        straights = [l for l in lbls if "straight" in l.lower()]
+        others = [l for l in lbls if "straight" not in l.lower()]
+        return straights + others
+
+    ordered_labels = _straight_line_first(labels)
+    palette = {l: ("tab:purple" if "straight" in l.lower() else "tab:blue")
+               for l in ordered_labels}
+
+    rows = []
+    for robot_char, ape_results in per_robot_ape:
+        for label, ape in zip(labels, ape_results):
+            rows.append(pd.DataFrame({
+                "Robot": [f"Robot {robot_char}"] * len(ape.error),
+                "Measurement": [label] * len(ape.error),
+                "ATE (m)": ape.error,
+            }))
+    long_df = pd.concat(rows, ignore_index=True)
+    long_df["Measurement"] = pd.Categorical(
+        long_df["Measurement"], categories=ordered_labels, ordered=True)
+
+    fig, ax = plt.subplots(figsize=(max(10, 2.4 * len(per_robot_ape)), 5))
+    sns.boxplot(
+        data=long_df, x="Robot", y="ATE (m)", hue="Measurement",
+        hue_order=ordered_labels, palette=palette,
+        width=0.6, showfliers=False, ax=ax)
+    ax.set_xlabel("")
+    ax.set_title("Collaborative ATE Distribution: Straight-line vs Refracted Ranges")
+    ax.grid(True, alpha=0.3, axis="y")
+    ax.legend(loc="upper right")
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=300)
+
+
+def plot_collaborative_ape_violin_aggregate(
+        per_robot_ape: list[tuple[str, list[metrics.APE]]],
+        labels: list[str],
+        save_path: str | None = None) -> None:
+    """Pooled-fleet violin plot: one violin per measurement.
+
+    Concatenates each measurement's per-pose APE across all robots and shows
+    the resulting distributions as side-by-side violins (any "Straight-line*" label
+    first, then the remaining labels in `labels` order). Quartiles are drawn
+    inline. Odometry is excluded so the comparison stays focused on the
+    measurement conditions.
+    """
+    if len(per_robot_ape) < 2:
+        return
+    if any(len(ape.error) < 2 for _, apes in per_robot_ape for ape in apes):
+        print("[collab-violin] too few poses on at least one robot, skipping plot")
+        return
+
+    ordered_labels = (
+        [l for l in labels if "straight" in l.lower()]
+        + [l for l in labels if "straight" not in l.lower()])
+    palette = {l: ("tab:purple" if "straight" in l.lower() else "tab:blue")
+               for l in ordered_labels}
+
+    rows = []
+    for _, ape_results in per_robot_ape:
+        for label, ape in zip(labels, ape_results):
+            rows.append(pd.DataFrame({
+                "Measurement": [label] * len(ape.error),
+                "ATE (m)": ape.error,
+            }))
+    long_df = pd.concat(rows, ignore_index=True)
+    long_df["Measurement"] = pd.Categorical(
+        long_df["Measurement"], categories=ordered_labels, ordered=True)
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    sns.violinplot(
+        data=long_df, x="Measurement", y="ATE (m)",
+        hue="Measurement", order=ordered_labels,
+        palette=palette, inner="quartile", cut=0,
+        ax=ax, legend=False)
+    ax.set_xlabel("")
+    ax.set_title(
+        "Collaborative ATE Distribution Across Fleet: "
+        "Straight-line vs Refracted Ranges")
+    ax.grid(True, alpha=0.3, axis="y")
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=300)
 
 
 def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
               prefix: str = "", show_range_error: bool = True,
               estimate_label: str = "Estimate",
-              show_landmark_hull: bool = False):
+              show_landmark_hull: bool = False,
+              show: bool = True):
     """Plot ground-truth, initial, and optimized trajectories with APE.
 
     Per robot, shows:
@@ -445,7 +653,7 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
 
         estimate_legend = f"Estimated Traj w/ {estimate_label}"
 
-        print(f"\nRobot {robot_char} — APE (translation, {len(pose_chain)} poses):")
+        print(f"\nRobot {robot_char}: ATE (translation, {len(pose_chain)} poses):")
         print(f"  {'':20s} {'Odometry Only':>14s}  {estimate_legend:>32s}")
         for stat_name in ape_odom.get_all_statistics():
             val_d = ape_odom.get_all_statistics()[stat_name]
@@ -500,8 +708,8 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
             ax_ape.scatter(rng_list, [ape_opt.error[i] for i in rng_list],
                            marker='*', s=16, color='purple', alpha=0.6,
                            zorder=3, label='Range measurement')
-        ax_ape.set_ylabel("APE (m)")
-        ax_ape.set_title(f"Robot {robot_char} — Absolute Pose Error")
+        ax_ape.set_ylabel("ATE (m)")
+        ax_ape.set_title(f"Robot {robot_char}: Absolute Translation Error")
         ax_ape.legend()
         ax_ape.grid(True, alpha=0.3)
 
@@ -537,8 +745,8 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
 
         if save_dir:
             tag = f"{prefix}_" if prefix else ""
-            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=150)
-            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=150)
+            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=300)
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=300)
 
         tag = f"{prefix}_" if prefix else ""
         hist_path = (os.path.join(save_dir, f"{tag}robot_{robot_char}_ape_dist.png")
@@ -546,7 +754,8 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
         plot_ape_histogram(ape_opt, ape_odom, robot_char,
                            estimate_label, save_path=hist_path)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
 def compare_results(solvers: list[FactorGraphSolver],
@@ -555,7 +764,8 @@ def compare_results(solvers: list[FactorGraphSolver],
                     prefix: str = "",
                     show_landmark_hull: bool = False,
                     show_topdown: bool = False,
-                    show_xyz_stack: bool = True):
+                    show_xyz_stack: bool = True,
+                    show: bool = True):
     """Compare multiple solver results against a shared ground truth.
 
     Plots all optimized trajectories on the same 3D figure and overlays
@@ -595,6 +805,8 @@ def compare_results(solvers: list[FactorGraphSolver],
     colors = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
               'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
 
+    per_robot_ape: list[tuple[str, list[metrics.APE]]] = []
+
     for robot_idx, pose_chain in enumerate(ref.fg.pose_variables):
         if not pose_chain:
             continue
@@ -617,11 +829,12 @@ def compare_results(solvers: list[FactorGraphSolver],
             ape = metrics.APE(metrics.PoseRelation.translation_part)
             ape.process_data((traj_gt, traj))
             ape_results.append(ape)
+        per_robot_ape.append((robot_char, ape_results))
 
         # Print comparison table
         estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
         col_w = max(14, *(len(l) + 2 for l in estimate_legends))
-        print(f"\nRobot {robot_char} — APE (translation, {len(pose_chain)} poses):")
+        print(f"\nRobot {robot_char}: ATE (translation, {len(pose_chain)} poses):")
         header = f"  {'':20s} {'Odometry Only':>{col_w}s}"
         for legend in estimate_legends:
             header += f"  {legend:>{col_w}s}"
@@ -676,8 +889,8 @@ def compare_results(solvers: list[FactorGraphSolver],
             ax2.plot(ape.error, color=colors[i % len(colors)],
                      linewidth=0.8, label=legend)
         ax2.set_xlabel("Pose index")
-        ax2.set_ylabel("APE (m)")
-        ax2.set_title(f"Robot {robot_char} — Absolute Pose Error Comparison")
+        ax2.set_ylabel("ATE (m)")
+        ax2.set_title(f"Robot {robot_char}: Absolute Translation Error Comparison")
         ax2.legend()
         ax2.grid(True, alpha=0.3)
 
@@ -690,17 +903,30 @@ def compare_results(solvers: list[FactorGraphSolver],
 
         fig2.tight_layout()
 
-        if save_dir:
-            tag = f"{prefix}_" if prefix else ""
-            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=150)
-            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=150)
-
         tag = f"{prefix}_" if prefix else ""
+
+        if save_dir:
+            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=300)
+            # Full autoscale version preserves the odometry baseline tail.
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape_full.png"), dpi=300)
+
+        # Clip y-axis to the range-aided traces so the odometry baseline does
+        # not dominate the scale and squash range-aided detail. The odometry
+        # line still enters from below and clips off the top of the axes.
+        if ape_results:
+            y_top = 1.15 * max(float(np.max(ape.error)) for ape in ape_results)
+            ax2.set_ylim(0, y_top)
+
+        if save_dir:
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=300)
+
         dist_path = (os.path.join(save_dir,
                                   f"{tag}robot_{robot_char}_compare_ape_dist.png")
                      if save_dir else None)
-        plot_ape_distribution_compare(ape_results, labels, ape_odom,
-                                      robot_char, save_path=dist_path)
+        plot_ape_distribution_compare(
+            [a.error for a in ape_results], labels,
+            ape_odom=ape_odom.error,
+            robot_char=robot_char, save_path=dist_path)
 
         if show_topdown:
             topdown_path = (os.path.join(
@@ -726,14 +952,25 @@ def compare_results(solvers: list[FactorGraphSolver],
             ref.fg,
             save_path=os.path.join(save_dir,
                                    f"{tag}range_depth_disparity.png"))
+        if len(per_robot_ape) >= 2:
+            plot_collaborative_ape_box_compare(
+                per_robot_ape, labels,
+                save_path=os.path.join(save_dir,
+                                       f"{tag}collaborative_compare_ape_box.png"))
+            plot_collaborative_ape_violin_aggregate(
+                per_robot_ape, labels,
+                save_path=os.path.join(save_dir,
+                                       f"{tag}collaborative_compare_ape_violin.png"))
 
-    plt.show()
+    if show:
+        plt.show()
 
 
 def compare_depth_error(solvers: list[FactorGraphSolver],
                         labels: list[str],
                         save_dir: str | None = None,
-                        prefix: str = ""):
+                        prefix: str = "",
+                        show: bool = True):
     """Single-figure comparison of world-frame z error per solver.
 
     Concatenates poses across all robots into one x-axis so there is one line
@@ -742,7 +979,7 @@ def compare_depth_error(solvers: list[FactorGraphSolver],
 
     Args:
         solvers: List of solved FactorGraphSolver instances.
-        labels:  One label per solver (e.g. ["Ray-Traced Ranges", ...]).
+        labels:  One label per solver (e.g. ["Refracted Ranges", ...]).
         save_dir: Directory to save the figure.
         prefix:  Filename prefix.
     """
@@ -806,9 +1043,10 @@ def compare_depth_error(solvers: list[FactorGraphSolver],
 
     if save_dir:
         tag = f"{prefix}_" if prefix else ""
-        fig.savefig(os.path.join(save_dir, f"{tag}compare_z_error.png"), dpi=150)
+        fig.savefig(os.path.join(save_dir, f"{tag}compare_z_error.png"), dpi=300)
 
-    plt.show()
+    if show:
+        plt.show()
 
 
 def visualize_landmarks(solver: FactorGraphSolver,
@@ -892,5 +1130,5 @@ def visualize_landmarks(solver: FactorGraphSolver,
 
     if save_dir:
         tag = f"{prefix}_" if prefix else ""
-        fig.savefig(os.path.join(save_dir, f"{tag}landmarks.png"), dpi=150)
+        fig.savefig(os.path.join(save_dir, f"{tag}landmarks.png"), dpi=300)
     plt.close(fig)
