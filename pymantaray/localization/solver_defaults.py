@@ -26,12 +26,8 @@ ANGULAR_NOISE: float = 1e-6   # velocity-scale fraction for rotation
 XY_FRAC: float = 0.05          # 5% scale error on recorded xy motion
 Z_FRAC: float = 0.05           # 5% scale error on recorded z motion
 
-# Scaled down 10x from prior tuning: the drift term contributes drift_rate * dt
-# per edge, and the fleet-week sim runs odom at 1/10th the frequency of previous
-# sims (0.001 Hz vs 0.01 Hz), so dt is 10x larger. Dividing drift_rate by 10
-# preserves the per-edge sigma that produced clean solves on shorter sims.
-ODOM_DRIFT_RATE_TRANS: float = 0.0025   # m/s, translation INS drift rate
-ODOM_DRIFT_RATE_ROT: float = 1e-7       # rad/s, rotation INS drift rate
+ODOM_DRIFT_RATE_TRANS: float = 0.025   # m/s, translation INS drift rate
+ODOM_DRIFT_RATE_ROT: float = 1e-6      # rad/s, rotation INS drift rate
 
 # Factor-graph rotation belief (rad-per-rad); translation fractions inherit
 # from odom_noise so the factor belief matches the injected scale error.
@@ -78,7 +74,14 @@ def build_default_config(fg_data: FactorGraphData,
         landmark_prior_sigma=DEFAULT_POS_PRIOR,
         gps_prior_sigmas=gps_prior_sigmas,
         depth_prior_sigma=DEPTH_PRIOR_SIGMA,
-        depth_prior_mode="custom",
+        # "pose3" uses PriorFactorPose3 (stock C++, no pybind callback per
+        # linearization). "custom" uses a Python CustomFactor which crosses
+        # the pybind boundary every LM iteration -- fine on small graphs, but
+        # meaningful overhead at 7k+ poses. The two modes constrain slightly
+        # different quantities (world-z vs body-frame retract z), but are
+        # identical when robot rotation is the identity, as it is in the
+        # current-drift floats.
+        depth_prior_mode="pose3",
         add_depth_noise=True,
         odom_cadence_dt=odom_cadence_from_fg(fg_data),
         odom_drift_rate_trans=ODOM_DRIFT_RATE_TRANS,

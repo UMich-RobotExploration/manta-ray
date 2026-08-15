@@ -320,11 +320,15 @@ class SolverConfig:
         depth_prior_sigma:   Stddev (m) for per-pose z anchor to ground truth
                              depth. None disables depth priors. When set, adds
                              one depth prior per pose across all robot chains.
-        depth_prior_mode:    "pose3" or "custom". "pose3" adds a PriorFactorPose3
-                             with sigmas [1e6]*5 + [depth_prior_sigma] (GPS-style
-                             pattern). "custom" adds a 1-DoF CustomFactor with
-                             analytic Jacobian. Semantically equivalent; used
-                             for side-by-side numerical comparison.
+        depth_prior_mode:    "pose3" or "custom". "pose3" adds a stock C++
+                             PoseTranslationPrior3D with sigmas
+                             [1e6, 1e6, depth_prior_sigma] — world-frame
+                             translation residual, rotation-invariant, no
+                             pybind11 callback per LM iteration. "custom" adds
+                             a 1-DoF Python CustomFactor with the same analytic
+                             world-z Jacobian but pays a pybind cost per
+                             linearization. Semantically equivalent; use
+                             "custom" only for verification.
         add_depth_noise:     When True, draw N(0, depth_prior_sigma) per pose
                              and add it to the ground-truth z before building
                              the depth-prior factor — models a real pressure
@@ -629,8 +633,14 @@ class FactorGraphSolver:
             noisy_z = (self._perturbed_depths(cfg.depth_prior_sigma)
                        if cfg.add_depth_noise else None)
             if cfg.depth_prior_mode == "pose3":
+                # PoseTranslationPrior3D: world-frame translation residual on
+                # Pose3, rotation-invariant. Pure stock C++, no pybind11
+                # callback per LM iteration. 1e6 on x/y makes their information
+                # contribution (~1e-12) disappear against odom/GPS/range info,
+                # leaving an effective 1-DoF z anchor. Matches the "custom"
+                # branch semantically while avoiding the Python callback cost.
                 depth_noise = gtsam.noiseModel.Diagonal.Sigmas(np.array(
-                    [1e6] * 5 + [cfg.depth_prior_sigma], dtype=np.float64))
+                    [1e6, 1e6, cfg.depth_prior_sigma], dtype=np.float64))
                 for pose_chain in fg.pose_variables:
                     for pose in pose_chain:
                         key = self.key_map[pose.name]
@@ -639,8 +649,8 @@ class FactorGraphSolver:
                             t = prior_pose.translation().copy()
                             t[2] = noisy_z[pose.name]
                             prior_pose = gtsam.Pose3(prior_pose.rotation(), t)
-                        self.graph.addPriorPose3(
-                            key, prior_pose, depth_noise)
+                        self.graph.add(gtsam.PoseTranslationPrior3D(
+                            key, prior_pose, depth_noise))
             else:  # "custom"
                 for pose_chain in fg.pose_variables:
                     for pose in pose_chain:
