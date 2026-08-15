@@ -16,8 +16,12 @@
 namespace {
 
 std::string robotName(size_t robotIdx, size_t timeIdx) {
-  assert(robotIdx < 26 && "PFG format supports at most 26 robots (A-Z)");
-  return fmt::format("{}{}", static_cast<char>('A' + robotIdx), timeIdx);
+  // 'L' is reserved for landmarks in the PyFactorGraph text format, so skip
+  // it: robot indices 0..10 -> A..K, 11..24 -> M..Z. Supports 25 robots.
+  static constexpr char kRobotAlphabet[] = "ABCDEFGHIJKMNOPQRSTUVWXYZ";
+  assert(robotIdx < sizeof(kRobotAlphabet) - 1 &&
+         "PFG format supports at most 25 robots (A-Z minus L)");
+  return fmt::format("{}{}", kRobotAlphabet[robotIdx], timeIdx);
 }
 
 std::string landmarkName(size_t idx) { return fmt::format("L{}", idx); }

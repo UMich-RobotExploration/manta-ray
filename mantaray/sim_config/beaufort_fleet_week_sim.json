@@ -1,0 +1,135 @@
+{
+  "run_name": "beaufort_fleet_week",
+  "output_dir": "results/arctic/beaufort-fleet-week",
+  "env_config_file": "../../sim_config/beaufort_summer.json",
+  "rng_seed": 10020,
+  "bellhop_memory_mib": 80,
+  "timing": {
+    "end_time_hours": 168.0,
+    "physics_dt": 1.0,
+    "ping_interval_min": 240.0,
+    "bounds_check_interval_sec": 100.0
+  },
+  "acoustics": {
+    "tof_mode": "one_way",
+    "debug_range_error_pct": 4.00,
+    "num_beams": 100,
+    "beam_spread_deg": 15,
+    "max_beams": 600,
+    "allow_multipath": false
+  },
+  "sensors": {
+    "gt_freq_hz": 0.001,
+    "odom_freq_hz": 0.001,
+    "gps_freq_hz": 0.001,
+    "odom_noise_stddev": 0.01,
+    "gps_xy_noise_stddev": 0.1,
+    "gps_z_noise_stddev": 0.0033,
+    "gps_surface_range_meters": 2.0
+  },
+  "robots": [
+    {
+      "type": "current_drift",
+      "position": [-2500.0, 0.0, 1.0],
+      "target_depth": 2000.0,
+      "hold_seconds": 60.0,
+      "surface_hold_seconds": 604800.0,
+      "start_offset_seconds": 700000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [2500.0, 0.0, 1.0],
+      "target_depth": 2000.0,
+      "hold_seconds": 60.0,
+      "surface_hold_seconds": 604800.0,
+      "start_offset_seconds": 700000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-2000.0, 1800.0, 0.01],
+      "target_depth": 500.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 0.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-700.0, 1800.0, 0.01],
+      "target_depth": 2000.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 2500.0
+    },
+    {
+      "type": "current_drift",
+      "position": [700.0, 1800.0, 0.01],
+      "target_depth": 750.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 5000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [2000.0, 1800.0, 0.01],
+      "target_depth": 2250.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 7500.0
+    },
+    {
+      "type": "current_drift",
+      "position": [0.0, 1000.0, 0.01],
+      "target_depth": 1500.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 10000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [0.0, -1000.0, 0.01],
+      "target_depth": 250.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 12500.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-2000.0, -1800.0, 0.01],
+      "target_depth": 2500.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 15000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [-700.0, -1800.0, 0.01],
+      "target_depth": 1000.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 17500.0
+    },
+    {
+      "type": "current_drift",
+      "position": [700.0, -1800.0, 0.01],
+      "target_depth": 1750.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 20000.0
+    },
+    {
+      "type": "current_drift",
+      "position": [2000.0, -1800.0, 0.01],
+      "target_depth": 1250.0,
+      "hold_seconds": 86400.0,
+      "surface_hold_seconds": 3600.0,
+      "start_offset_seconds": 22500.0
+    }
+  ],
+  "pfg": {
+    "use_ground_truth_odometry": true,
+    "range_variance": 0.1,
+    "odom_rotation_variance": 0.00001,
+    "pose_prior_cov_diag": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    "landmark_prior_cov_diag": [0.1, 0.1, 0.1]
+  }
+}

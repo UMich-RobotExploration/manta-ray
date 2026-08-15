@@ -34,7 +34,8 @@ from solver_defaults import build_default_config
 from visualize_solver import (plot_ape_distribution_compare,
                               plot_paired_ape_delta)
 
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
 
 # Draw the MC seed list deterministically from a meta-seed so reruns
 # produce the same set of realizations without hand-picking seed values.

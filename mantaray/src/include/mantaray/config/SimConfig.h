@@ -56,6 +56,8 @@ inline void from_json(const nlohmann::json &j, StandardSensorConfig &c) {
   c.odomNoiseStddev = j.value("odom_noise_stddev", c.odomNoiseStddev);
   c.gpsXyNoiseStddev = j.value("gps_xy_noise_stddev", c.gpsXyNoiseStddev);
   c.gpsZNoiseStddev = j.value("gps_z_noise_stddev", c.gpsZNoiseStddev);
+  c.gpsSurfaceRangeMeters =
+      j.value("gps_surface_range_meters", c.gpsSurfaceRangeMeters);
 }
 } // namespace sim
 

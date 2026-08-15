@@ -26,8 +26,12 @@ ANGULAR_NOISE: float = 1e-6   # velocity-scale fraction for rotation
 XY_FRAC: float = 0.05          # 5% scale error on recorded xy motion
 Z_FRAC: float = 0.05           # 5% scale error on recorded z motion
 
-ODOM_DRIFT_RATE_TRANS: float = 0.025   # m/s, translation INS drift rate
-ODOM_DRIFT_RATE_ROT: float = 1e-6      # rad/s, rotation INS drift rate
+# Scaled down 10x from prior tuning: the drift term contributes drift_rate * dt
+# per edge, and the fleet-week sim runs odom at 1/10th the frequency of previous
+# sims (0.001 Hz vs 0.01 Hz), so dt is 10x larger. Dividing drift_rate by 10
+# preserves the per-edge sigma that produced clean solves on shorter sims.
+ODOM_DRIFT_RATE_TRANS: float = 0.0025   # m/s, translation INS drift rate
+ODOM_DRIFT_RATE_ROT: float = 1e-7       # rad/s, rotation INS drift rate
 
 # Factor-graph rotation belief (rad-per-rad); translation fractions inherit
 # from odom_noise so the factor belief matches the injected scale error.
