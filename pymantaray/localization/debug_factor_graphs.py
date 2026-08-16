@@ -823,7 +823,8 @@ if __name__ == "__main__":
     from pyfg_to_gtsam import (FactorGraphSolver, SolverConfig,
                                odom_cadence_from_fg)
 
-    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
+
+    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
     WORK_DIR = os.path.dirname(FILE_PATH)
 
     default_pos_prior = 0.1
@@ -851,7 +852,7 @@ if __name__ == "__main__":
         landmark_prior_sigma=default_pos_prior,
         gps_prior_sigmas=gps_prior_sigmas,
         depth_prior_sigma=0.01 / 3.0,
-        depth_prior_mode="custom",
+        depth_prior_mode="pose3",
         odom_cadence_dt=odom_cadence_dt,
         odom_drift_rate_trans=0.01,
         odom_drift_rate_rot=1e-6,

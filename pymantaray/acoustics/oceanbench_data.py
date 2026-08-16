@@ -44,8 +44,12 @@ ARCTIC_REGIONS = {
     "fram_strait": {
         "name": "Fram Strait",
         "region": {"lon": [-10, 10], "lat": [76, 80]},
-        "roi_lon": (-1.0, 0.0),
-        "roi_lat": (78.0, 78.5),
+        # ROI sized to match Beaufort's 20 deg lon x 3 deg lat exported grid
+        # so bellhop rays (which can travel 5-20 km horizontally through the
+        # SSP) don't escape the interpolation domain from typical fleet
+        # positions near the origin.
+        "roi_lon": (-9.5, 9.5),
+        "roi_lat": (76.5, 79.5),
         "variables": ["temp", "sal", "u", "v"],
         "product_id": "hycom_glbv0.08_reanalysis_53x",
         "output_subdir": "fram_strait",
@@ -78,7 +82,7 @@ SEASON_TIMES = {
     "autumn": ("2014-10-15T00:00", "2014-10-15T03:00"),
 }
 
-ACTIVE_REGION = "beaufort_sea"  # swap to fram_strait / chukchi_sea / barents_sea
+ACTIVE_REGION = "fram_strait"   # swap to beaufort_sea / chukchi_sea / barents_sea
 ACTIVE_SEASON = "summer"        # swap to spring / summer / autumn
 
 # Hard cap on local HYCOM fetches. Estimator runs before download; if the

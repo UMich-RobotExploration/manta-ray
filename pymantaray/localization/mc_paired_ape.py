@@ -35,7 +35,9 @@ from visualize_solver import (plot_ape_distribution_compare,
                               plot_paired_ape_delta)
 
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
+
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
 
 # Draw the MC seed list deterministically from a meta-seed so reruns
 # produce the same set of realizations without hand-picking seed values.
@@ -51,8 +53,8 @@ PREFIX = "mc"
 # When set to a previously-saved mc_*_paired_ape.npz path, skip the solve
 # sweep and replot from cache. Set to None to force a fresh solve sweep
 # (necessary whenever SEEDS / N_SEEDS / MC_META_SEED change).
-# LOAD_NPZ: str | None = None
-LOAD_NPZ: str | None = f"/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/{PREFIX}_paired_ape.npz"
+LOAD_NPZ: str | None = None
+# LOAD_NPZ: str | None = f"/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/{PREFIX}_paired_ape.npz"
 
 
 def _plot_per_robot(deltas: dict[str, np.ndarray],

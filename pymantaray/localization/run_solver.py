@@ -14,7 +14,8 @@ from debug_factor_graphs import debug_factor_graph
 
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
 # FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
+# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
@@ -66,19 +67,19 @@ visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,
 visualize_landmarks(solver_true, save_dir=WORK_DIR, prefix="true")
 
 
-# print("\n=== Run 4: Robust Ranges ===")
-# config_robust = deepcopy(config)
-# config_robust.robust_range = RobustConfig(kernel="cauchy", param=100.0)
-# solver_robust = FactorGraphSolver(fg_data, config_robust)
-# solver_robust.solve()
-# print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
-#       f"{solver_robust.initial.size()} variables")
-# print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
-# print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
-#
+print("\n=== Run 4: Robust Ranges ===")
+config_robust = deepcopy(config)
+config_robust.robust_range = RobustConfig(kernel="cauchy", param=100.0)
+solver_robust = FactorGraphSolver(fg_data, config_robust)
+solver_robust.solve()
+print(f"GTSAM graph: {solver_robust.graph.size()} factors, "
+      f"{solver_robust.initial.size()} variables")
+print(f"Initial error: {solver_robust.graph.error(solver_robust.initial):.4f}")
+print(f"Final   error: {solver_robust.graph.error(solver_robust.result):.4f}")
+
 # print("\n--- Robust Ranges ---")
-# visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
-# visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
+visualize(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust", show_range_error=False)
+visualize_landmarks(solver_robust, save_dir=WORK_DIR, prefix="welsch_robust")
 
 print("\n=== Comparison ===")
 compare_results(
@@ -86,13 +87,13 @@ compare_results(
         # solver_no_range,
         solver_measured,
         solver_true,
-        # solver_robust,
+        solver_robust,
     ],
     [
         # "GPS + Depth",
         "Refracted Ranges",
         "Straight-line Ranges",
-        # "Robust Refracted Ranges",
+        "Robust Refracted Ranges",
     ],
     save_dir=WORK_DIR,
     show_landmark_hull= True,
