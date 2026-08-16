@@ -51,7 +51,8 @@ PREFIX = "mc"
 # When set to a previously-saved mc_*_paired_ape.npz path, skip the solve
 # sweep and replot from cache. Set to None to force a fresh solve sweep
 # (necessary whenever SEEDS / N_SEEDS / MC_META_SEED change).
-LOAD_NPZ: str | None = f"/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/{PREFIX}_paired_ape.npz"
+# LOAD_NPZ: str | None = None
+LOAD_NPZ: str | None = f"/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/{PREFIX}_paired_ape.npz"
 
 
 def _plot_per_robot(deltas: dict[str, np.ndarray],
@@ -89,6 +90,63 @@ def _pool_apes(data) -> tuple[np.ndarray, np.ndarray]:
         raise RuntimeError(
             f"No ape_measured_*/ape_idealized_* arrays in cache (keys={keys})")
     return np.concatenate(m_chunks), np.concatenate(t_chunks)
+
+
+def _plot_translation_rmse_bar(pool_source, robots: list[str],
+                               save_path: str) -> None:
+    """Paper-quality grouped bar plot of per-robot translation RMSE.
+
+    Two bars per robot: refracted (bellhop-modelled) ranges vs
+    straight-line (ideal) ranges. RMSE is pooled across (seeds, poses)
+    for each (robot, condition). Log y-axis so surface floats and deep
+    divers both stay readable.
+    """
+    import matplotlib.pyplot as plt
+
+    labels = sorted(robots)
+    rmse_m = np.array([
+        np.sqrt(np.mean(np.asarray(pool_source[f"ape_measured_{r}"]) ** 2))
+        for r in labels])
+    rmse_t = np.array([
+        np.sqrt(np.mean(np.asarray(pool_source[f"ape_idealized_{r}"]) ** 2))
+        for r in labels])
+
+    x = np.arange(len(labels))
+    width = 0.4
+
+    fig, ax = plt.subplots(figsize=(max(6.4, 0.75 * len(labels)), 3.6))
+    ax.bar(x - width / 2, rmse_m, width,
+           label="Straight-line ranges",
+           color="#1f77b4", edgecolor="none")
+    ax.bar(x + width / 2, rmse_t, width,
+           label="Refracted (bellhop) ranges",
+           color="#d62728", edgecolor="none")
+
+    ax.set_yscale("log")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel("Translation RMSE (m)", fontsize=11)
+    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
+            linewidth=0.9, alpha=0.55)
+    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
+            linewidth=0.4, alpha=0.25)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", which="both", length=3)
+
+    ax.legend(frameon=True, fontsize=9, loc="upper center",
+              bbox_to_anchor=(0.5, 1.02), ncol=2,
+              handlelength=1.4, handletextpad=0.5, columnspacing=1.2,
+              borderpad=0.4)
+
+    ymax = max(rmse_m.max(), rmse_t.max())
+    ymin = min(rmse_m.min(), rmse_t.min())
+    ax.set_ylim(ymin * 0.5, ymax * 3.5)
+
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main() -> None:
@@ -215,11 +273,16 @@ def main() -> None:
         ape_results=[m_pool, t_pool],
         labels=["Refracted Ranges", "Straight-line Ranges"],
         robot_char="all robots x all seeds",
-        save_path=pooled_path)
+        save_path=pooled_path,
+        title="All Agents Across Monte Carlo")
     print(f"Pooled ATE (n={m_pool.size:,d} samples per condition): "
           f"refracted median={np.median(m_pool):.3f} m, "
           f"straight-line median={np.median(t_pool):.3f} m")
     print(f"Saved {pooled_path}")
+
+    rmse_bar_path = os.path.join(SAVE_DIR, f"{PREFIX}_translation_rmse_bar.png")
+    _plot_translation_rmse_bar(pool_source, list(deltas), rmse_bar_path)
+    print(f"Saved {rmse_bar_path}")
 
 
 if __name__ == "__main__":

@@ -354,7 +354,8 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
                                   labels: list[str],
                                   ape_odom: np.ndarray | None = None,
                                   robot_char: str = "",
-                                  save_path: str | None = None) -> None:
+                                  save_path: str | None = None,
+                                  title: str | None = None) -> None:
     """evo-style APE distribution view: violin per series.
 
     Quartiles are drawn inline on each violin, preserving the box-plot
@@ -401,14 +402,19 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
     ax_violin.set_xticklabels(
         [textwrap.fill(t, width=18) for t in raw_labels])
     ax_violin.set_xlabel("")
-    if len(robot_char) == 1:
-        title = f"Robot {robot_char}: ATE Distribution Comparison"
-    elif robot_char:
-        title = f"ATE Distribution Comparison ({robot_char})"
-    else:
-        title = "ATE Distribution Comparison"
+    if title is None:
+        if len(robot_char) == 1:
+            title = f"Robot {robot_char}: ATE Distribution Comparison"
+        elif robot_char:
+            title = f"ATE Distribution Comparison ({robot_char})"
+        else:
+            title = "ATE Distribution Comparison"
     ax_violin.set_title(title)
-    ax_violin.grid(True, alpha=0.3, axis="y")
+    ax_violin.grid(axis="y", which="major", linestyle="-", color="#333333",
+                   linewidth=0.9, alpha=0.55)
+    ax_violin.grid(axis="y", which="minor", linestyle="-", color="#888888",
+                   linewidth=0.4, alpha=0.25)
+    ax_violin.set_axisbelow(True)
 
     fig.tight_layout()
     if save_path:

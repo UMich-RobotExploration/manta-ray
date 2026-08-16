@@ -26,8 +26,8 @@ ANGULAR_NOISE: float = 1e-6   # velocity-scale fraction for rotation
 XY_FRAC: float = 0.05          # 5% scale error on recorded xy motion
 Z_FRAC: float = 0.05           # 5% scale error on recorded z motion
 
-ODOM_DRIFT_RATE_TRANS: float = 0.025   # m/s, translation INS drift rate
-ODOM_DRIFT_RATE_ROT: float = 1e-6      # rad/s, rotation INS drift rate
+ODOM_DRIFT_RATE_TRANS: float = 0.0125   # m/s, translation INS drift rate
+ODOM_DRIFT_RATE_ROT: float = 5e-7       # rad/s, rotation INS drift rate
 
 # Factor-graph rotation belief (rad-per-rad); translation fractions inherit
 # from odom_noise so the factor belief matches the injected scale error.
