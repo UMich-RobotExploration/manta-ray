@@ -302,6 +302,89 @@ def plot_range_output_distributions(fg_data,
             "range_rel_err_dist.png")
 
 
+def plot_range_bias_paper(fg_data,
+                          save_dir: str | None = None,
+                          robot_char: str | None = None) -> None:
+    """Paper-quality signed-error histogram for robot-robot range bias.
+
+    Single-panel figure showing bellhop-vs-straight-line range residuals
+    for robot-robot links. The purpose is to make the systematic mean
+    shift jump off the page. Empirical mean is drawn as a solid vertical
+    line, zero-bias reference is drawn as a dashed line.
+
+    Args:
+        fg_data: FactorGraphData with range measurements.
+        save_dir: Where to write the PNG.
+        robot_char: If given, restrict to measurements where this robot
+            is one of the two endpoints (e.g. "A"). Filename becomes
+            `range_bias_paper_<char>.png`. If None, pool across all
+            robot-robot links and write `range_bias_paper.png`.
+    """
+    if not fg_data.range_measurements:
+        print("No range measurements; skipping bias paper plot.")
+        return
+
+    pose_keys = set(fg_data.pose_variables_dict.keys())
+    true_fg = make_all_ranges_perfect(fg_data)
+
+    errors_list = []
+    for meas, true_meas in zip(fg_data.range_measurements,
+                                true_fg.range_measurements):
+        name_a, name_b = meas.association
+        if not (name_a in pose_keys and name_b in pose_keys):
+            continue
+        if robot_char is not None:
+            if name_a[0] != robot_char and name_b[0] != robot_char:
+                continue
+        errors_list.append(meas.dist - true_meas.dist)
+
+    if not errors_list:
+        label = f" for robot {robot_char!r}" if robot_char else ""
+        print(f"No robot-robot range measurements{label}; "
+              f"skipping bias paper plot.")
+        return
+
+    errors = np.asarray(errors_list, dtype=float)
+    n = errors.size
+    mean = float(errors.mean())
+    std = float(errors.std(ddof=1)) if n > 1 else 0.0
+    rmse = float(np.sqrt(np.mean(errors ** 2)))
+
+    fig, ax = plt.subplots(figsize=(6.4, 3.8))
+
+    ax.hist(
+        errors, bins=60, color="#4c78a8",
+        edgecolor="white", linewidth=0.4, alpha=0.9)
+
+    ax.axvline(0.0, color="0.35", linestyle="--", linewidth=1.0,
+               label="Zero bias")
+    ax.axvline(mean, color="#d62728", linestyle="-", linewidth=1.4,
+               label=f"Mean = {mean:+.2f} m")
+
+    ax.set_xlabel(r"$r_{\mathrm{error}}$ (m)", fontsize=11)
+    ax.set_ylabel("Count", fontsize=11)
+
+    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
+            linewidth=0.9, alpha=0.55)
+    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
+            linewidth=0.4, alpha=0.25)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", which="both", length=3)
+
+    ax.legend(frameon=True, fontsize=9, loc="upper left",
+              handlelength=1.8, handletextpad=0.6, borderpad=0.4)
+
+    fig.tight_layout()
+    if save_dir:
+        fname = (f"range_bias_paper_{robot_char}.png"
+                 if robot_char is not None else "range_bias_paper.png")
+        fig.savefig(os.path.join(save_dir, fname),
+                    dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_range_error_vs_range(fg_data,
                               save_dir: str | None = None) -> None:
     """Thesis-clean scatter of |range error| vs. true range.
