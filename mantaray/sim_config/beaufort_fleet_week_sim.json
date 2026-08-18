@@ -1,7 +1,7 @@
 {
-  "run_name": "fram_strait_fleet_week",
-  "output_dir": "results/arctic/fram-strait-fleet-week",
-  "env_config_file": "../../sim_config/fram_strait_summer.json",
+  "run_name": "beaufort_fleet_week",
+  "output_dir": "results/arctic/beaufort-fleet-week",
+  "env_config_file": "../../sim_config/beaufort_summer.json",
   "rng_seed": 10020,
   "bellhop_memory_mib": 80,
   "timing": {
