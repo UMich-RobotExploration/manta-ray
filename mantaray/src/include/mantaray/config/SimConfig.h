@@ -115,6 +115,10 @@ struct SimConfig {
   int maxBeams{180};
   double beamSpreadDeg{20.0};
   bool allowMultipath{false};
+  // Skip bellhop ray tracing entirely and return Euclidean inter-endpoint
+  // distance for every range measurement. For fast trajectory / dive-cycle
+  // iteration without paying the full ray-tracing cost.
+  bool dryRun{false};
 
   sim::StandardSensorConfig sensors{};
 
@@ -149,6 +153,7 @@ inline void from_json(const json &j, SimConfig &c) {
     c.maxBeams = a.value("max_beams", c.maxBeams);
     c.beamSpreadDeg = a.value("beam_spread_deg", c.beamSpreadDeg);
     c.allowMultipath = a.value("allow_multipath", c.allowMultipath);
+    c.dryRun = a.value("dry_run", c.dryRun);
   }
 
   if (j.contains("sensors")) {

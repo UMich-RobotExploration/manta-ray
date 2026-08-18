@@ -184,6 +184,10 @@ public:
    *        when false (default), only successful measurements are logged
    * @param debugRangeErrorPct When > 0, dump ray trace env files for
    *        measurements with range error exceeding this percentage
+   * @param dryRun When true, skip Bellhop entirely and return Euclidean
+   *        inter-endpoint distance as the range. Boundary checks and
+   *        robot-death behavior are preserved so trajectory kinematics
+   *        match the normal run bit-for-bit up to the ranging pipeline.
    * @param debugOutputDir Directory for debug ray trace output files
    */
   AcousticPairwiseRangeSystem(acoustics::AcousticsBuilder &builder,
@@ -191,6 +195,7 @@ public:
                               GlobalTofMode mode, bool allowMultipath = false,
                               bool logAllMeasurements = false,
                               double debugRangeErrorPct = 0.0,
+                              bool dryRun = false,
                               std::string debugOutputDir = "");
 
   /**
@@ -268,6 +273,7 @@ private:
   bool allowMultipath_{false};
   bool logAllMeasurements_{false};
   double debugRangeErrorPct_{0.0};
+  bool dryRun_{false};
   std::string debugOutputDir_;
   std::vector<RangeLink> links_{};
   std::vector<RangeMeasurement> measurements_{};

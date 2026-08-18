@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 
   sim::AcousticPairwiseRangeSystem rangeSystem(
       simBuilder, context, tofMode, config.allowMultipath, false,
-      config.debugRangeErrorPct, config.outputDir);
+      config.debugRangeErrorPct, config.dryRun, config.outputDir);
   rangeSystem.rebuildPairs(world);
 
   double boundsCheckInterval = config.boundsCheckIntervalSec;

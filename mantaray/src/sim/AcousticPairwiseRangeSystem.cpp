@@ -14,17 +14,23 @@ std::string measureTag(double simTimeSec, const sim::RangeEndpoint &pinger,
 
 namespace sim {
 
+/// Reference sound speed used to synthesise a self-consistent TOF field for
+/// dry-run measurements. Downstream code that reads tofEffectiveSec still sees
+/// range == tofEffectiveSec * soundSpeedAtPingerMps, so no consumer breaks.
+static constexpr float kDryRunReferenceSoundSpeedMps = 1500.0f;
+
 AcousticPairwiseRangeSystem::AcousticPairwiseRangeSystem(
     acoustics::AcousticsBuilder &builder,
     acoustics::BhContext<true, true> &context, GlobalTofMode mode,
     bool allowMultipath, bool logAllMeasurements, double debugRangeErrorPct,
-    std::string debugOutputDir)
+    bool dryRun, std::string debugOutputDir)
     : builder_(builder),
       context_(context),
       mode_(mode),
       allowMultipath_(allowMultipath),
       logAllMeasurements_(logAllMeasurements),
       debugRangeErrorPct_(debugRangeErrorPct),
+      dryRun_(dryRun),
       debugOutputDir_(std::move(debugOutputDir)) {}
 
 void AcousticPairwiseRangeSystem::rebuildPairs(const rb::RbWorld &world) {
@@ -358,6 +364,25 @@ void AcousticPairwiseRangeSystem::update(double simTimeSec,
       SPDLOG_WARN("{} Ping dropped: both pinger and target out of bounds", tag);
       meas.status = RangeStatus::kOutOfBounds;
       maybeLog(meas);
+      continue;
+    }
+
+    // Dry-run short-circuit: skip Bellhop entirely and emit Euclidean range.
+    // Boundary/dead-robot checks above still ran so kinematic behavior
+    // (kOutOfBounds, robot death, PFG structure) matches the normal path
+    // exactly. Downstream consumers (PfgWriter, sensors) see a normal kOk
+    // measurement with a self-consistent (tof * ssp == range) triplet.
+    if (dryRun_) {
+      const double euclidean = (pingerPos - targetPos).norm();
+      meas.soundSpeedAtPingerMps = kDryRunReferenceSoundSpeedMps;
+      meas.tofEffectiveSec =
+          static_cast<float>(euclidean / kDryRunReferenceSoundSpeedMps) *
+          tofScale(mode_);
+      meas.rangeMeters = static_cast<float>(euclidean);
+      meas.status = RangeStatus::kOk;
+      SPDLOG_INFO("{} Ping OK (dry-run): range={:.2f}m tof={:.6f}s", tag,
+                  meas.rangeMeters, meas.tofEffectiveSec);
+      measurements_.push_back(meas);
       continue;
     }
 
