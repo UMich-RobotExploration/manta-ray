@@ -24,7 +24,7 @@ DEFAULT_POS_PRIOR: float = 0.1
 # is time-based INS drift — constant per edge at fixed cadence.
 ANGULAR_NOISE: float = 1e-6   # velocity-scale fraction for rotation
 XY_FRAC: float = 0.05          # 5% scale error on recorded xy motion
-Z_FRAC: float = 0.05           # 5% scale error on recorded z motion
+Z_FRAC: float = 0.001           # 0.1% scale error on recorded z motion
 
 ODOM_DRIFT_RATE_TRANS: float = 0.0125   # m/s, translation INS drift rate
 ODOM_DRIFT_RATE_ROT: float = 5e-7       # rad/s, rotation INS drift rate

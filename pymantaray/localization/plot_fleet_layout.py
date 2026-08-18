@@ -40,23 +40,34 @@ DEPTH_CMAP = plt.cm.viridis_r
 
 
 def _load_fleet(config_path: str):
-    """Parse the sim JSON into a list of agent dicts + return the raw cfg."""
+    """Parse the sim JSON into a list of agent dicts + return the raw cfg.
+
+    A robot is treated as a surface beacon when either
+      * its ``type`` is ``constant_vel`` (station-keeping / beacon), or
+      * its ``type`` is ``current_drift`` and ``start_offset_seconds`` exceeds
+        the mission duration (locked in ``kHoldSurface`` for the whole run).
+    """
     with open(config_path) as f:
         cfg = json.load(f)
 
     duration_s = float(cfg["timing"]["end_time_hours"]) * 3600.0
     agents = []
     for i, r in enumerate(cfg["robots"]):
+        rtype = r.get("type", "current_drift")
         offset = float(r.get("start_offset_seconds", 0.0))
+        pinned_current_drift = (rtype == "current_drift"
+                                and offset > duration_s)
+        is_surface = rtype == "constant_vel" or pinned_current_drift
         agents.append({
             "idx": i,
             "label": _ROBOT_ALPHABET[i],
+            "type": rtype,
             "x": float(r["position"][0]),
             "y": float(r["position"][1]),
             "z0": float(r["position"][2]),
             "target_depth": float(r.get("target_depth", 0.0)),
             "start_offset_s": offset,
-            "is_surface": offset > duration_s,
+            "is_surface": is_surface,
         })
     return agents, cfg
 
