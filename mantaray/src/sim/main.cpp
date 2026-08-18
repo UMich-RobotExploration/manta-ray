@@ -1,5 +1,6 @@
 
 #include <bhc/bhc.hpp>
+#include <chrono>
 #include <filesystem>
 #include <random>
 
@@ -68,6 +69,10 @@ int main(int argc, char *argv[]) {
 
   init_logger(config.outputDir);
   spdlog::set_default_logger(global_logger);
+
+  // Start the wall-clock timer immediately after logger init so the total
+  // runtime reported at exit reflects everything the log captures.
+  const auto wallClockStart = std::chrono::steady_clock::now();
 
   SPDLOG_INFO("Loaded sim config: {}", argv[1]);
   SPDLOG_INFO("Beginning Bellhop Robotics Sim");
@@ -186,5 +191,13 @@ int main(int argc, char *argv[]) {
   auto bellhopBase = (outDir / config.runName).string();
   bhc::writeenv(context.params(), bellhopBase.c_str());
   bhc::writeout(context.params(), context.outputs(), bellhopBase.c_str());
+
+  const auto wallClockEnd = std::chrono::steady_clock::now();
+  const auto elapsedSec = std::chrono::duration_cast<std::chrono::seconds>(
+                              wallClockEnd - wallClockStart)
+                              .count();
+  SPDLOG_INFO("Total simulation runtime: {}h {:02d}m {:02d}s ({}s total)",
+              elapsedSec / 3600, static_cast<int>((elapsedSec % 3600) / 60),
+              static_cast<int>(elapsedSec % 60), elapsedSec);
   return 0;
 }
