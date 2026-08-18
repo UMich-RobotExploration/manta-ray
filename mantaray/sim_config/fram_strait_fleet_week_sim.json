@@ -17,7 +17,7 @@
     "beam_spread_deg": 15,
     "max_beams": 400,
     "allow_multipath": false,
-    "dry_run": true
+    "dry_run": false
   },
   "sensors": {
     "gt_freq_hz": 0.005,
