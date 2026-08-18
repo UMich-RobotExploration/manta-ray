@@ -19,16 +19,21 @@ bool isEqual(double x, double y) {
   return diff < kFloatingPointToleranceDouble * maxAbs;
 }
 bool validDeltaTMultiple(double time, double dt) {
-  // Basically two cases with floating points
-  // - Case 1: The remainder is near 0
-  // - Case 2: The remainder is basically dt
-  // True when no remainder, false when remainder
+  // Two cases in floating point:
+  //  - Case 1: the remainder is near 0 (time is just past a multiple of dt)
+  //  - Case 2: the remainder is basically dt (time is just before the next
+  //    multiple; fmod can return dt - eps rather than 0)
+  //
+  // We use an ABSOLUTE tolerance (kDeltaTMultipleTolerance) rather than one
+  // scaled by dt, because the residual we're guarding against comes from
+  // long-horizon accumulation of a non-binary-exact dt (e.g. 0.1) — its
+  // magnitude grows with step count, not with dt. See TODO.md for the
+  // architectural fix (integer sim clock).
   double timeStepRemainder = std::fmod(time, dt);
-  bool hasNoRemainder =
-      timeStepRemainder < kFloatingPointToleranceDouble * std::fabs(dt);
-  // True when dt, false when not dt
-  bool isEqualTodt = isEqual(timeStepRemainder, dt);
-  return (hasNoRemainder || isEqualTodt);
+  bool hasNoRemainder = timeStepRemainder < kDeltaTMultipleTolerance;
+  bool nearDt =
+      std::fabs(std::fabs(dt) - timeStepRemainder) < kDeltaTMultipleTolerance;
+  return (hasNoRemainder || nearDt);
 }
 } // namespace detail
 } // namespace rb

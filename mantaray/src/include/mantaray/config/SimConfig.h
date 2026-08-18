@@ -4,6 +4,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <cmath>
 #include <fstream>
 #include <json.hpp>
 #include <stdexcept>
@@ -14,6 +15,7 @@
 #include "mantaray/sim/AcousticPairwiseRangeSystem.h"
 #include "mantaray/sim/CurrentDriftRobot.h"
 #include "mantaray/sim/RobotFactory.h"
+#include "mantaray/utils/Logger.h"
 #include "mantaray/utils/PfgWriter.h"
 #include "rb/RobotsAndSensors.h"
 
@@ -173,13 +175,52 @@ inline void from_json(const json &j, SimConfig &c) {
   }
 }
 
+/// @brief Cross-field validation on a loaded SimConfig.
+/// @details Emits warnings for parameter combinations that will produce
+/// silently wrong-looking diagnostics downstream. The sim itself remains
+/// valid to run; the warnings surface issues the user might otherwise
+/// spend time chasing as bugs.
+inline void validateSimConfig(const SimConfig &c) {
+  const double poseDtSec =
+      (c.sensors.odomFreqHz > 0.0) ? 1.0 / c.sensors.odomFreqHz : 0.0;
+  const double pingIntervalSec = c.pingIntervalMin * 60.0;
+  if (poseDtSec > 0.0 && pingIntervalSec > 0.0) {
+    const double ratio = pingIntervalSec / poseDtSec;
+    const double residual = std::abs(ratio - std::round(ratio));
+    if (residual > 1e-6) {
+      // Stale-pose: ping_interval is not an integer multiple of pose dt, so
+      // every range measurement references a pose vertex up to pose_dt/2
+      // seconds away from the ping timestamp. Downstream tools that compare
+      // EDGE_RANGE against VERTEX_SE3:QUAT positions (e.g.
+      // make_all_ranges_perfect) will report a residual that reflects this
+      // time misalignment rather than any acoustic effect.
+      const double suggestedSlowerSeconds = std::ceil(ratio) * poseDtSec;
+      const double suggestedFasterSeconds = std::floor(ratio) * poseDtSec;
+      SPDLOG_WARN(
+          "Stale-pose: ping_interval ({:.1f} s) is not a whole multiple of "
+          "pose dt ({:.1f} s = 1/odom_freq_hz). Range factors will reference "
+          "poses up to {:.1f} s stale, producing a residual in downstream "
+          "diagnostics that reflects time misalignment rather than acoustics."
+          " Set ping_interval_min to a multiple of {:.3f} sec "
+          "(nearest slower ping: {:.3f} sec, nearest faster ping: {:.3f} sec).",
+          pingIntervalSec, poseDtSec, 0.5 * poseDtSec, poseDtSec,
+          suggestedSlowerSeconds, suggestedFasterSeconds);
+      if (auto lg = spdlog::default_logger()) {
+        lg->flush();
+      }
+    }
+  }
+}
+
 inline SimConfig loadSimConfig(const std::string &path) {
   std::ifstream f(path);
   if (!f.is_open()) {
     throw std::runtime_error("Cannot open sim config file: " + path);
   }
   auto j = json::parse(f);
-  return j.get<SimConfig>();
+  auto cfg = j.get<SimConfig>();
+  validateSimConfig(cfg);
+  return cfg;
 }
 
 } // namespace config
