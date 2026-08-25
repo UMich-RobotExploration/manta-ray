@@ -33,7 +33,7 @@ ENV_CONFIGS = [
 
 # Robot indices that are surface floats (from beaufort_fleet_week_sim.json
 # and fram_strait_fleet_week_sim.json — first two entries).
-SURFACE_INDICES = {0, 1}
+SURFACE_INDICES = {0}
 
 # Where to write the .tex output (also printed to stdout).
 TEX_OUT_PATH: str | None = ("/home/tko/repos/manta-ray/mantaray/"
@@ -127,10 +127,10 @@ def format_compare_latex(env_names: list[str],
         "    " + " & ".join(total_cells) + r" \\",
         r"    \hline",
         r"  \end{tabular}",
-        r"  \caption{Ranging failure rate (\%) by link category. Both "
-        r"environments share the same fleet layout and ping schedule "
-        r"(5{,}544 total attempts each); only the environmental sound-speed "
-        r"structure differs.}",
+        rf"  \caption{{Ranging failure rate (\%) by link category. Both "
+        rf"environments share the same fleet layout and ping schedule "
+        rf"({total_att:,} total attempts each); only the environmental "
+        rf"sound-speed structure differs.}}",
         r"  \label{tab:range_drop_category_compare}",
         r"\end{table}",
     ]

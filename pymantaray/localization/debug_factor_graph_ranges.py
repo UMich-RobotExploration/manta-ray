@@ -25,7 +25,7 @@ from py_factor_graph.modifiers import make_all_ranges_perfect
 from vtk_plots import plot_range_errors_vtk
 
 
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week-dryrun/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 
@@ -343,20 +343,29 @@ def plot_range_bias_paper(fg_data,
     mean = float(errors.mean())
     std = float(errors.std(ddof=1)) if n > 1 else 0.0
     rmse = float(np.sqrt(np.mean(errors ** 2)))
+    print(f"[range_bias_paper] robot-robot n={n}, "
+          f"mean={mean:+.3f} m, std={std:.3f} m, rmse={rmse:.3f} m")
 
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
 
-    ax.hist(
-        errors, bins=60, color="#4c78a8",
+    _, edges, _ = ax.hist(
+        errors, bins=60, density=True, color="#4c78a8",
         edgecolor="white", linewidth=0.4, alpha=0.9)
+
+    if std > 0.0:
+        xs = np.linspace(edges[0], edges[-1], 400)
+        pdf = (np.exp(-0.5 * ((xs - mean) / std) ** 2)
+               / (std * np.sqrt(2.0 * np.pi)))
+        ax.plot(xs, pdf, color="black", linewidth=1.4, zorder=2.5,
+                label=fr"Gaussian fit ($\sigma$ = {std:.1f} m)")
 
     ax.axvline(0.0, color="0.35", linestyle="--", linewidth=1.0,
                label="Zero bias")
     ax.axvline(mean, color="#d62728", linestyle="-", linewidth=1.4,
                label=f"Mean = {mean:+.2f} m")
 
-    ax.set_xlabel(r"$r_{\mathrm{error}}$ (m)", fontsize=11)
-    ax.set_ylabel("Count", fontsize=11)
+    ax.set_xlabel(r"$r_{\mathrm{error}}$ (m)", fontsize=15)
+    ax.set_ylabel("Density", fontsize=15)
 
     ax.grid(axis="y", which="major", linestyle="-", color="#333333",
             linewidth=0.9, alpha=0.55)
@@ -365,9 +374,9 @@ def plot_range_bias_paper(fg_data,
     ax.set_axisbelow(True)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
-    ax.tick_params(axis="both", which="both", length=3)
+    ax.tick_params(axis="both", which="both", length=3, labelsize=13)
 
-    ax.legend(frameon=True, fontsize=9, loc="upper left",
+    ax.legend(frameon=True, fontsize=12, loc="upper right",
               handlelength=1.8, handletextpad=0.6, borderpad=0.4)
 
     fig.tight_layout()
@@ -730,6 +739,10 @@ if __name__ == "__main__":
     plot_range_output_distributions(fg_data, save_dir=WORK_DIR)
     plot_range_measurement_distribution(fg_data, save_dir=WORK_DIR)
     plot_range_error_vs_range(fg_data, save_dir=WORK_DIR)
+
+    plot_range_bias_paper(fg_data, save_dir=WORK_DIR)
+    for r in "ABCDEFGHIJKM":
+        plot_range_bias_paper(fg_data, save_dir=WORK_DIR, robot_char=r)
 
     plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
                          save_dir=WORK_DIR)

@@ -355,17 +355,18 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
                                   ape_odom: np.ndarray | None = None,
                                   robot_char: str = "",
                                   save_path: str | None = None,
-                                  title: str | None = None) -> None:
-    """evo-style APE distribution view: violin per series.
+                                  title: str | None = None,
+                                  log_y: bool = False) -> None:
+    """Paper-clean APE violin: one distribution per measurement condition.
 
-    Quartiles are drawn inline on each violin, preserving the box-plot
-    information without the visual heaviness. Colors match the palette
-    used in the line-plot view in `compare_results`.
+    Matches the RMSE bar / boxplot styling in `plot_mc_paired_ape.py`:
+    compact figure, hidden top/right spines, muted grid, no title by
+    default, white-triangle mean marker, and the canonical palette
+    (odometry = gray baseline, straight-line = blue, refracted = red).
 
-    `ape_results` is a list of 1D APE arrays (one per series) and `ape_odom`
-    is an optional odometry-only APE array; pass None to omit the odometry
-    violin (e.g. when plotting pooled MC samples that have no per-pose odom
-    reference).
+    `ape_results` is a list of 1D APE arrays (one per series) and
+    `ape_odom` is an optional odometry-only APE array; pass None to
+    omit the odometry violin.
     """
     if not ape_results:
         return
@@ -374,51 +375,89 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
         print(f"[ape-dist] robot {robot_char}: too few poses, skipping plot")
         return
 
-    palette = ['tab:blue', 'tab:purple', 'tab:red', 'tab:brown',
-               'tab:pink', 'tab:cyan', 'tab:olive', 'magenta']
-    estimate_legends = [f"Estimated Traj w/ {l}" for l in labels]
-    series_colors = [palette[i % len(palette)] for i in range(len(ape_results))]
+    # Canonical paper palette. Order matches the caller: refracted (red)
+    # sits first so it lands adjacent to the odometry baseline, then
+    # straight-line (blue). Extra series (rare) fall through to muted
+    # matplotlib defaults.
+    condition_palette = ["#d62728", "#1f77b4", "#8c564b", "#7f7f7f"]
+    series_colors = [condition_palette[i % len(condition_palette)]
+                     for i in range(len(ape_results))]
     all_apes = list(ape_results)
-    raw_labels = list(estimate_legends)
+    raw_labels = list(labels)
     if ape_odom is not None:
-        all_apes.append(ape_odom)
-        raw_labels.append("Odometry Only")
-        series_colors.append("tab:orange")
+        all_apes.insert(0, ape_odom)
+        raw_labels.insert(0, "Odometry only")
+        series_colors.insert(0, "#7f7f7f")
 
-    long_df = pd.DataFrame({
-        "series": np.concatenate(
-            [np.full(len(a), lbl) for a, lbl in zip(all_apes, raw_labels)]),
-        "ATE (m)": np.concatenate(all_apes),
-    })
+    fig, ax = plt.subplots(
+        figsize=(max(4.4, 1.5 * len(all_apes)), 3.6))
 
-    fig, ax_violin = plt.subplots(
-        figsize=(max(9, 1.9 * len(all_apes)), 6))
+    positions = list(range(len(all_apes)))
+    parts = ax.violinplot(
+        all_apes, positions=positions, widths=0.75,
+        showextrema=False, showmeans=False, showmedians=False)
+    for body, color in zip(parts["bodies"], series_colors):
+        body.set_facecolor(color)
+        body.set_edgecolor("none")
+        body.set_alpha(0.75)
 
-    sns.violinplot(
-        data=long_df, x="series", y="ATE (m)",
-        hue="series", palette=dict(zip(raw_labels, series_colors)),
-        inner="quartile", cut=0, ax=ax_violin, legend=False)
-    ax_violin.set_xticks(range(len(raw_labels)))
-    ax_violin.set_xticklabels(
-        [textwrap.fill(t, width=18) for t in raw_labels])
-    ax_violin.set_xlabel("")
-    if title is None:
-        if len(robot_char) == 1:
-            title = f"Robot {robot_char}: ATE Distribution Comparison"
-        elif robot_char:
-            title = f"ATE Distribution Comparison ({robot_char})"
-        else:
-            title = "ATE Distribution Comparison"
-    ax_violin.set_title(title)
-    ax_violin.grid(axis="y", which="major", linestyle="-", color="#333333",
-                   linewidth=0.9, alpha=0.55)
-    ax_violin.grid(axis="y", which="minor", linestyle="-", color="#888888",
-                   linewidth=0.4, alpha=0.25)
-    ax_violin.set_axisbelow(True)
+    # Solid mean, dashed 25th / 75th percentiles. Line endpoints are
+    # interpolated from the actual violin outline at the corresponding
+    # y-value so the marker matches the local violin width instead of
+    # poking out at the narrow tails.
+    def _violin_span_at(body, center_x, y_target):
+        verts = body.get_paths()[0].vertices
+        xs, ys = verts[:, 0], verts[:, 1]
+        def _interp(mask):
+            xs_side = xs[mask]
+            ys_side = ys[mask]
+            if xs_side.size < 2:
+                return center_x
+            order = np.argsort(ys_side)
+            return float(np.interp(y_target,
+                                    ys_side[order], xs_side[order],
+                                    left=center_x, right=center_x))
+        return _interp(xs <= center_x), _interp(xs >= center_x)
+
+    for pos, arr, body in zip(positions, all_apes, parts["bodies"]):
+        arr = np.asarray(arr)
+        mean = float(arr.mean())
+        q25, q75 = np.percentile(arr, [25, 75])
+        for y_val, style, lw in (
+                (mean, "solid", 1.0),
+                (q25, "dashed", 0.7),
+                (q75, "dashed", 0.7)):
+            x_left, x_right = _violin_span_at(body, pos, y_val)
+            ax.hlines(y_val, x_left, x_right,
+                      colors="black", linewidth=lw,
+                      linestyles=style, zorder=3)
+
+    ax.set_xticks(positions)
+    ax.set_xticklabels(
+        [textwrap.fill(t, width=14) for t in raw_labels], fontsize=14)
+    ax.set_ylabel("Translation APE (m)", fontsize=15)
+    ax.set_xlabel("")
+
+    if title is not None:
+        ax.set_title(title, fontsize=14)
+
+    if log_y:
+        ax.set_yscale("log")
+
+    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
+            linewidth=0.9, alpha=0.55)
+    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
+            linewidth=0.4, alpha=0.25)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", which="both", length=3, labelsize=13)
+    ax.tick_params(axis="x", length=0)
 
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
 def plot_paired_ape_delta(delta: np.ndarray,

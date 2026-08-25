@@ -19,7 +19,12 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+from evo.core import metrics
 
+from py_factor_graph.io.pyfg_text import read_from_pyfg_text
+
+from pyfg_to_gtsam import FactorGraphSolver, extract_trajectory
+from solver_defaults import build_default_config
 from visualize_solver import (plot_ape_distribution_compare,
                               plot_paired_ape_delta)
 
@@ -46,6 +51,28 @@ def _plot_per_robot(deltas: dict[str, np.ndarray],
                               subtrahend_label="Refracted",
                               robot_char=r,
                               show=False)
+
+
+def _pool_odom_only_ape(pfg_path: str) -> np.ndarray:
+    """Pooled 1D APE (odometry-only vs ground truth) for the pfg.
+
+    Uses ``solver.odom_values`` (built for free in FactorGraphSolver.__init__)
+    — no solve required. Under ``use_ground_truth_odometry=True`` this is
+    deterministic given the pfg, so one construction per pfg suffices.
+    """
+    fg = read_from_pyfg_text(pfg_path)
+    solver = FactorGraphSolver(fg, build_default_config(fg))
+    chunks = []
+    for pose_chain in solver.fg.pose_variables:
+        if not pose_chain:
+            continue
+        keys = [solver.key_map[p.name] for p in pose_chain]
+        traj_gt = extract_trajectory(solver.gt_values, keys)
+        traj_odom = extract_trajectory(solver.odom_values, keys)
+        ape = metrics.APE(metrics.PoseRelation.translation_part)
+        ape.process_data((traj_gt, traj_odom))
+        chunks.append(np.asarray(ape.error, dtype=np.float64))
+    return np.concatenate(chunks)
 
 
 def _pool_apes(data) -> tuple[np.ndarray, np.ndarray]:
@@ -209,12 +236,19 @@ def main() -> None:
 
     m_pool, t_pool = _pool_apes(data)
     pooled_path = os.path.join(SAVE_DIR, f"{PREFIX}_pooled_ape_dist.png")
+    # Paper variant: two violins (refracted, straight-line) on linear-y so
+    # the shift between conditions reads at the true magnitude. Odometry
+    # baseline is dropped -- at ~100 m median it compresses the region
+    # of interest even on linear axes and adds no information the
+    # numeric summary below doesn't already convey.
     plot_ape_distribution_compare(
         ape_results=[m_pool, t_pool],
         labels=["Refracted Ranges", "Straight-line Ranges"],
+        ape_odom=None,
         robot_char="all robots x all seeds",
         save_path=pooled_path,
-        title="All Agents Across Monte Carlo")
+        title="All Agents Across Monte Carlo",
+        log_y=False)
     print(f"Pooled ATE (n={m_pool.size:,d} samples per condition): "
           f"refracted median={np.median(m_pool):.3f} m, "
           f"straight-line median={np.median(t_pool):.3f} m")

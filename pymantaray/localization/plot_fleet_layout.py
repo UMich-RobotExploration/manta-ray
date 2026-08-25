@@ -72,42 +72,40 @@ def _load_fleet(config_path: str):
     return agents, cfg
 
 
+DIVER_COLOR = "#1f77b4"
+
+
 def main() -> None:
     agents, cfg = _load_fleet(CONFIG_PATH)
 
     divers = [a for a in agents if not a["is_surface"]]
     surface = [a for a in agents if a["is_surface"]]
     if not divers:
-        raise RuntimeError("No diver robots detected; nothing to color.")
+        raise RuntimeError("No diver robots detected; nothing to plot.")
 
     d_min = min(a["target_depth"] for a in divers)
     d_max = max(a["target_depth"] for a in divers)
-    norm = plt.Normalize(vmin=d_min, vmax=d_max)
 
-    def _diver_color(depth: float):
-        return DEPTH_CMAP(norm(depth))
+    fig, ax_xy = plt.subplots(figsize=(5.6, 5.0), constrained_layout=True)
 
-    fig, (ax_xy, ax_z) = plt.subplots(
-        1, 2, figsize=(9.5, 4.4),
-        gridspec_kw={"width_ratios": [1.15, 1.0]},
-        constrained_layout=True,
-    )
-
-    # -------- LEFT: XY footprint --------
+    # XY footprint in kilometres. Depth information is deferred to the
+    # accompanying table (all divers share a single marker colour here).
     for a in divers:
-        ax_xy.scatter([a["x"]], [a["y"]], s=200,
-                      c=[_diver_color(a["target_depth"])],
-                      marker="o", edgecolors="black", linewidths=1.0, zorder=3)
+        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=200,
+                      c=DIVER_COLOR, marker="o",
+                      edgecolors="black", linewidths=1.0, zorder=3)
     for a in surface:
-        ax_xy.scatter([a["x"]], [a["y"]], s=230, c=SURFACE_COLOR,
-                      marker="s", edgecolors="black", linewidths=1.2, zorder=4)
+        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=230,
+                      c=SURFACE_COLOR, marker="s",
+                      edgecolors="black", linewidths=1.2, zorder=4)
     for a in agents:
-        ax_xy.annotate(a["label"], (a["x"], a["y"]),
-                       textcoords="offset points", xytext=(0, 13),
-                       ha="center", fontsize=9, fontweight="bold")
+        ax_xy.annotate(a["label"],
+                       (a["x"] / 1000.0, a["y"] / 1000.0),
+                       textcoords="offset points", xytext=(0, 14),
+                       ha="center", fontsize=13, fontweight="bold")
 
-    ax_xy.set_xlabel("x (m)", fontsize=11)
-    ax_xy.set_ylabel("y (m)", fontsize=11)
+    ax_xy.set_xlabel("x (km)", fontsize=15)
+    ax_xy.set_ylabel("y (km)", fontsize=15)
     ax_xy.set_aspect("equal", adjustable="datalim")
     ax_xy.grid(True, which="major", linestyle="-", color="#333333",
                linewidth=0.9, alpha=0.35)
@@ -117,62 +115,20 @@ def main() -> None:
     ax_xy.set_axisbelow(True)
     for spine in ("top", "right"):
         ax_xy.spines[spine].set_visible(False)
-    ax_xy.tick_params(axis="both", which="both", length=3)
+    ax_xy.tick_params(axis="both", which="both", length=3, labelsize=13)
 
     surface_legend = Line2D([0], [0], marker="s", color="w",
                              markerfacecolor=SURFACE_COLOR,
                              markeredgecolor="black", markeredgewidth=1.2,
-                             markersize=10, label="Surface float")
+                             markersize=11, label="Fixed float")
     diver_legend = Line2D([0], [0], marker="o", color="w",
-                           markerfacecolor="0.55", markeredgecolor="black",
-                           markeredgewidth=1.0, markersize=10, label="Diver")
-    ax_xy.legend(handles=[surface_legend, diver_legend], loc="upper right",
-                 frameon=True, fontsize=9, borderpad=0.4,
-                 handletextpad=0.5)
-
-    # -------- RIGHT: depth ladder --------
-    ordered_divers = sorted(divers, key=lambda a: a["target_depth"])
-    columns = surface + ordered_divers
-    positions = np.arange(len(columns))
-
-    for pos, a in zip(positions, columns):
-        if a["is_surface"]:
-            ax_z.scatter([pos], [0], s=230, c=SURFACE_COLOR, marker="s",
-                         edgecolors="black", linewidths=1.2, zorder=4)
-        else:
-            color = _diver_color(a["target_depth"])
-            ax_z.plot([pos, pos], [0, a["target_depth"]], color=color,
-                      linewidth=7, solid_capstyle="butt", alpha=0.85, zorder=2)
-            ax_z.scatter([pos], [a["target_depth"]], s=200, c=[color],
-                         marker="o", edgecolors="black", linewidths=1.0,
-                         zorder=3)
-
-    ax_z.set_xticks(positions)
-    ax_z.set_xticklabels([a["label"] for a in columns], fontsize=9)
-    ax_z.set_xlabel("Agent", fontsize=11)
-    ax_z.set_ylabel("Target depth (m)", fontsize=11)
-    ax_z.set_ylim(d_max * 1.08, -0.06 * d_max)  # inverted with a little sky
-    ax_z.grid(axis="y", which="major", linestyle="-", color="#333333",
-              linewidth=0.9, alpha=0.35)
-    ax_z.grid(axis="y", which="minor", linestyle="-", color="#888888",
-              linewidth=0.4, alpha=0.20)
-    ax_z.minorticks_on()
-    ax_z.set_axisbelow(True)
-    for spine in ("top", "right"):
-        ax_z.spines[spine].set_visible(False)
-    ax_z.tick_params(axis="both", which="both", length=3)
-
-    # Zero-line marker: solid horizontal at the surface so the sea-level
-    # datum reads at a glance.
-    ax_z.axhline(0.0, color="#888888", linewidth=0.8, zorder=1)
-
-    # Shared colorbar spans both axes.
-    sm = ScalarMappable(cmap=DEPTH_CMAP, norm=norm)
-    sm.set_array([])
-    cbar = fig.colorbar(sm, ax=[ax_xy, ax_z],
-                        label="Diver target depth (m)",
-                        pad=0.02, fraction=0.045, shrink=0.9)
-    cbar.ax.tick_params(length=3)
+                           markerfacecolor=DIVER_COLOR,
+                           markeredgecolor="black", markeredgewidth=1.0,
+                           markersize=11, label="Diver")
+    ax_xy.legend(handles=[surface_legend, diver_legend],
+                 loc="lower center", bbox_to_anchor=(0.5, 1.02),
+                 frameon=True, fontsize=12, borderpad=0.4,
+                 handletextpad=0.5, ncol=2)
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     fig.savefig(OUT_PATH, dpi=300, bbox_inches="tight")
