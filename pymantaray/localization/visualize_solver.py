@@ -16,7 +16,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
+from paper_style import apply_paper_style
 
 from evo.core import metrics
 from evo.tools import plot as evo_plot
@@ -152,7 +152,7 @@ def plot_ape_histogram(ape_opt: metrics.APE,
     ax.legend(loc="upper right")
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def plot_trajectories_topdown_compare(traj_gt,
@@ -218,7 +218,7 @@ def plot_trajectories_topdown_compare(traj_gt,
     ax.legend(loc="best", fontsize=9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def plot_range_depth_disparity_collaborative(fg,
@@ -295,7 +295,7 @@ def plot_range_depth_disparity_collaborative(fg,
     ax.legend(loc="best", fontsize=9, framealpha=0.9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def plot_trajectory_xyz_stacked_compare(traj_gt,
@@ -347,7 +347,7 @@ def plot_trajectory_xyz_stacked_compare(traj_gt,
     ax_x.legend(loc="best", fontsize=9)
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def plot_ape_distribution_compare(ape_results: list[np.ndarray],
@@ -375,6 +375,12 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
         print(f"[ape-dist] robot {robot_char}: too few poses, skipping plot")
         return
 
+    # Apply IEEE style locally so this paper plot is styled correctly
+    # without leaking small serif fonts into every diagnostic plot in
+    # this module (e.g. plot_paired_ape_delta, which is rendered at a
+    # much larger figsize and reads wrong under IEEE defaults).
+    apply_paper_style()
+
     # Canonical paper palette. Order matches the caller: refracted (red)
     # sits first so it lands adjacent to the odometry baseline, then
     # straight-line (blue). Extra series (rare) fall through to muted
@@ -390,7 +396,7 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
         series_colors.insert(0, "#7f7f7f")
 
     fig, ax = plt.subplots(
-        figsize=(max(4.4, 1.5 * len(all_apes)), 3.6))
+        figsize=(max(3.3, 1.1 * len(all_apes)), 2.5))
 
     positions = list(range(len(all_apes)))
     parts = ax.violinplot(
@@ -434,29 +440,26 @@ def plot_ape_distribution_compare(ape_results: list[np.ndarray],
 
     ax.set_xticks(positions)
     ax.set_xticklabels(
-        [textwrap.fill(t, width=14) for t in raw_labels], fontsize=14)
-    ax.set_ylabel("Translation APE (m)", fontsize=15)
+        [textwrap.fill(t, width=14) for t in raw_labels])
+    ax.set_ylabel("Translation APE (m)")
     ax.set_xlabel("")
 
     if title is not None:
-        ax.set_title(title, fontsize=14)
+        ax.set_title(title)
 
     if log_y:
         ax.set_yscale("log")
 
-    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
-            linewidth=0.9, alpha=0.55)
-    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
-            linewidth=0.4, alpha=0.25)
+    ax.grid(axis="y", which="major", linestyle="-",
+            color="#bbbbbb", linewidth=0.6, alpha=0.9)
+    ax.grid(axis="y", which="minor", linestyle="-",
+            color="#dddddd", linewidth=0.4, alpha=0.8)
     ax.set_axisbelow(True)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-    ax.tick_params(axis="both", which="both", length=3, labelsize=13)
     ax.tick_params(axis="x", length=0)
 
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+        fig.savefig(save_path, dpi=400, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -544,7 +547,7 @@ def plot_paired_ape_delta(delta: np.ndarray,
 
     if save_dir is not None:
         fig.savefig(os.path.join(save_dir, f"{prefix}_paired_ape_delta.png"),
-                    dpi=300)
+                    dpi=400)
     if show:
         plt.show()
 
@@ -586,6 +589,7 @@ def plot_collaborative_ape_box_compare(per_robot_ape: list[tuple[str, list[metri
     long_df["Measurement"] = pd.Categorical(
         long_df["Measurement"], categories=ordered_labels, ordered=True)
 
+    import seaborn as sns
     fig, ax = plt.subplots(figsize=(max(10, 2.4 * len(per_robot_ape)), 5))
     sns.boxplot(
         data=long_df, x="Robot", y="ATE (m)", hue="Measurement",
@@ -598,7 +602,7 @@ def plot_collaborative_ape_box_compare(per_robot_ape: list[tuple[str, list[metri
 
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def plot_collaborative_ape_violin_aggregate(
@@ -636,6 +640,7 @@ def plot_collaborative_ape_violin_aggregate(
     long_df["Measurement"] = pd.Categorical(
         long_df["Measurement"], categories=ordered_labels, ordered=True)
 
+    import seaborn as sns
     fig, ax = plt.subplots(figsize=(7, 5))
     sns.violinplot(
         data=long_df, x="Measurement", y="ATE (m)",
@@ -650,7 +655,7 @@ def plot_collaborative_ape_violin_aggregate(
 
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=300)
+        fig.savefig(save_path, dpi=400)
 
 
 def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
@@ -790,8 +795,8 @@ def visualize(solver: FactorGraphSolver, save_dir: str | None = None,
 
         if save_dir:
             tag = f"{prefix}_" if prefix else ""
-            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=300)
-            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=300)
+            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_trajectory.png"), dpi=400)
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_ape.png"), dpi=400)
 
         tag = f"{prefix}_" if prefix else ""
         hist_path = (os.path.join(save_dir, f"{tag}robot_{robot_char}_ape_dist.png")
@@ -951,9 +956,9 @@ def compare_results(solvers: list[FactorGraphSolver],
         tag = f"{prefix}_" if prefix else ""
 
         if save_dir:
-            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=300)
+            fig.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_trajectory.png"), dpi=400)
             # Full autoscale version preserves the odometry baseline tail.
-            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape_full.png"), dpi=300)
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape_full.png"), dpi=400)
 
         # Clip y-axis to the range-aided traces so the odometry baseline does
         # not dominate the scale and squash range-aided detail. The odometry
@@ -963,7 +968,7 @@ def compare_results(solvers: list[FactorGraphSolver],
             ax2.set_ylim(0, y_top)
 
         if save_dir:
-            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=300)
+            fig2.savefig(os.path.join(save_dir, f"{tag}robot_{robot_char}_compare_ape.png"), dpi=400)
 
         dist_path = (os.path.join(save_dir,
                                   f"{tag}robot_{robot_char}_compare_ape_dist.png")
@@ -1088,7 +1093,7 @@ def compare_depth_error(solvers: list[FactorGraphSolver],
 
     if save_dir:
         tag = f"{prefix}_" if prefix else ""
-        fig.savefig(os.path.join(save_dir, f"{tag}compare_z_error.png"), dpi=300)
+        fig.savefig(os.path.join(save_dir, f"{tag}compare_z_error.png"), dpi=400)
 
     if show:
         plt.show()
@@ -1175,5 +1180,5 @@ def visualize_landmarks(solver: FactorGraphSolver,
 
     if save_dir:
         tag = f"{prefix}_" if prefix else ""
-        fig.savefig(os.path.join(save_dir, f"{tag}landmarks.png"), dpi=300)
+        fig.savefig(os.path.join(save_dir, f"{tag}landmarks.png"), dpi=400)
     plt.close(fig)

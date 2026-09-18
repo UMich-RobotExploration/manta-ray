@@ -25,6 +25,10 @@ import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.lines import Line2D
 
+from paper_style import apply_paper_style
+
+apply_paper_style()
+
 
 CONFIG_PATH = ("/home/tko/repos/manta-ray/mantaray/sim_config/"
                "beaufort_fleet_week_sim.json")
@@ -86,52 +90,51 @@ def main() -> None:
     d_min = min(a["target_depth"] for a in divers)
     d_max = max(a["target_depth"] for a in divers)
 
-    fig, ax_xy = plt.subplots(figsize=(5.6, 5.0), constrained_layout=True)
+    fig, ax_xy = plt.subplots(figsize=(3.3, 3.0), constrained_layout=True)
 
     # XY footprint in kilometres. Depth information is deferred to the
     # accompanying table (all divers share a single marker colour here).
     for a in divers:
-        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=200,
+        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=60,
                       c=DIVER_COLOR, marker="o",
-                      edgecolors="black", linewidths=1.0, zorder=3)
+                      edgecolors="black", linewidths=0.6, zorder=3)
     for a in surface:
-        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=230,
+        ax_xy.scatter([a["x"] / 1000.0], [a["y"] / 1000.0], s=70,
                       c=SURFACE_COLOR, marker="s",
-                      edgecolors="black", linewidths=1.2, zorder=4)
+                      edgecolors="black", linewidths=0.7, zorder=4)
+    # Agents near the top of the frame get their label BELOW the marker
+    # so B/C/D/E don't overflow the plot bounds; everyone else keeps
+    # the above-marker placement so the letter reads with the circle.
+    y_max_km = max(a["y"] for a in agents) / 1000.0
     for a in agents:
+        y_km = a["y"] / 1000.0
+        above = y_km < y_max_km - 1e-6
         ax_xy.annotate(a["label"],
-                       (a["x"] / 1000.0, a["y"] / 1000.0),
-                       textcoords="offset points", xytext=(0, 14),
-                       ha="center", fontsize=13, fontweight="bold")
+                       (a["x"] / 1000.0, y_km),
+                       textcoords="offset points",
+                       xytext=(0, 9) if above else (0, -11),
+                       ha="center", va="center",
+                       fontweight="bold")
 
-    ax_xy.set_xlabel("x (km)", fontsize=15)
-    ax_xy.set_ylabel("y (km)", fontsize=15)
+    ax_xy.set_xlabel("x (km)")
+    ax_xy.set_ylabel("y (km)")
     ax_xy.set_aspect("equal", adjustable="datalim")
-    ax_xy.grid(True, which="major", linestyle="-", color="#333333",
-               linewidth=0.9, alpha=0.35)
-    ax_xy.grid(True, which="minor", linestyle="-", color="#888888",
-               linewidth=0.4, alpha=0.20)
-    ax_xy.minorticks_on()
-    ax_xy.set_axisbelow(True)
-    for spine in ("top", "right"):
-        ax_xy.spines[spine].set_visible(False)
-    ax_xy.tick_params(axis="both", which="both", length=3, labelsize=13)
 
     surface_legend = Line2D([0], [0], marker="s", color="w",
                              markerfacecolor=SURFACE_COLOR,
-                             markeredgecolor="black", markeredgewidth=1.2,
-                             markersize=11, label="Fixed float")
+                             markeredgecolor="black", markeredgewidth=1.0,
+                             markersize=7, label="Fixed float")
     diver_legend = Line2D([0], [0], marker="o", color="w",
                            markerfacecolor=DIVER_COLOR,
-                           markeredgecolor="black", markeredgewidth=1.0,
-                           markersize=11, label="Diver")
+                           markeredgecolor="black", markeredgewidth=0.8,
+                           markersize=7, label="Diver")
     ax_xy.legend(handles=[surface_legend, diver_legend],
                  loc="lower center", bbox_to_anchor=(0.5, 1.02),
-                 frameon=True, fontsize=12, borderpad=0.4,
-                 handletextpad=0.5, ncol=2)
+                 frameon=True, borderpad=0.3,
+                 handletextpad=0.4, ncol=2)
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-    fig.savefig(OUT_PATH, dpi=300, bbox_inches="tight")
+    fig.savefig(OUT_PATH, dpi=400, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {OUT_PATH}")
     print(f"  agents: {len(agents)} total "

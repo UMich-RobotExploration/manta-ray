@@ -1302,6 +1302,7 @@ dependencies = [
     { name = "pandas" },
     { name = "py-factor-graph" },
     { name = "pyvista", extra = ["jupyter"] },
+    { name = "scienceplots" },
     { name = "seaborn" },
 ]
 
@@ -1316,6 +1317,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "py-factor-graph", git = "https://github.com/MarineRoboticsGroup/PyFactorGraph" },
     { name = "pyvista", extras = ["jupyter"], specifier = ">=0.43" },
+    { name = "scienceplots", specifier = ">=2.2.2" },
     { name = "seaborn", specifier = ">=0.13" },
 ]
 
@@ -1638,6 +1640,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c7/3b/ebda527b56beb90cb7652cb1c7e4f91f48649fbcd8d2eb2fb6e77cd3329b/ruamel_yaml-0.19.1.tar.gz", hash = "sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993", size = 142709, upload-time = "2026-01-02T16:50:31.84Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b8/0c/51f6841f1d84f404f92463fc2b1ba0da357ca1e3db6b7fbda26956c3b82a/ruamel_yaml-0.19.1-py3-none-any.whl", hash = "sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93", size = 118102, upload-time = "2026-01-02T16:50:29.201Z" },
+]
+
+[[package]]
+name = "scienceplots"
+version = "2.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/50/05/73a19270d548caadf145b0fc8ab94a8c716faeca528c254a4192676e048b/scienceplots-2.2.2.tar.gz", hash = "sha256:d46ce7170b4160265c777a48f73a0db1fdff8460f59a0ded0e364acb139ab115", size = 19692, upload-time = "2026-06-23T07:32:50.693Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/ff/6469a5cabf230ebc94f927246874136098dde1aacc9328bc40dceb24ba13/scienceplots-2.2.2-py3-none-any.whl", hash = "sha256:f63d04e6ec11fe2036ec120feb6c2f1d84b7c38e96cc7edcde7208064653af98", size = 33394, upload-time = "2026-06-23T07:32:49.594Z" },
 ]
 
 [[package]]

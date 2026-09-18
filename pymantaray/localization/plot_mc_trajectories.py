@@ -205,7 +205,7 @@ def main() -> None:
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     # Leave room at the bottom for the legend that lives below the axes.
-    fig.savefig(OUT_PATH, dpi=300, bbox_inches="tight",
+    fig.savefig(OUT_PATH, dpi=400, bbox_inches="tight",
                 pad_inches=0.15)
     plt.close(fig)
     print(f"Wrote {OUT_PATH}")

@@ -34,6 +34,11 @@ NPZ_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
 SAVE_DIR = os.path.dirname(NPZ_PATH)
 PREFIX = "mc"
 
+# Flip to True to also emit the per-robot ATE delta traces, the
+# fleet-stacked delta plot, and the translation RMSE bar chart. The
+# paper pooled-APE violin is emitted regardless.
+WRITE_DIAGNOSTICS = False
+
 
 def _plot_per_robot(deltas: dict[str, np.ndarray],
                     seeds: list[int] | np.ndarray) -> None:
@@ -88,55 +93,6 @@ def _pool_apes(data) -> tuple[np.ndarray, np.ndarray]:
     return np.concatenate(m_chunks), np.concatenate(t_chunks)
 
 
-def _plot_pooled_ape_box(data, save_path: str) -> None:
-    """Paper-clean boxplot of pooled APE: refracted vs straight-line.
-
-    Two boxes side-by-side. No KDE curves, no outlier fliers -- clean
-    median / IQR / 1.5*IQR whiskers only. Log y-axis so the several-order
-    APE spread reads cleanly. Mean shown as a white triangle so the
-    reader can see how far mean sits from median (indicative of skew).
-    """
-    refr, line = _pool_apes(data)   # measured = refracted, idealized = straight-line
-    fig, ax = plt.subplots(figsize=(4.4, 3.6))
-    bp = ax.boxplot(
-        [line, refr],
-        positions=[0, 1],
-        widths=0.55,
-        patch_artist=True,
-        showfliers=False,
-        showmeans=True,
-        medianprops=dict(color="black", linewidth=1.4),
-        whiskerprops=dict(color="black", linewidth=0.9),
-        capprops=dict(color="black", linewidth=0.9),
-        boxprops=dict(linewidth=0.6),
-        meanprops=dict(marker="^", markerfacecolor="white",
-                       markeredgecolor="black", markersize=6,
-                       markeredgewidth=0.9),
-    )
-    for patch, c in zip(bp["boxes"], ["#1f77b4", "#d62728"]):
-        patch.set_facecolor(c)
-        patch.set_edgecolor("none")
-
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Straight-line\nranges", "Refracted\nranges"],
-                       fontsize=10)
-    ax.set_ylabel("Translation APE (m)", fontsize=11)
-    ax.set_yscale("log")
-    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
-            linewidth=0.9, alpha=0.55)
-    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
-            linewidth=0.4, alpha=0.25)
-    ax.set_axisbelow(True)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-    ax.tick_params(axis="both", which="both", length=3)
-    ax.tick_params(axis="x", length=0)
-
-    fig.tight_layout()
-    fig.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
-
-
 def _plot_translation_rmse_bar(data, robots: list[str],
                                 save_path: str) -> None:
     """Per-robot translation RMSE, two bars per robot.
@@ -187,7 +143,7 @@ def _plot_translation_rmse_bar(data, robots: list[str],
     ax.set_ylim(ymin * 0.5, ymax * 3.5)
 
     fig.tight_layout()
-    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    fig.savefig(save_path, dpi=400, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -209,6 +165,40 @@ def main() -> None:
     robots = list(deltas)
     print(f"Robots in cache: {robots}, seeds={list(seeds)}")
 
+    # --- Paper figure: pooled APE violin (always written) ---
+    m_pool, t_pool = _pool_apes(data)
+    # Odometry-only baseline: deterministic under use_ground_truth_odometry,
+    # so we sample it once from the pfg alongside the .npz.
+    pfg_guess = os.path.join(SAVE_DIR, "output.pfg")
+    if os.path.exists(pfg_guess):
+        odom_pool = _pool_odom_only_ape(pfg_guess)
+        print(f"Odom-only APE: n={odom_pool.size:,d} "
+              f"median={np.median(odom_pool):.3f} m "
+              f"max={odom_pool.max():.3f} m")
+    else:
+        odom_pool = None
+        print(f"[warn] {pfg_guess} not found; skipping odom-only violin series")
+    pooled_path = os.path.join(SAVE_DIR, f"{PREFIX}_pooled_ape_dist.png")
+    # Order left-to-right: odometry (prepended by the plotter) -> refracted
+    # -> straight-line. Reads as worst baseline -> real-world ranging ->
+    # ideal-model ranging.
+    plot_ape_distribution_compare(
+        ape_results=[m_pool, t_pool],
+        labels=["Refracted Ranges", "Straight-line Ranges"],
+        ape_odom=odom_pool,
+        robot_char="all robots x all seeds",
+        save_path=pooled_path,
+        title="All Agents Across Monte Carlo",
+        log_y=True)
+    print(f"Pooled ATE (n={m_pool.size:,d} samples per condition): "
+          f"refracted median={np.median(m_pool):.3f} m, "
+          f"straight-line median={np.median(t_pool):.3f} m")
+    print(f"Saved {pooled_path}")
+
+    if not WRITE_DIAGNOSTICS:
+        return
+
+    # --- Diagnostics (only when explicitly requested) ---
     _plot_per_robot(deltas, seeds)
 
     # Fleet paired-delta: stack every robot's (n_seeds, n_poses) matrix into
@@ -233,26 +223,6 @@ def main() -> None:
           f"mean={fleet_delta.mean():+.3f} m, "
           f"median={np.median(fleet_delta):+.3f} m, "
           f"P(>0)={(fleet_delta > 0).mean():.3f}")
-
-    m_pool, t_pool = _pool_apes(data)
-    pooled_path = os.path.join(SAVE_DIR, f"{PREFIX}_pooled_ape_dist.png")
-    # Paper variant: two violins (refracted, straight-line) on linear-y so
-    # the shift between conditions reads at the true magnitude. Odometry
-    # baseline is dropped -- at ~100 m median it compresses the region
-    # of interest even on linear axes and adds no information the
-    # numeric summary below doesn't already convey.
-    plot_ape_distribution_compare(
-        ape_results=[m_pool, t_pool],
-        labels=["Refracted Ranges", "Straight-line Ranges"],
-        ape_odom=None,
-        robot_char="all robots x all seeds",
-        save_path=pooled_path,
-        title="All Agents Across Monte Carlo",
-        log_y=False)
-    print(f"Pooled ATE (n={m_pool.size:,d} samples per condition): "
-          f"refracted median={np.median(m_pool):.3f} m, "
-          f"straight-line median={np.median(t_pool):.3f} m")
-    print(f"Saved {pooled_path}")
 
     rmse_bar_path = os.path.join(SAVE_DIR, f"{PREFIX}_translation_rmse_bar.png")
     _plot_translation_rmse_bar(data, robots, rmse_bar_path)

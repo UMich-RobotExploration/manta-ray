@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
+from paper_style import apply_paper_style
+
+apply_paper_style()
+
 # Import parsing function
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 from py_factor_graph.utils.plot_utils import (
@@ -22,154 +26,14 @@ from py_factor_graph.utils.plot_utils import (
 from py_factor_graph.variables import PoseVariable3D
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
-from vtk_plots import plot_range_errors_vtk
-
 
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
-
-def plot_range_histogram(fg_data, save_dir: str | None = None):
-    """Plot a histogram comparing measured range distances vs true distances.
-
-    Args:
-        fg_data: FactorGraphData object with range measurements
-        save_dir: Directory to save figure. If None, only shows interactively.
-    """
-    if not fg_data.range_measurements:
-        print("No range measurements to compare.")
-        return
-
-    true_fg = make_all_ranges_perfect(fg_data)
-
-    measured_dists = [m.dist for m in fg_data.range_measurements]
-    true_dists = [m.dist for m in true_fg.range_measurements]
-    errors = [m - t for m, t in zip(measured_dists, true_dists)]
-    pct_errors = [100.0 * (m - t) / t for m, t in zip(measured_dists, true_dists) if t != 0]
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
-
-    # Overlaid histograms of measured vs true
-    ax1.hist(true_dists, bins=30, alpha=0.6, label='True', color='green')
-    ax1.hist(measured_dists, bins=30, alpha=0.6, label='Measured', color='blue')
-    ax1.set_xlabel('Distance')
-    ax1.set_ylabel('Count')
-    ax1.set_title('Measured vs True Range Distances')
-    ax1.legend()
-
-    # Error distribution
-    ax2.hist(errors, bins=30, alpha=0.7, color='red')
-    ax2.axvline(x=0, color='black', linestyle='--', linewidth=1)
-    ax2.set_xlabel('Error (Measured - True)')
-    ax2.set_ylabel('Count')
-    ax2.set_title('Range Measurement Error Distribution')
-
-    # Percent error distribution
-    ax3.hist(pct_errors, bins=30, alpha=0.7, color='orange')
-    ax3.axvline(x=0, color='black', linestyle='--', linewidth=1)
-    ax3.set_xlabel('Percent Error (%)')
-    ax3.set_ylabel('Count')
-    ax3.set_title('Range Measurement Percent Error')
-
-    plt.tight_layout()
-    if save_dir:
-        fig.savefig(os.path.join(save_dir, "range_histogram.png"), dpi=300)
-    plt.show()
-
-
-def plot_range_diagnostics(fg_data, save_dir: str | None = None):
-    """Plot range measurement error diagnostics broken down by association type.
-
-    Categorizes range measurements into pose↔pose (robot-robot) and
-    pose↔landmark (robot-landmark), then plots absolute error, percent error,
-    and error vs measurement index for each category.
-
-    Args:
-        fg_data: FactorGraphData object with range measurements
-        save_dir: Directory to save figure. If None, only shows interactively.
-    """
-    if not fg_data.range_measurements:
-        print("No range measurements to diagnose.")
-        return
-
-    true_fg = make_all_ranges_perfect(fg_data)
-    pose_keys = set(fg_data.pose_variables_dict.keys())
-
-    categories = {
-        "Robot ↔ Robot": {"measured": [], "true": []},
-        "Robot ↔ Landmark": {"measured": [], "true": []},
-    }
-
-    for meas, true_meas in zip(fg_data.range_measurements, true_fg.range_measurements):
-        name_a, name_b = meas.association
-        a_is_pose = name_a in pose_keys
-        b_is_pose = name_b in pose_keys
-
-        if a_is_pose and b_is_pose:
-            cat = "Robot ↔ Robot"
-        elif a_is_pose or b_is_pose:
-            cat = "Robot ↔ Landmark"
-        else:
-            continue
-
-        categories[cat]["measured"].append(meas.dist)
-        categories[cat]["true"].append(true_meas.dist)
-
-    active_cats = {k: v for k, v in categories.items()
-                   if len(v["measured"]) > 0}
-
-    if not active_cats:
-        print("No classifiable range measurements found.")
-        return
-
-    nrows = len(active_cats)
-    fig, axes = plt.subplots(nrows, 3, figsize=(18, 5 * nrows))
-    if nrows == 1:
-        axes = axes[np.newaxis, :]
-
-    for row, (cat_name, data) in enumerate(active_cats.items()):
-        measured = np.array(data["measured"])
-        true = np.array(data["true"])
-        abs_err = measured - true
-        pct_err = 100.0 * abs_err / true
-
-        # Print summary
-        print(f"\n{'=' * 50}")
-        print(f"  {cat_name}  ({len(measured)} measurements)")
-        print(f"{'=' * 50}")
-        print(f"  Absolute error (m):  mean={np.mean(abs_err):.4f}  "
-              f"std={np.std(abs_err):.4f}  max={np.max(np.abs(abs_err)):.4f}")
-        print(f"  Percent error  (%):  mean={np.mean(pct_err):.2f}  "
-              f"std={np.std(pct_err):.2f}  max={np.max(np.abs(pct_err)):.2f}")
-
-        # Absolute error histogram
-        ax = axes[row, 0]
-        ax.hist(abs_err, bins=30, alpha=0.7, color='red')
-        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
-        ax.set_xlabel("Absolute Error (m)")
-        ax.set_ylabel("Count")
-        ax.set_title(f"{cat_name} — Absolute Error")
-
-        # Percent error histogram
-        ax = axes[row, 1]
-        ax.hist(pct_err, bins=30, alpha=0.7, color='orange')
-        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
-        ax.set_xlabel("Percent Error (%)")
-        ax.set_ylabel("Count")
-        ax.set_title(f"{cat_name} — Percent Error")
-
-        # Absolute error vs index
-        ax = axes[row, 2]
-        ax.scatter(range(len(abs_err)), abs_err, s=4, alpha=0.5, color='blue')
-        ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
-        ax.set_xlabel("Measurement Index")
-        ax.set_ylabel("Absolute Error (m)")
-        ax.set_title(f"{cat_name} — Error vs Index")
-
-    fig.tight_layout()
-    if save_dir:
-        fig.savefig(os.path.join(save_dir, "range_diagnostics.png"), dpi=300)
-    plt.show()
+# Flip to True to also emit the diagnostic PNGs (per-robot bias plots,
+# range-error scatter, measurement histograms, etc.) that pollute the
+# results directory. The paper/poster figures are emitted regardless.
+WRITE_DIAGNOSTICS = False
 
 
 def _split_range_errors(fg_data) -> dict[str, dict[str, np.ndarray]]:
@@ -288,7 +152,7 @@ def plot_range_output_distributions(fg_data,
         fig.suptitle(suptitle, fontsize=13)
         fig.tight_layout()
         if save_dir:
-            fig.savefig(os.path.join(save_dir, save_name), dpi=300)
+            fig.savefig(os.path.join(save_dir, save_name), dpi=400)
 
     _render("abs_err", "Range Error (m)", "Range Absolute Error",
             "range_abs_err_dist.png")
@@ -346,45 +210,53 @@ def plot_range_bias_paper(fg_data,
     print(f"[range_bias_paper] robot-robot n={n}, "
           f"mean={mean:+.3f} m, std={std:.3f} m, rmse={rmse:.3f} m")
 
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
+    fig, ax = plt.subplots(figsize=(3.3, 2.6))
 
-    _, edges, _ = ax.hist(
+    counts, edges, _ = ax.hist(
         errors, bins=60, density=True, color="#4c78a8",
-        edgecolor="white", linewidth=0.4, alpha=0.9)
+        edgecolor="white", linewidth=0.3, alpha=0.9)
 
     if std > 0.0:
         xs = np.linspace(edges[0], edges[-1], 400)
         pdf = (np.exp(-0.5 * ((xs - mean) / std) ** 2)
                / (std * np.sqrt(2.0 * np.pi)))
-        ax.plot(xs, pdf, color="black", linewidth=1.4, zorder=2.5,
+        ax.plot(xs, pdf, color="black", linewidth=1.0, zorder=2.5,
                 label=fr"Gaussian fit ($\sigma$ = {std:.1f} m)")
 
-    ax.axvline(0.0, color="0.35", linestyle="--", linewidth=1.0,
+    ax.axvline(0.0, color="0.35", linestyle="--", linewidth=0.8,
                label="Zero bias")
-    ax.axvline(mean, color="#d62728", linestyle="-", linewidth=1.4,
+    ax.axvline(mean, color="#d62728", linestyle="-", linewidth=1.0,
                label=f"Mean = {mean:+.2f} m")
 
-    ax.set_xlabel(r"$r_{\mathrm{error}}$ (m)", fontsize=15)
-    ax.set_ylabel("Density", fontsize=15)
+    ax.set_xlabel(r"$r_{\mathrm{error}}$ (m)")
+    ax.set_ylabel("Density")
 
-    ax.grid(axis="y", which="major", linestyle="-", color="#333333",
-            linewidth=0.9, alpha=0.55)
-    ax.grid(axis="y", which="minor", linestyle="-", color="#888888",
-            linewidth=0.4, alpha=0.25)
-    ax.set_axisbelow(True)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-    ax.tick_params(axis="both", which="both", length=3, labelsize=13)
+    # Force 50 m spacing on major x ticks so the compact 3.3-in figure
+    # always labels multiple gridlines instead of collapsing to just "0".
+    from matplotlib.ticker import MultipleLocator
+    ax.xaxis.set_major_locator(MultipleLocator(50))
 
-    ax.legend(frameon=True, fontsize=12, loc="upper right",
-              handlelength=1.8, handletextpad=0.6, borderpad=0.4)
+    # Add headroom above the tallest bar so the upper-corner legend does
+    # not clip a sharp central spike (Fram Strait's peak sits ~0.037).
+    ymax = float(counts.max()) if counts.size else 1.0
+    ax.set_ylim(0.0, ymax * 1.22)
+
+    # Place legend in whichever upper corner is emptier: pick the side
+    # opposite the tallest bar so it does not obstruct the peak.
+    if counts.size and int(counts.argmax()) >= counts.size // 2:
+        legend_loc = "upper left"
+    else:
+        legend_loc = "upper right"
+    ax.legend(frameon=True, loc=legend_loc,
+              fontsize=7, handlelength=1.0, handletextpad=0.35,
+              borderpad=0.2, labelspacing=0.25, borderaxespad=0.2)
 
     fig.tight_layout()
     if save_dir:
         fname = (f"range_bias_paper_{robot_char}.png"
                  if robot_char is not None else "range_bias_paper.png")
         fig.savefig(os.path.join(save_dir, fname),
-                    dpi=300, bbox_inches="tight")
+                    dpi=400, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -465,7 +337,7 @@ def plot_range_error_vs_range(fg_data,
     fig.tight_layout()
     if save_dir:
         fig.savefig(os.path.join(save_dir, "range_err_vs_range.png"),
-                    dpi=300)
+                    dpi=400)
 
 
 def _split_range_measurements(fg_data) -> dict[str, np.ndarray]:
@@ -569,7 +441,7 @@ def plot_range_measurement_distribution(fg_data,
     fig.tight_layout()
     if save_dir:
         fig.savefig(os.path.join(save_dir, "range_measurement_dist.png"),
-                    dpi=300)
+                    dpi=400)
 
 
 def print_worst_ranges(fg_data, n: int = 20):
@@ -705,14 +577,15 @@ def plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
             for pose in poses[::step]:
                 draw_pose_3d(ax, pose, color=color, scale=0.5)
 
-    # Set labels and title
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title(f'3D Factor Graph - {fg_data.num_robots} Robot(s), {len(fg_data.landmark_variables)} Landmarks')
+    # Poster-quality: large axis labels, no title (deferred to caption).
+    ax.set_xlabel('X (m)', fontsize=22, labelpad=14)
+    ax.set_ylabel('Y (m)', fontsize=22, labelpad=14)
+    ax.set_zlabel('Z (m)', fontsize=22, labelpad=14)
+    ax.tick_params(axis='both', which='both', labelsize=16)
 
     if save_dir:
-        fig.savefig(os.path.join(save_dir, "factor_graph_3d.png"), dpi=300)
+        fig.savefig(os.path.join(save_dir, "factor_graph_3d.png"),
+                    dpi=600, bbox_inches="tight")
     plt.show()
 
 
@@ -731,19 +604,15 @@ if __name__ == "__main__":
 
     print_worst_ranges(fg_data)
 
-    # --- Debug diagnostics (cluttered, not for thesis) ---
-    # plot_range_histogram(fg_data, save_dir=WORK_DIR)
-    # plot_range_diagnostics(fg_data, save_dir=WORK_DIR)
-
-    # --- Thesis-clean outputs ---
-    plot_range_output_distributions(fg_data, save_dir=WORK_DIR)
-    plot_range_measurement_distribution(fg_data, save_dir=WORK_DIR)
-    plot_range_error_vs_range(fg_data, save_dir=WORK_DIR)
-
+    # --- Paper / poster figures (always written) ---
     plot_range_bias_paper(fg_data, save_dir=WORK_DIR)
-    for r in "ABCDEFGHIJKM":
-        plot_range_bias_paper(fg_data, save_dir=WORK_DIR, robot_char=r)
-
     plot_factor_graph_3d(fg_data, show_trajectories=True, show_landmarks=True,
                          save_dir=WORK_DIR)
-    plot_range_errors_vtk(fg_data, save_dir=WORK_DIR, show_landmark_hull=True)
+
+    # --- Diagnostics (only when explicitly requested) ---
+    if WRITE_DIAGNOSTICS:
+        plot_range_output_distributions(fg_data, save_dir=WORK_DIR)
+        plot_range_measurement_distribution(fg_data, save_dir=WORK_DIR)
+        plot_range_error_vs_range(fg_data, save_dir=WORK_DIR)
+        for r in "ABCDEFGHIJKM":
+            plot_range_bias_paper(fg_data, save_dir=WORK_DIR, robot_char=r)

@@ -800,18 +800,15 @@ def debug_factor_graph(solver,
             plot_pose_marginals(solver, marginals_obj,
                                 save_dir=save_dir, prefix=prefix)
 
-    # Render matplotlib figures non-blocking so the user can study them,
-    # then launch the 3D view(s) on top.
+    # Render matplotlib figures non-blocking so the user can study them.
+    # VTK 3D views were removed with the rest of the vtk_plots module;
+    # `show_3d` and `show_leverage` are retained as accepted kwargs so
+    # callers don't break, but they only control the matplotlib display
+    # now.
     if show_3d:
         plt.show(block=False)
         plt.pause(0.1)
 
-    from vtk_plots import plot_factors_in_world, plot_leverage_in_world
-    plot_factors_in_world(solver, stats, save_dir=save_dir, prefix=prefix,
-                          label_k=label_k, show=show_3d)
-    if show_leverage and marginals_obj is not None:
-        plot_leverage_in_world(solver, stats, save_dir=save_dir,
-                               prefix=prefix, label_k=label_k, show=show_3d)
     return stats
 
 
