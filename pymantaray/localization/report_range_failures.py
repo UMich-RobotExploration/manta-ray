@@ -15,10 +15,8 @@ import os
 import re
 from collections import Counter
 
-# SIM_LOG = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-#            "src/results/arctic/beaufort-fleet-week/sim_log.txt")
-SIM_LOG = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-           "src/results/arctic/fram-strait-fleet-week/sim_log.txt")
+SIM_LOG = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+           "beaufort-fleet-week/sim_log.txt")
 TEX_OUT_DIR: str | None = os.path.dirname(SIM_LOG)  # None disables .tex writes
 
 # Regexes for the ping-status lines the C++ side emits via SPDLOG.

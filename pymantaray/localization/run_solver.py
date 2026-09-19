@@ -11,7 +11,7 @@ from solver_defaults import build_default_config
 from visualize_solver import (visualize, compare_results, compare_depth_error,
                                visualize_landmarks)
 
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week-dryrun/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/results/arctic/beaufort-fleet-week/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 print(f"Reading {FILE_PATH} ...")

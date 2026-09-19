@@ -278,4 +278,15 @@ pymantaray/acoustics/arrivalDataDebugHigherPrecision
 # HYCOM. Total ~35 MB across three regions; largest file ~6 MB.
 !mantaray/data/**/*.npy
 
+# mantaray/results/arctic/{beaufort,fram-strait}-fleet-week/ ship the
+# paper's output.pfg and the C++ sim_log.txt. Solver outputs (APE PNGs,
+# mc_paired_ape.npz, mc_trajectories.npz, per-robot bias plots) land
+# here from the Python side and must stay untracked.
+mantaray/results/arctic/beaufort-fleet-week/*
+mantaray/results/arctic/fram-strait-fleet-week/*
+!mantaray/results/arctic/beaufort-fleet-week/output.pfg
+!mantaray/results/arctic/beaufort-fleet-week/sim_log.txt
+!mantaray/results/arctic/fram-strait-fleet-week/output.pfg
+!mantaray/results/arctic/fram-strait-fleet-week/sim_log.txt
+
 mantaray/docs/*

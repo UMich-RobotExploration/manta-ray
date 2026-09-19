@@ -20,15 +20,19 @@ Python 3.11. Independent from
 
 ### Single-scenario solve
 
-Edit `FILE_PATH` in [`run_solver.py`](run_solver.py) to point at an
-`output.pfg`, then:
+[`run_solver.py`](run_solver.py) defaults to the paper's Beaufort
+reference factor graph, shipped in-tree at
+`mantaray/results/arctic/beaufort-fleet-week/output.pfg`:
 
 ```bash
 uv run python run_solver.py
 ```
 
-Prints initial vs final graph error, and writes trajectory + APE plots
-into the same directory as the `.pfg`.
+Prints initial vs final graph error and writes trajectory + APE plots
+next to the `.pfg`, through `WORK_DIR = os.path.dirname(FILE_PATH)`.
+Switching to the shipped Fram Strait graph, or to any other
+`output.pfg` the C++ side produced, is a one-line edit to `FILE_PATH`
+at the top of the script.
 
 ### Monte Carlo (paper reproduction)
 

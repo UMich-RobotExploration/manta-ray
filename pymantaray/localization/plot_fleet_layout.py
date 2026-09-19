@@ -32,8 +32,8 @@ apply_paper_style()
 
 CONFIG_PATH = ("/home/tko/repos/manta-ray/mantaray/sim_config/"
                "paper_beaufort_fleet_week_sim.json")
-OUT_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-            "src/results/arctic/beaufort-fleet-week/fleet_layout.png")
+OUT_PATH = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+            "beaufort-fleet-week/fleet_layout.png")
 
 # Robot index -> pfg letter. 'L' is reserved for landmarks in PyFactorGraph
 # (see PfgWriter.cpp), so index 11 maps to 'M'. This mirrors robotName().

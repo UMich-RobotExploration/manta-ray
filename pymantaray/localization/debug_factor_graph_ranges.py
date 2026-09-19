@@ -27,7 +27,7 @@ from py_factor_graph.variables import PoseVariable3D
 from py_factor_graph.modifiers import make_all_ranges_perfect
 
 
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/results/arctic/fram-strait-fleet-week/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 # Flip to True to also emit the diagnostic PNGs (per-robot bias plots,

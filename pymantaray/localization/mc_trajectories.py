@@ -28,8 +28,8 @@ from pyfg_to_gtsam import FactorGraphSolver, extract_trajectory
 from solver_defaults import build_default_config
 
 
-FILE_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-             "src/results/arctic/fram-strait-fleet-week/output.pfg")
+FILE_PATH = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+             "beaufort-fleet-week/output.pfg")
 
 # Fewer seeds than the APE MC (25) -- the trajectory plot only needs enough
 # ensemble members to render a visible spread. Overplot beyond ~10 seeds

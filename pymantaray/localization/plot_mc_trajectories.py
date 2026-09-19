@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 
-NPZ_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-            "src/results/arctic/fram-strait-fleet-week/mc_trajectories.npz")
+NPZ_PATH = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+            "beaufort-fleet-week/mc_trajectories.npz")
 OUT_PATH = os.path.join(os.path.dirname(NPZ_PATH), "mc_trajectories.png")
 
 # Draw first N seeds -- enough to show ensemble spread without a wall of ink.

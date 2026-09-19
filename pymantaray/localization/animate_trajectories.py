@@ -20,8 +20,7 @@ import pyvista as pv
 from py_factor_graph.io.pyfg_text import read_from_pyfg_text
 
 
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week-dryrun/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week-dryrun/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/results/arctic/fram-strait-fleet-week/output.pfg"
 OUTPUT_NAME = "floats_animation.mp4"
 
 CLIP_SECONDS = 15.0

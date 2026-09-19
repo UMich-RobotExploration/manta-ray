@@ -24,11 +24,11 @@ from collections import Counter
 # One tuple per environment: (short_label, path/to/sim_log.txt).
 ENV_CONFIGS = [
     ("Beaufort",
-     "/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-     "src/results/arctic/beaufort-fleet-week/sim_log.txt"),
+     "/home/tko/repos/manta-ray/mantaray/results/arctic/"
+     "beaufort-fleet-week/sim_log.txt"),
     ("Fram Strait",
-     "/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-     "src/results/arctic/fram-strait-fleet-week/sim_log.txt"),
+     "/home/tko/repos/manta-ray/mantaray/results/arctic/"
+     "fram-strait-fleet-week/sim_log.txt"),
 ]
 
 # Robot indices that are surface floats (from paper_beaufort_fleet_week_sim.json
@@ -36,9 +36,8 @@ ENV_CONFIGS = [
 SURFACE_INDICES = {0}
 
 # Where to write the .tex output (also printed to stdout).
-TEX_OUT_PATH: str | None = ("/home/tko/repos/manta-ray/mantaray/"
-                            "cmake-build-release/src/results/arctic/"
-                            "range_drop_category_compare.tex")
+TEX_OUT_PATH: str | None = ("/home/tko/repos/manta-ray/mantaray/results/"
+                            "arctic/range_drop_category_compare.tex")
 
 _TAG_RE = re.compile(
     r"\[t=(?P<t>[\d.]+)\s+(?P<pinger>\d+)\[[RL]\]->(?P<target>\d+)\[[RL]\]\]"

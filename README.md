@@ -98,6 +98,31 @@ cd ../../../pymantaray/localization && uv sync && uv run python run_solver.py
 Full build details, config schema, and per-stage usage live in the
 subproject READMEs linked above.
 
+## Reference factor graphs
+
+The two Monte Carlo scenarios reported in the paper ship as prebuilt
+`.pfg` files:
+[`mantaray/results/arctic/beaufort-fleet-week/output.pfg`](mantaray/results/arctic/beaufort-fleet-week/output.pfg)
+(Beaufort Sea, cold-cap halocline) and
+[`mantaray/results/arctic/fram-strait-fleet-week/output.pfg`](mantaray/results/arctic/fram-strait-fleet-week/output.pfg)
+(Fram Strait, Atlantic-polar exchange). `pymantaray/localization/run_solver.py`
+and the Monte Carlo runner default to the Beaufort file, so a fresh
+clone reproduces the paper's headline solve with no path edits:
+
+```bash
+cd pymantaray/localization && uv sync && uv run python run_solver.py
+```
+
+Switching to Fram Strait is a one-line change to `FILE_PATH`. Shipping
+the factor graphs decouples estimator experimentation from the CUDA
+build: a reader iterating on noise models, robust kernels, or graph
+pre-processing exercises the same inputs that produced the paper's
+numbers, without provisioning a GPU or compiling `bellhopcuda`. The
+C++ pipeline remains authoritative for regenerating factor graphs
+under new configurations; the shipped pair is not a replacement but a
+fixed reference against which downstream estimator changes stay
+comparable.
+
 ## Example results
 
 Selected figures from the paper's simulated experiments, split by

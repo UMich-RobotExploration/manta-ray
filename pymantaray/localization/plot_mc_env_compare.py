@@ -24,15 +24,15 @@ import matplotlib.pyplot as plt
 # One tuple per environment: (display_label, path/to/mc_paired_ape.npz).
 ENV_CACHES = [
     ("Beaufort Sea",
-     "/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-     "src/results/arctic/beaufort-fleet-week/mc_paired_ape.npz"),
+     "/home/tko/repos/manta-ray/mantaray/results/arctic/"
+     "beaufort-fleet-week/mc_paired_ape.npz"),
     ("Fram Strait",
-     "/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-     "src/results/arctic/fram-strait-fleet-week/mc_paired_ape.npz"),
+     "/home/tko/repos/manta-ray/mantaray/results/arctic/"
+     "fram-strait-fleet-week/mc_paired_ape.npz"),
 ]
 
-OUT_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-            "src/results/arctic/mc_env_compare_rmse.png")
+OUT_PATH = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+            "mc_env_compare_rmse.png")
 
 
 def _fleet_pooled_rmse(npz_path: str) -> tuple[float, float, int]:

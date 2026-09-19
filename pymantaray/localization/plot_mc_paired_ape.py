@@ -29,8 +29,8 @@ from visualize_solver import (plot_ape_distribution_compare,
                               plot_paired_ape_delta)
 
 
-NPZ_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
-            "src/results/arctic/fram-strait-fleet-week/mc_paired_ape.npz")
+NPZ_PATH = ("/home/tko/repos/manta-ray/mantaray/results/arctic/"
+            "beaufort-fleet-week/mc_paired_ape.npz")
 SAVE_DIR = os.path.dirname(NPZ_PATH)
 PREFIX = "mc"
 
