@@ -31,7 +31,7 @@ from solver_defaults import build_default_config
 
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 # FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
-FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
+FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
 
 # Draw the MC seed list deterministically from a meta-seed so reruns
 # produce the same set of realizations without hand-picking seed values.
@@ -72,36 +72,36 @@ def main() -> None:
     for i, seed in enumerate(SEEDS):
         print(f"\n--- seed {seed}  ({i + 1}/{len(SEEDS)}) ---")
 
-        cfg_m = deepcopy(base_config)
-        cfg_m.seed = seed
+        cfg_measured = deepcopy(base_config)
+        cfg_measured.seed = seed
 
-        cfg_t = deepcopy(base_config)
-        cfg_t.seed = seed
-        cfg_t.use_true_ranges = True
+        cfg_idealized = deepcopy(base_config)
+        cfg_idealized.seed = seed
+        cfg_idealized.use_straight_line_ranges = True
 
-        sol_m = FactorGraphSolver(fg_data, cfg_m)
-        sol_m.solve()
-        sol_t = FactorGraphSolver(fg_data, cfg_t)
-        sol_t.solve()
+        sol_measured = FactorGraphSolver(fg_data, cfg_measured)
+        sol_measured.solve()
+        sol_idealized = FactorGraphSolver(fg_data, cfg_idealized)
+        sol_idealized.solve()
 
-        ape_m_dict = per_pose_ape(sol_m)
-        ape_t_dict = per_pose_ape(sol_t)
+        ape_measured_dict = per_pose_ape(sol_measured)
+        ape_idealized_dict = per_pose_ape(sol_idealized)
         for r in robot_chars:
-            if r not in ape_m_dict:
+            if r not in ape_measured_dict:
                 raise KeyError(
                     f"Robot {r!r} not in factor graph "
-                    f"(available: {sorted(ape_m_dict)})")
-            ape_m = ape_m_dict[r]
-            ape_t = ape_t_dict[r]
-            if ape_m.shape != ape_t.shape:
+                    f"(available: {sorted(ape_measured_dict)})")
+            ape_measured_r = ape_measured_dict[r]
+            ape_idealized_r = ape_idealized_dict[r]
+            if ape_measured_r.shape != ape_idealized_r.shape:
                 raise RuntimeError(
                     f"per-pose APE shape mismatch at seed {seed}, "
-                    f"robot {r}: measured={ape_m.shape} "
-                    f"idealized={ape_t.shape}")
-            ape_measured[r].append(ape_m)
-            ape_idealized[r].append(ape_t)
-            print(f"  [{r}] measured mean={ape_m.mean():.3f} m, "
-                  f"idealized mean={ape_t.mean():.3f} m")
+                    f"robot {r}: measured={ape_measured_r.shape} "
+                    f"idealized={ape_idealized_r.shape}")
+            ape_measured[r].append(ape_measured_r)
+            ape_idealized[r].append(ape_idealized_r)
+            print(f"  [{r}] measured mean={ape_measured_r.mean():.3f} m, "
+                  f"idealized mean={ape_idealized_r.mean():.3f} m")
 
     # Stack per-seed arrays into (n_seeds, n_poses) matrices per robot and
     # persist under stable key names. `ape_measured_<r>` holds the refracted

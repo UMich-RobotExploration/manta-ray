@@ -39,7 +39,7 @@ visualize_landmarks(solver_measured, save_dir=WORK_DIR, prefix="measured")
 
 print("\n=== Run 2: True Ranges ===")
 config_true = deepcopy(config)
-config_true.use_true_ranges = True
+config_true.use_straight_line_ranges = True
 solver_true = FactorGraphSolver(fg_data, config_true)
 solver_true.solve()
 print(f"GTSAM graph: {solver_true.graph.size()} factors, "

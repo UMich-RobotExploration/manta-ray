@@ -5,7 +5,7 @@ the per-robot solved position tracks alongside the ground truth.
 Mirrors the ``mc_paired_ape.py`` pattern (runner + plotter split) so we
 can iterate on plot styling without re-running the LM optimizer. Only
 the refracted (bellhop-measured) leg is stored -- that is the paper's
-"real world" trajectory. Add ``use_true_ranges=True`` in a second pass
+"real world" trajectory. Add ``use_straight_line_ranges=True`` in a second pass
 if you also want the idealized track cached.
 
 Output ``mc_trajectories.npz`` (next to the pfg) contains

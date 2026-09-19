@@ -166,7 +166,7 @@ def main() -> None:
     print(f"Robots in cache: {robots}, seeds={list(seeds)}")
 
     # --- Paper figure: pooled APE violin (always written) ---
-    m_pool, t_pool = _pool_apes(data)
+    pool_measured, pool_idealized = _pool_apes(data)
     # Odometry-only baseline: deterministic under use_ground_truth_odometry,
     # so we sample it once from the pfg alongside the .npz.
     pfg_guess = os.path.join(SAVE_DIR, "output.pfg")
@@ -183,16 +183,16 @@ def main() -> None:
     # -> straight-line. Reads as worst baseline -> real-world ranging ->
     # ideal-model ranging.
     plot_ape_distribution_compare(
-        ape_results=[m_pool, t_pool],
+        ape_results=[pool_measured, pool_idealized],
         labels=["Refracted Ranges", "Straight-line Ranges"],
         ape_odom=odom_pool,
         robot_char="all robots x all seeds",
         save_path=pooled_path,
         title="All Agents Across Monte Carlo",
         log_y=True)
-    print(f"Pooled ATE (n={m_pool.size:,d} samples per condition): "
-          f"refracted median={np.median(m_pool):.3f} m, "
-          f"straight-line median={np.median(t_pool):.3f} m")
+    print(f"Pooled ATE (n={pool_measured.size:,d} samples per condition): "
+          f"refracted median={np.median(pool_measured):.3f} m, "
+          f"straight-line median={np.median(pool_idealized):.3f} m")
     print(f"Saved {pooled_path}")
 
     if not WRITE_DIAGNOSTICS:

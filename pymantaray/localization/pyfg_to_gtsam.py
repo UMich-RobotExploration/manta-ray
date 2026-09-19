@@ -139,38 +139,39 @@ def odom_cadence_from_fg(fg: FactorGraphData) -> float:
         "explicitly to SolverConfig.")
 
 
-def _scaled_sigmas(fractions: np.ndarray,
-                   delta: gtsam.Pose3,
-                   floor: np.ndarray) -> np.ndarray:
+def _odom_sigma_from_motion_and_drift(fractions: np.ndarray,
+                                       delta: gtsam.Pose3,
+                                       drift_sigma: np.ndarray) -> np.ndarray:
     """Per-delta sigma from a velocity-scale + per-edge drift model (quadrature).
 
     Two independent noise sources combined in quadrature:
       * velocity-scale error: sigma = fractions_i * |motion_i| (DVL-like,
         grows with per-edge displacement).
-      * per-edge time-drift:  sigma = floor_i (time-integrated compass /
+      * per-edge time-drift:  sigma = drift_sigma_i (time-integrated compass /
         gyro / INS bias, constant per fixed-dt sample).
 
     Returns the standard deviation:
 
-        sigma_i = sqrt( (fractions_i * |motion_i|)**2 + floor_i**2 )
+        sigma_i = sqrt( (fractions_i * |motion_i|)**2 + drift_sigma_i**2 )
 
-    The floor term is a physical per-edge drift, not just a numerical guard;
+    The drift term is a physical per-edge stddev, not a numerical clamp;
     it dominates when |motion| -> 0 (e.g. bottom loiter) so drift keeps
     accumulating even at near-zero per-edge displacement.
 
     Args:
-        fractions: 6-element [rot_x, rot_y, rot_z, tx, ty, tz] velocity-scale
-                   coefficients (rad/rad, m/m).
-        delta:     clean odom delta; scale term is sized from its magnitude.
-        floor:     2-element [rot_floor_rad, trans_floor_m] per-edge drift
-                   standard deviation (added in quadrature).
+        fractions:   6-element [rot_x, rot_y, rot_z, tx, ty, tz] velocity-scale
+                     coefficients (rad/rad, m/m).
+        delta:       clean odom delta; scale term is sized from its magnitude.
+        drift_sigma: 2-element [rot_drift_rad, trans_drift_m] per-edge drift
+                     standard deviation (added in quadrature).
     """
     r = np.abs(gtsam.Rot3.Logmap(delta.rotation()))
     t = np.abs(delta.translation())
     motion = np.concatenate([r, t])
-    floor6 = np.concatenate([np.full(3, floor[0]), np.full(3, floor[1])])
+    drift6 = np.concatenate([np.full(3, drift_sigma[0]),
+                             np.full(3, drift_sigma[1])])
     scale = fractions * motion
-    return np.sqrt(scale * scale + floor6 * floor6)
+    return np.sqrt(scale * scale + drift6 * drift6)
 
 
 def _depth_prior_error_analytic(gt_z: float):
@@ -269,7 +270,7 @@ class SolverConfig:
 
     Args:
         use_odom_initial:    Dead-reckon from odometry instead of ground truth.
-        use_true_ranges:     Replace measured ranges with ground-truth distances.
+        use_straight_line_ranges:     Replace measured ranges with ground-truth distances.
         include_gps_priors:  Include GPS pose priors (all except first-pose priors).
         include_ranges:      Include range measurement factors.
         range_noise_stddev:  Stddev (meters) for range factor noise model.
@@ -277,7 +278,7 @@ class SolverConfig:
                              range measurement and add it to `rm.dist`
                              before the factor is built. Applies to both
                              the bellhop-measured source and the straight-line
-                             ranges produced when use_true_ranges=True,
+                             ranges produced when use_straight_line_ranges=True,
                              so the additive σ equals the solver's noise
                              model σ by construction.
         odom_noise_sigmas:   6-element per-component fractions of motion in
@@ -298,7 +299,7 @@ class SolverConfig:
         odom_noise_floor:    2-element per-edge drift standard deviation
                                  [rot_floor_rad, trans_floor_m]
                              added in quadrature with the velocity-scale
-                             term in _scaled_sigmas. Represents time-based
+                             term in _odom_sigma_from_motion_and_drift. Represents time-based
                              drift sources (compass / gyro / INS integration)
                              present per sample regardless of motion
                              magnitude. When set, takes priority over
@@ -352,7 +353,7 @@ class SolverConfig:
                              the others.
     """
     use_odom_initial: bool = False
-    use_true_ranges: bool = False
+    use_straight_line_ranges: bool = False
     include_gps_priors: bool = True
     include_ranges: bool = True
     range_noise_stddev: float = 4.0
@@ -473,7 +474,7 @@ class FactorGraphSolver:
 
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
         if self.config.odom_noise_sigmas is not None:
-            self._odom_deltas = self._perturb_odom_deltas(
+            self._odom_deltas = self._sample_noisy_odom_deltas(
                 self.config.odom_noise_sigmas)
 
         self.graph = gtsam.NonlinearFactorGraph()
@@ -486,7 +487,7 @@ class FactorGraphSolver:
         self.odom_values = self._build_odom_values()
 
     def _resolve_odom_floor(self) -> np.ndarray:
-        """Pick the per-edge drift floor [rot_rad, trans_m] for _scaled_sigmas.
+        """Pick per-edge drift stddev [rot_rad, trans_m] for _odom_sigma_from_motion_and_drift.
 
         Priority:
           1. Explicit config.odom_noise_floor (backward-compat override).
@@ -507,12 +508,12 @@ class FactorGraphSolver:
                             dtype=np.float64)
         return np.array([1e-4, 0.01], dtype=np.float64)
 
-    def _perturb_odom_deltas(self, fractions: np.ndarray) -> list[list[gtsam.Pose3]]:
+    def _sample_noisy_odom_deltas(self, fractions: np.ndarray) -> list[list[gtsam.Pose3]]:
         """Sample noisy odom deltas via Pose3 tangent-space perturbation.
 
         Per-edge sigma is a quadrature composite of the velocity-scale term
         (fractions * |motion|) and the per-edge time-drift floor; see
-        `_scaled_sigmas`. The draw xi ~ N(0, diag(sigmas^2)) is composed
+        `_odom_sigma_from_motion_and_drift`. The draw xi ~ N(0, diag(sigmas^2)) is composed
         onto the clean delta:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
@@ -522,14 +523,14 @@ class FactorGraphSolver:
             chain: list[gtsam.Pose3] = []
             for odom in odom_chain:
                 clean = _odom_to_pose3(odom)
-                sigmas = _scaled_sigmas(fractions, clean, self._odom_floor)
+                sigmas = _odom_sigma_from_motion_and_drift(fractions, clean, self._odom_floor)
                 xi = rng.normal(0.0, sigmas)
                 noise_pose = gtsam.Pose3.Expmap(xi)
                 chain.append(clean.compose(noise_pose))
             noisy_deltas.append(chain)
         return noisy_deltas
 
-    def _perturbed_depths(self, sigma: float) -> dict[str, float]:
+    def _sample_noisy_depths(self, sigma: float) -> dict[str, float]:
         """Return a dict mapping pose-name → noisy z = true_z + N(0, sigma).
 
         Models a pressure sensor's additive Gaussian noise. Drawn once at
@@ -546,7 +547,7 @@ class FactorGraphSolver:
                                   + float(rng.normal(0.0, sigma)))
         return out
 
-    def _perturb_ranges(self, measurements, stddev: float):
+    def _sample_noisy_ranges(self, measurements, stddev: float):
         """Return new FGRangeMeasurement instances with N(0, stddev) added to dist.
 
         Used when SolverConfig.add_range_noise is True — the additive σ is
@@ -630,7 +631,7 @@ class FactorGraphSolver:
             self.graph.addPriorPose3(key, pose, noise)
 
         if cfg.depth_prior_sigma is not None:
-            noisy_z = (self._perturbed_depths(cfg.depth_prior_sigma)
+            noisy_z = (self._sample_noisy_depths(cfg.depth_prior_sigma)
                        if cfg.add_depth_noise else None)
             if cfg.depth_prior_mode == "pose3":
                 # PoseTranslationPrior3D: world-frame translation residual on
@@ -677,7 +678,7 @@ class FactorGraphSolver:
                 clean = _odom_to_pose3(odom)
                 delta = self._get_odom_delta(chain_idx, i, odom)
                 if cfg.between_noise_sigmas is not None:
-                    sigmas = _scaled_sigmas(cfg.between_noise_sigmas, clean,
+                    sigmas = _odom_sigma_from_motion_and_drift(cfg.between_noise_sigmas, clean,
                                             self._odom_floor)
                     noise = gtsam.noiseModel.Diagonal.Sigmas(sigmas)
                 else:
@@ -701,13 +702,13 @@ class FactorGraphSolver:
             return
 
         pose_keys = fg.pose_variables_dict
-        if cfg.use_true_ranges:
+        if cfg.use_straight_line_ranges:
             src_measurements = make_all_ranges_perfect(fg).range_measurements
         else:
             src_measurements = fg.range_measurements
 
         if cfg.add_range_noise:
-            range_source = self._perturb_ranges(
+            range_source = self._sample_noisy_ranges(
                 src_measurements, cfg.range_noise_stddev)
         else:
             range_source = src_measurements

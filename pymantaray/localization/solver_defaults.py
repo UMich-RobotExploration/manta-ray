@@ -22,9 +22,9 @@ DEFAULT_POS_PRIOR: float = 0.1
 #
 # The first term is velocity-scale error on the recorded motion. The second
 # is time-based INS drift — constant per edge at fixed cadence.
-ANGULAR_NOISE: float = 1e-6   # velocity-scale fraction for rotation
-XY_FRAC: float = 0.05          # 5% scale error on recorded xy motion
-Z_FRAC: float = 0.001           # 0.1% scale error on recorded z motion
+ROT_FRAC: float = 1e-6          # velocity-scale fraction for rotation (rad/rad)
+XY_FRAC: float = 0.05           # 5% scale error on recorded xy motion (m/m)
+Z_FRAC: float = 0.001           # 0.1% scale error on recorded z motion (m/m)
 
 ODOM_DRIFT_RATE_TRANS: float = 0.0125   # m/s, translation INS drift rate
 ODOM_DRIFT_RATE_ROT: float = 5e-7       # rad/s, rotation INS drift rate
@@ -46,13 +46,13 @@ def build_default_config(fg_data: FactorGraphData,
     """Construct the project's default SolverConfig, then apply overrides.
 
     Use kwargs to swap fields without duplicating the tuning block at every
-    call site — e.g. `build_default_config(fg, seed=7, use_true_ranges=True)`.
+    call site — e.g. `build_default_config(fg, seed=7, use_straight_line_ranges=True)`.
 
     Unknown kwargs raise TypeError from SolverConfig.__init__, so misspellings
     fail loudly.
     """
     odom_noise = np.array(
-        [ANGULAR_NOISE, ANGULAR_NOISE, ANGULAR_NOISE,
+        [ROT_FRAC, ROT_FRAC, ROT_FRAC,
          XY_FRAC, XY_FRAC, Z_FRAC],
         dtype=np.float64)
 
