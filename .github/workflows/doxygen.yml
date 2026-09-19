@@ -38,12 +38,15 @@ jobs:
           cd mantaray
           ./create_docs.sh
 
-      # Deploy to GitHub Pages (move generated docs to 'docs')
+      # Deploy to GitHub Pages: flatten Doxygen's html/ into docs/ so the
+      # Pages entry point stays at docs/index.html. rsync -a copies contents
+      # and leaves untouched entries alone, preserving tracked assets already
+      # in docs/ (e.g., docs/figures/ paper images referenced from README.md).
       - name: Deploy Doxygen Docs to GitHub Pages
         run: |
-          mv mantaray/docs/html docs # Move to docs folder for GitHub Pages
+          rsync -a mantaray/docs/html/ docs/
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add docs 
+          git add docs
           git commit -m "Update Doxygen docs"
           git push --force "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
