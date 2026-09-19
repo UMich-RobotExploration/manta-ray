@@ -35,9 +35,6 @@ evaluated against the bias it exposes.
 
 ## Key findings
 
-- **Opposite-sign mean bias between regions.** Fleet-wide signed range
-  error `r_error = r_refracted − r_straight-line` measures **−4.92 m**
-  in the Beaufort Sea and **+3.97 m** in the Fram Strait.
 - **Variance is grossly under-modelled.** Empirical range-error spread
   reaches ±100 m (best-fit Gaussian σ = **35.7 m** Beaufort, **22.6 m**
   Fram) — 20–35× larger than the σ<sub>r</sub> = 1 m Gaussian noise the
@@ -99,37 +96,48 @@ cd ../../../pymantaray/localization && uv sync && uv run python run_solver.py
 Full build details, config schema, and per-stage usage live in the
 subproject READMEs linked above.
 
-## Reproducing the paper
+## Example results
 
-Every paper figure is produced by a script in this repo. Point the
-script at the pre-generated `.pfg` (or the paired-MC `.npz` cache) and
-re-run; each figure lands in the results directory next to its inputs.
+Selected figures from the paper's simulated experiments, split by
+oceanographic environment. Both regions share the same fleet layout,
+ping schedule, and Monte Carlo protocol; only the underlying
+sound-speed structure differs.
 
-| Figure | Generator | Input |
-|---|---|---|
-| Fig. 1 — refraction diagram | Manually authored (Inkscape) | — |
-| Fig. 2A — ray-trace panel | `mantaray_core` (dry-run flag) | `sim_config/beaufort_fleet_week_sim.json` |
-| Fig. 2B — factor graph | [`plot_factor_graph_3d`](pymantaray/localization/debug_factor_graph_ranges.py) | `output.pfg` |
-| Fig. 3 — system diagram | Manually authored (Inkscape) | — |
-| Fig. 4 — SSP comparison | [`plot_ssp_comparison.py`](pymantaray/acoustics/plot_ssp_comparison.py) | `data/*/ssp.npy` |
-| Fig. 5 — fleet layout | [`plot_fleet_layout.py`](pymantaray/localization/plot_fleet_layout.py) | `sim_config/beaufort_fleet_week_sim.json` |
-| Fig. 6 — range bias | [`plot_range_bias_paper`](pymantaray/localization/debug_factor_graph_ranges.py) | `output.pfg` |
-| Fig. 7 — pooled APE | [`plot_mc_paired_ape.py`](pymantaray/localization/plot_mc_paired_ape.py) | `mc_paired_ape.npz` |
+<table>
+  <tr>
+    <th align="center">Beaufort Sea (cold-cap halocline)</th>
+    <th align="center">Fram Strait (Atlantic–polar exchange)</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/figures/range_bias_beaufort.png" alt="Beaufort range bias"/><br/>
+      <sub>Fleet-wide signed range error <code>r_refracted − r_straight-line</code>; empirical σ = 35.7 m against a σ<sub>r</sub> = 1 m Gaussian assumption.</sub>
+    </td>
+    <td align="center">
+      <img src="docs/figures/range_bias_fram.png" alt="Fram Strait range bias"/><br/>
+      <sub>Same channel, Fram Strait; empirical σ = 22.6 m and a sharper central peak than any Gaussian at that σ can reproduce.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/figures/mc_pooled_ape_beaufort.png" alt="Beaufort pooled APE"/><br/>
+      <sub>Pooled translation APE across 11 divers × 25 Monte Carlo seeds; refracted ranges add ~1.65× median APE over the straight-line ideal.</sub>
+    </td>
+    <td align="center">
+      <img src="docs/figures/mc_pooled_ape_fram.png" alt="Fram Strait pooled APE"/><br/>
+      <sub>Same APE distributions in Fram Strait — variance mismatch dominates fleet-level trajectory error.</sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="docs/figures/range_bias_beaufort.png" alt="Beaufort range bias" width="48%"/>
-  <img src="docs/figures/range_bias_fram.png" alt="Fram Strait range bias" width="48%"/>
-</p>
-
-<p align="center">
-  <img src="docs/figures/mc_pooled_ape_beaufort.png" alt="Beaufort pooled APE" width="48%"/>
-  <img src="docs/figures/mc_pooled_ape_fram.png" alt="Fram Strait pooled APE" width="48%"/>
-</p>
+The full figure set (SSP profiles, fleet layout, factor-graph 3D view)
+lives under [`docs/figures/`](docs/figures).
 
 ## Citation
 
 If MantaRay contributes to your work, please cite the accompanying
-paper:
+paper. **The BibTeX entry below is provisional and will be updated
+with final page numbers and DOI after the OCEANS conference.**
 
 ```bibtex
 @inproceedings{kogucki2025refraction,
