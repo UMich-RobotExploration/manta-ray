@@ -8,7 +8,8 @@
 <sup>1</sup>KTH Royal Institute of Technology &nbsp;·&nbsp;
 <sup>2</sup>[Robot Exploration Lab, University of Michigan](https://robotexploration.engin.umich.edu/)
 
-[Paper (arXiv)](https://arxiv.org/abs/2609.18073) &nbsp;·&nbsp;
+[Paper (arXiv / OCEANS 2025 Monterey)](https://arxiv.org/abs/2609.18073) &nbsp;·&nbsp;
+[Master's thesis (KTH)](https://urn.kb.se/resolve?urn=urn:nbn:se:kth:diva-387283) &nbsp;·&nbsp;
 [Documentation](https://umich-robotexploration.github.io/manta-ray/) &nbsp;·&nbsp;
 [Issues](https://github.com/UMich-RobotExploration/manta-ray/issues)
 
@@ -66,7 +67,7 @@ Two coupled subprojects sharing one git repo. Each has its own README.
 ```mermaid
 flowchart LR
     A[oceanbench<br/>HYCOM GLBv0.08] --> B[pymantaray/acoustics<br/>region + season presets]
-    B --> C[mantaray/data/&lt;region&gt;/<br/>bathy · SSP · currents .npy]
+    B --> C[mantaray/data/&lt;region&gt;<br/>bathy, SSP, currents .npy]
     C --> D[mantaray_core<br/>bellhopcuda + rigid-body world]
     E[mantaray/sim_config/*.json] --> D
     D --> F[results/&lt;name&gt;/output.pfg<br/>+ sensor CSVs]
@@ -136,8 +137,9 @@ lives under [`docs/figures/`](docs/figures).
 ## Citation
 
 If MantaRay contributes to your work, please cite the accompanying
-paper. **The BibTeX entry below is provisional and will be updated
-with final page numbers and DOI after the OCEANS conference.**
+paper, presented at **OCEANS 2025 Monterey**. The BibTeX entry below
+points to the arXiv preprint and will be updated with the final IEEE
+page numbers and DOI once the conference proceedings are published.
 
 ```bibtex
 @misc{kogucki2026characterizingrefractioninducedrangingbias,
@@ -153,6 +155,15 @@ with final page numbers and DOI after the OCEANS conference.**
 
 The GitHub "Cite this repository" button is populated from
 [CITATION.cff](CITATION.cff).
+
+For a deeper treatment of the methodology, environmental modeling
+choices, and additional experiments beyond what the paper covers, see
+the accompanying master's thesis:
+
+> Kogucki, T. *Characterizing Refraction-Induced Ranging Bias in
+> Underwater Collaborative Localization.* Master's thesis, KTH Royal
+> Institute of Technology, 2026.
+> [urn:nbn:se:kth:diva-387283](https://urn.kb.se/resolve?urn=urn:nbn:se:kth:diva-387283)
 
 ## Acknowledgements
 

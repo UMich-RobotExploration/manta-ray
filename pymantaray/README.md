@@ -19,11 +19,11 @@ different Python versions.
 
 ```mermaid
 flowchart LR
-    A[oceanbench<br/>HYCOM GLBv0.08] --> B[acoustics/<br/>Python 3.12]
-    B --> C[mantaray/data/&lt;region&gt;/<br/>bathy · SSP · currents .npy]
+    A[oceanbench<br/>HYCOM GLBv0.08] --> B[acoustics<br/>Python 3.12]
+    B --> C[mantaray/data/&lt;region&gt;<br/>bathy, SSP, currents .npy]
     C --> D[mantaray_core<br/>bellhopcuda + rigid-body]
-    D --> E[results/&lt;name&gt;/<br/>output.pfg + CSVs]
-    E --> F[localization/<br/>Python 3.11]
+    D --> E[results/&lt;name&gt;<br/>output.pfg + CSVs]
+    E --> F[localization<br/>Python 3.11]
     F --> G[GTSAM solve<br/>+ evo APE + paper figures]
 ```
 
