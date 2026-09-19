@@ -54,7 +54,7 @@ to overlay them.
 | Figure | Script | Input |
 |---|---|---|
 | Fig. 2B — factor graph 3D | [`plot_factor_graph_3d`](debug_factor_graph_ranges.py) in `debug_factor_graph_ranges.py` | `output.pfg` |
-| Fig. 5 — fleet layout | [`plot_fleet_layout.py`](plot_fleet_layout.py) | `mantaray/sim_config/beaufort_fleet_week_sim.json` |
+| Fig. 5 — fleet layout | [`plot_fleet_layout.py`](plot_fleet_layout.py) | `mantaray/sim_config/paper_beaufort_fleet_week_sim.json` |
 | Fig. 6 — range bias | [`plot_range_bias_paper`](debug_factor_graph_ranges.py) in `debug_factor_graph_ranges.py` | `output.pfg` (both envs) |
 | Fig. 7 — pooled APE | [`plot_mc_paired_ape.py`](plot_mc_paired_ape.py) | `mc_paired_ape.npz` |
 | Fig. 8 — Monte Carlo trajectories | [`plot_mc_trajectories.py`](plot_mc_trajectories.py) | `mc_trajectories.npz` |

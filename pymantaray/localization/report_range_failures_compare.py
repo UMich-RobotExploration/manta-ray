@@ -31,8 +31,8 @@ ENV_CONFIGS = [
      "src/results/arctic/fram-strait-fleet-week/sim_log.txt"),
 ]
 
-# Robot indices that are surface floats (from beaufort_fleet_week_sim.json
-# and fram_strait_fleet_week_sim.json — first two entries).
+# Robot indices that are surface floats (from paper_beaufort_fleet_week_sim.json
+# and paper_fram_strait_fleet_week_sim.json — first two entries).
 SURFACE_INDICES = {0}
 
 # Where to write the .tex output (also printed to stdout).

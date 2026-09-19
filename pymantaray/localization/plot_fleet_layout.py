@@ -31,7 +31,7 @@ apply_paper_style()
 
 
 CONFIG_PATH = ("/home/tko/repos/manta-ray/mantaray/sim_config/"
-               "beaufort_fleet_week_sim.json")
+               "paper_beaufort_fleet_week_sim.json")
 OUT_PATH = ("/home/tko/repos/manta-ray/mantaray/cmake-build-release/"
             "src/results/arctic/beaufort-fleet-week/fleet_layout.png")
 
