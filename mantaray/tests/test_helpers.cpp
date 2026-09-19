@@ -145,6 +145,62 @@ TEST_CASE("validDeltaTMultiple handles floating-point accumulation", "[fp]") {
   CHECK_FALSE(validDeltaTMultiple(99.9, 100.0));
 }
 
+TEST_CASE("validDeltaTMultiple survives long-horizon 0.1s accumulation",
+          "[fp]") {
+  // Regression guard for the CHECK-failed abort at t~180ks that struck
+  // week-long fleet-week sims with physics_dt = 0.1. The bug: 0.1 is not
+  // binary-exact, so simulating stepWorld's `t += dt` + `round(t*1e7)/1e7`
+  // over ~1.8M steps accumulates ~1e-11 s of clock drift. The old guard
+  // scaled its tolerance by dt (~2e-15 at dt=0.1) and rejected the drift.
+  // The fixed guard uses an absolute kDeltaTMultipleTolerance = 1e-9.
+  //
+  // Sub-scenarios below lock in both the accumulation-survival behavior
+  // AND the boundary of the tolerance so tightening the constant in the
+  // future breaks the test rather than silently regressing the sim.
+  using rb::detail::validDeltaTMultiple;
+
+  SECTION("2M-step accumulation of dt=0.1 with per-step 1e-7 rounding") {
+    constexpr int kSteps = 2'000'000;
+    constexpr double kDt = 0.1;
+    double t = 0.0;
+    for (int i = 0; i < kSteps; ++i) {
+      t += kDt;
+      // Mirror RbWorld::stepWorld's per-step rounding (RbWorld.cpp:126).
+      t = std::round(t * 1e7) / 1e7;
+    }
+    CAPTURE(t);
+    // Expected exact value: 200 000.0
+    CHECK(std::fabs(t - 200'000.0) < 1e-6);
+    CHECK(validDeltaTMultiple(t, kDt));
+  }
+
+  SECTION("Tolerance boundary is honored") {
+    constexpr double kDt = 0.1;
+    const double base = 100.0 * kDt;  // exact multiple of dt
+
+    // Residual well inside the 1e-9 slack — should be accepted.
+    CHECK(validDeltaTMultiple(base + 5e-10, kDt));
+    // Near-dt case: fmod returns dt - eps rather than 0.
+    CHECK(validDeltaTMultiple(base - 5e-10, kDt));
+    // Residual far outside the slack — must be rejected.
+    CHECK_FALSE(validDeltaTMultiple(base + 1e-6, kDt));
+  }
+
+  SECTION("Binary-exact dt=0.125 has no drift after 1M steps") {
+    // Sanity floor: this scenario should never regress. If it does,
+    // something more fundamental than the tolerance broke.
+    constexpr int kSteps = 1'000'000;
+    constexpr double kDt = 0.125;
+    double t = 0.0;
+    for (int i = 0; i < kSteps; ++i) {
+      t += kDt;
+      t = std::round(t * 1e7) / 1e7;
+    }
+    CHECK(t == 125'000.0);  // bit-exact — dt is a power of 2
+    CHECK(validDeltaTMultiple(t, kDt));
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Beam geometry utilities
 ////////////////////////////////////////////////////////////////////////////////

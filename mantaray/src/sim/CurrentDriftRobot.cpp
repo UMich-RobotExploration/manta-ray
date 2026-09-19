@@ -17,10 +17,18 @@ CurrentDriftRobot::CurrentDriftRobot(const acoustics::GridVec &currentGrid,
       holdSeconds_(cfg.holdSeconds),
       surfaceHoldSeconds_(cfg.surfaceHoldSeconds),
       verticalSpeed_(cfg.verticalSpeed),
-      surfaceDepth_(cfg.surfaceDepth) {
+      surfaceDepth_(cfg.surfaceDepth),
+      startOffsetSeconds_(cfg.startOffsetSeconds) {
 
   if (verticalSpeed_ < 0.0) {
     throw std::invalid_argument("verticalSpeed must be non-negative");
+  }
+  if (startOffsetSeconds_ < 0.0) {
+    throw std::invalid_argument("startOffsetSeconds must be non-negative");
+  }
+  if (startOffsetSeconds_ > 0.0) {
+    phase_ = Phase::kHoldSurface;
+    firstSurfaceHold_ = true;
   }
 }
 manif::SE3Tangentd
@@ -74,15 +82,19 @@ CurrentDriftRobot::computeLocalTwist(const rb::DynamicsBodies &bodies,
       vzCmd = std::clamp(kDepthKp * depthErr, -verticalSpeed_, 0.0);
     }
     break;
-  case Phase::kHoldSurface:
+  case Phase::kHoldSurface: {
     phaseElapsed_ += dt;
     vzCmd = 0.0;
-    if (phaseElapsed_ >= surfaceHoldSeconds_) {
+    const double holdLimit =
+        firstSurfaceHold_ ? startOffsetSeconds_ : surfaceHoldSeconds_;
+    if (phaseElapsed_ >= holdLimit) {
       SPDLOG_DEBUG("Transitioning to : kDescend from kHoldSurface after: {}",
                    phaseElapsed_);
+      firstSurfaceHold_ = false;
       transitionTo(Phase::kDescend, vzCmd);
     }
     break;
+  }
   default:
     vzCmd = 0.0;
     break;

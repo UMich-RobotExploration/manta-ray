@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import gtsam
 import numpy as np
+from evo.core import metrics
 from evo.core.trajectory import PosePath3D
 
 from py_factor_graph.factor_graph import FactorGraphData
@@ -73,16 +74,165 @@ def _point3_noise(translation_precision: float):
     return gtsam.noiseModel.Isotropic.Sigma(3, 1.0 / np.sqrt(translation_precision))
 
 
-def _range_noise(stddev: float):
-    """1-DOF range noise model."""
-    return gtsam.noiseModel.Isotropic.Sigma(1, stddev)
+_ROBUST_KERNELS = {
+    "tukey": gtsam.noiseModel.mEstimator.Tukey.Create,
+    "huber": gtsam.noiseModel.mEstimator.Huber.Create,
+    "cauchy": gtsam.noiseModel.mEstimator.Cauchy.Create,
+    "geman-mcclure": gtsam.noiseModel.mEstimator.GemanMcClure.Create,
+    "welsch": gtsam.noiseModel.mEstimator.Welsch.Create,
+}
+
+
+@dataclass
+class RobustConfig:
+    """M-estimator configuration for robust noise models.
+
+    Args:
+        kernel: Which m-estimator kernel. Options: "tukey", "huber",
+                "cauchy", "geman-mcclure", "welsch".
+        param:  Kernel-specific threshold parameter
+                (e.g. Tukey's c, Huber's k).
+    """
+    kernel: str = "tukey"
+    param: float = 15.0
+
+    def __post_init__(self):
+        if self.kernel not in _ROBUST_KERNELS:
+            raise ValueError(
+                f"Unknown robust kernel '{self.kernel}', "
+                f"choose from {list(_ROBUST_KERNELS.keys())}")
+
+
+def _range_noise(stddev: float,
+                 robust: RobustConfig | None = None):
+    """1-DOF range noise model, optionally wrapped with a robust m-estimator."""
+    gaussian = gtsam.noiseModel.Isotropic.Sigma(1, stddev)
+    if robust is None:
+        return gaussian
+    return gtsam.noiseModel.Robust.Create(
+        _ROBUST_KERNELS[robust.kernel](robust.param), gaussian)
 
 
 def _odom_to_pose3(odom) -> gtsam.Pose3:
     """Convert PyFG PoseMeasurement3D to a relative GTSAM Pose3."""
     return gtsam.Pose3(_rot3(odom.rotation),
-                       np.array([float(odom.x), float(odom.y), float(odom.z)],
+                       np.array([odom.x, odom.y, odom.z],
                                 dtype=np.float64))
+
+
+def odom_cadence_from_fg(fg: FactorGraphData) -> float:
+    """Return the per-edge odom dt (seconds) from a PyFG's edge timestamps.
+
+    Walks the first odom chain with >=2 populated timestamps and returns the
+    median of consecutive differences. Raises ValueError if no chain has
+    usable timestamps - caller should handle that by passing an explicit
+    cadence to SolverConfig.
+    """
+    for chain in fg.odom_measurements:
+        ts = [m.timestamp for m in chain]
+        if len(ts) >= 2 and all(t is not None for t in ts):
+            diffs = np.diff(np.asarray(ts, dtype=np.float64))
+            if np.all(diffs > 0):
+                return float(np.median(diffs))
+    raise ValueError(
+        "No odom chain with usable timestamps - pass odom_cadence_dt "
+        "explicitly to SolverConfig.")
+
+
+def _odom_sigma_from_motion_and_drift(fractions: np.ndarray,
+                                       delta: gtsam.Pose3,
+                                       drift_sigma: np.ndarray) -> np.ndarray:
+    """Per-delta sigma from a velocity-scale + per-edge drift model (quadrature).
+
+    Two independent noise sources combined in quadrature:
+      * velocity-scale error: sigma = fractions_i * |motion_i| (DVL-like,
+        grows with per-edge displacement).
+      * per-edge time-drift:  sigma = drift_sigma_i (time-integrated compass /
+        gyro / INS bias, constant per fixed-dt sample).
+
+    Returns the standard deviation:
+
+        sigma_i = sqrt( (fractions_i * |motion_i|)**2 + drift_sigma_i**2 )
+
+    The drift term is a physical per-edge stddev, not a numerical clamp;
+    it dominates when |motion| -> 0 (e.g. bottom loiter) so drift keeps
+    accumulating even at near-zero per-edge displacement.
+
+    Args:
+        fractions:   6-element [rot_x, rot_y, rot_z, tx, ty, tz] velocity-scale
+                     coefficients (rad/rad, m/m).
+        delta:       clean odom delta; scale term is sized from its magnitude.
+        drift_sigma: 2-element [rot_drift_rad, trans_drift_m] per-edge drift
+                     standard deviation (added in quadrature).
+    """
+    assert fractions.shape == (6,), (
+        f"fractions must be shape (6,) in Pose3 tangent order "
+        f"[rot_x, rot_y, rot_z, tx, ty, tz]; got {fractions.shape}")
+    assert drift_sigma.shape == (2,), (
+        f"drift_sigma must be shape (2,) as [rot_rad, trans_m]; "
+        f"got {drift_sigma.shape}")
+    r = np.abs(gtsam.Rot3.Logmap(delta.rotation()))
+    t = np.abs(delta.translation())
+    motion = np.concatenate([r, t])
+    drift6 = np.concatenate([np.full(3, drift_sigma[0]),
+                             np.full(3, drift_sigma[1])])
+    scale = fractions * motion
+    return np.sqrt(scale * scale + drift6 * drift6)
+
+
+def _depth_prior_error_analytic(gt_z: float):
+    """Factory for a CustomFactor error function constraining world-frame z."""
+    def err(this, values, H):
+        pose = values.atPose3(this.keys()[0])
+        e = np.array([pose.translation()[2] - gt_z])
+        if H is not None and len(H) > 0:
+            R = pose.rotation().matrix()
+            J = np.zeros((1, 6))
+            J[0, 3:] = R[2, :]
+            H[0] = J
+        return e
+    return err
+
+
+def _make_depth_prior_custom(key: int, gt_z: float, sigma_z: float):
+    """Build a 1-DoF CustomFactor that anchors pose.z to gt_z with stddev sigma_z."""
+    noise = gtsam.noiseModel.Isotropic.Sigma(1, sigma_z)
+    return gtsam.CustomFactor(noise, [key], _depth_prior_error_analytic(gt_z))
+
+
+def _check_depth_jacobian(atol: float = 1e-5) -> None:
+    """Validate the analytic depth-prior Jacobian against numerical differentiation.
+
+    Runs once per process. Catches sign/axis errors before they silently bias
+    every depth residual.
+    """
+    rng = np.random.default_rng(seed=0)
+    axis = rng.normal(size=3)
+    axis /= np.linalg.norm(axis)
+    pose = gtsam.Pose3(gtsam.Rot3.AxisAngle(axis, 0.7),
+                       np.array([1.3, -0.5, 2.1], dtype=np.float64))
+    gt_z = 1.75
+
+    def residual(p: gtsam.Pose3) -> float:
+        return p.translation()[2] - gt_z
+
+    eps = 1e-5
+    J_num = np.zeros((1, 6))
+    for i in range(6):
+        xi = np.zeros(6)
+        xi[i] = eps
+        J_num[0, i] = (residual(pose.retract(xi))
+                       - residual(pose.retract(-xi))) / (2 * eps)
+
+    R = pose.rotation().matrix()
+    J_ana = np.zeros((1, 6))
+    J_ana[0, 3:] = R[2, :]
+    if not np.allclose(J_ana, J_num, atol=atol):
+        raise RuntimeError(
+            f"DepthPrior Jacobian mismatch:\n  analytic={J_ana}\n  numerical={J_num}")
+
+
+_check_depth_jacobian()
 
 
 def extract_trajectory(values: gtsam.Values,
@@ -96,30 +246,143 @@ def extract_trajectory(values: gtsam.Values,
     return PosePath3D(poses_se3=matrices)
 
 
+def per_pose_ape(solver: "FactorGraphSolver") -> dict[str, np.ndarray]:
+    """Per-pose translation APE for the optimized trajectory, keyed by robot.
+
+    Returns {robot_char: 1D ndarray of APE values}, one entry per pose in the
+    corresponding `solver.fg.pose_variables[i]` chain. Robot char is the first
+    letter of the chain's pose names (e.g. 'A' for poses 'A0', 'A1', ...).
+    """
+    if solver.result is None:
+        raise RuntimeError("Call solver.solve() before per_pose_ape()")
+
+    out: dict[str, np.ndarray] = {}
+    for pose_chain in solver.fg.pose_variables:
+        if not pose_chain:
+            continue
+        robot_char = pose_chain[0].name[0]
+        if robot_char in out:
+            raise ValueError(
+                f"Duplicate robot char {robot_char!r}; two pose chains "
+                f"share a first-letter name and would silently overwrite "
+                f"each other. Rename one to keep the per-robot APE dict "
+                f"lossless.")
+        keys_ordered = [solver.key_map[p.name] for p in pose_chain]
+        traj_gt = extract_trajectory(solver.gt_values, keys_ordered)
+        traj_opt = extract_trajectory(solver.result, keys_ordered)
+        ape = metrics.APE(metrics.PoseRelation.translation_part)
+        ape.process_data((traj_gt, traj_opt))
+        out[robot_char] = np.asarray(ape.error, dtype=np.float64)
+    return out
+
+
 @dataclass
 class SolverConfig:
     """Configuration for FactorGraphSolver.
 
     Args:
         use_odom_initial:    Dead-reckon from odometry instead of ground truth.
-        use_true_ranges:     Replace measured ranges with ground-truth distances.
+        use_straight_line_ranges:     Replace measured ranges with ground-truth distances.
         include_gps_priors:  Include GPS pose priors (all except first-pose priors).
         include_ranges:      Include range measurement factors.
         range_noise_stddev:  Stddev (meters) for range factor noise model.
-        odom_noise_sigmas:   6-element stddev array in GTSAM Pose3 tangent order:
-                                 [rot_x (rad), rot_y (rad), rot_z (rad),
-                                  tx (m), ty (m), tz (m)]
-                             When set, BetweenFactors use Expmap-perturbed deltas
-                             and initial estimate defaults to ground truth.
-        seed:                RNG seed for all random number generation
-                             (odom perturbation).
+        add_range_noise:     When True, draw N(0, range_noise_stddev) per
+                             range measurement and add it to `rm.dist`
+                             before the factor is built. Applies to both
+                             the bellhop-measured source and the straight-line
+                             ranges produced when use_straight_line_ranges=True,
+                             so the additive σ equals the solver's noise
+                             model σ by construction.
+        odom_noise_sigmas:   6-element per-component fractions of motion in
+                             GTSAM Pose3 tangent order
+                                 [rot_x, rot_y, rot_z, tx, ty, tz]
+                             Per delta, sigma_i = max(floor, frac_i * |m_i|)
+                             where m = [|log(R)_x|, |log(R)_y|, |log(R)_z|,
+                                        |t_x|, |t_y|, |t_z|]. Drives the
+                             Gaussian perturbation of each clean odom delta.
+                             When None, no perturbation is applied.
+                             When set, initial estimate defaults to ground truth.
+        between_noise_sigmas: 6-element per-component fractions of motion for
+                             BetweenFactorPose3 noise model. Same component-
+                             wise rule as odom_noise_sigmas (sized from the
+                             clean delta). Independent of odom_noise_sigmas —
+                             may be set larger for a pessimistic factor belief.
+                             When None, falls back to PyFG precisions.
+        odom_noise_floor:    2-element per-edge drift standard deviation
+                                 [rot_floor_rad, trans_floor_m]
+                             added in quadrature with the velocity-scale
+                             term in _odom_sigma_from_motion_and_drift.
+                             Represents time-based
+                             drift sources (compass / gyro / INS integration)
+                             present per sample regardless of motion
+                             magnitude. When set, takes priority over
+                             (odom_cadence_dt, odom_drift_rate_*). When all
+                             three are None, defaults to [1e-4 rad, 0.01 m].
+        odom_cadence_dt:     Seconds per odom edge (fixed cadence). Combined
+                             with odom_drift_rate_* to derive the per-edge
+                             drift floor as `drift_rate * dt` (linear scaling).
+                             None disables the derivation (falls back to
+                             odom_noise_floor or the default).
+        odom_drift_rate_trans: Per-axis translation INS drift rate in m/s.
+                             Multiplied by odom_cadence_dt to form the
+                             translation floor. Typical values: 0.001 m/s^2
+                             (tactical IMU), 0.002 m/s^2 (mid-spec INS),
+                             0.01+ m/s^2 (MEMS). None treats as 0.
+        odom_drift_rate_rot: Per-axis rotation drift rate in rad/s (gyro
+                             bias). Multiplied by odom_cadence_dt to form
+                             the rotation floor. None treats as 0.
+        depth_prior_sigma:   Stddev (m) for per-pose z anchor to ground truth
+                             depth. None disables depth priors. When set, adds
+                             one depth prior per pose across all robot chains.
+        depth_prior_mode:    "pose3" or "custom". "pose3" adds a stock C++
+                             PoseTranslationPrior3D with sigmas
+                             [1e6, 1e6, depth_prior_sigma] — world-frame
+                             translation residual, rotation-invariant, no
+                             pybind11 callback per LM iteration. "custom" adds
+                             a 1-DoF Python CustomFactor with the same analytic
+                             world-z Jacobian but pays a pybind cost per
+                             linearization. Semantically equivalent; use
+                             "custom" only for verification.
+        add_depth_noise:     When True, draw N(0, depth_prior_sigma) per pose
+                             and add it to the ground-truth z before building
+                             the depth-prior factor — models a real pressure
+                             sensor's measurement noise. Additive σ equals
+                             the depth factor's noise-model σ by construction,
+                             matching the add_range_noise convention. Requires
+                             depth_prior_sigma is not None.
+        robust_range:        RobustConfig for range noise m-estimator.
+                             None = standard Gaussian (no robustness).
+        landmark_prior_sigma: Isotropic stddev (meters) for landmark priors.
+                             When None, falls back to PyFG precisions.
+        gps_prior_sigmas:    6-element stddev array for GPS pose priors (all
+                             non-first-pose priors), same GTSAM Pose3 tangent
+                             ordering as odom_noise_sigmas. When set,
+                             overrides per-prior PyFG precisions. First-pose
+                             priors always use PyFG precisions.
+        seed:                Root RNG seed. SeedSequence-spawned into
+                             independent child streams for odom, range,
+                             and depth perturbation, so toggling one noise
+                             source on/off does not change the draws for
+                             the others.
     """
     use_odom_initial: bool = False
-    use_true_ranges: bool = False
+    use_straight_line_ranges: bool = False
     include_gps_priors: bool = True
     include_ranges: bool = True
     range_noise_stddev: float = 4.0
+    add_range_noise: bool = False
+    robust_range: RobustConfig | None = None
+    landmark_prior_sigma: float | None = None
     odom_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
+    between_noise_sigmas: np.ndarray | None = field(default=None, repr=False)
+    odom_noise_floor: np.ndarray | None = field(default=None, repr=False)
+    odom_cadence_dt: float | None = None
+    odom_drift_rate_trans: float | None = None
+    odom_drift_rate_rot: float | None = None
+    gps_prior_sigmas: np.ndarray | None = field(default=None, repr=False)
+    depth_prior_sigma: float | None = None
+    depth_prior_mode: str = "pose3"
+    add_depth_noise: bool = False
     seed: int = 42
 
     def __post_init__(self):
@@ -130,9 +393,70 @@ class SolverConfig:
                 raise ValueError(
                     f"odom_noise_sigmas must have 6 elements, "
                     f"got shape {self.odom_noise_sigmas.shape}")
+        if self.between_noise_sigmas is not None:
+            self.between_noise_sigmas = np.asarray(
+                self.between_noise_sigmas, dtype=np.float64).flatten()
+            if self.between_noise_sigmas.shape != (6,):
+                raise ValueError(
+                    f"between_noise_sigmas must have 6 elements, "
+                    f"got shape {self.between_noise_sigmas.shape}")
+        if self.odom_noise_floor is not None:
+            self.odom_noise_floor = np.asarray(
+                self.odom_noise_floor, dtype=np.float64).flatten()
+            if self.odom_noise_floor.shape != (2,):
+                raise ValueError(
+                    f"odom_noise_floor must have 2 elements "
+                    f"[rot_floor_rad, trans_floor_m], "
+                    f"got shape {self.odom_noise_floor.shape}")
+        if self.gps_prior_sigmas is not None:
+            self.gps_prior_sigmas = np.asarray(
+                self.gps_prior_sigmas, dtype=np.float64).flatten()
+            if self.gps_prior_sigmas.shape != (6,):
+                raise ValueError(
+                    f"gps_prior_sigmas must have 6 elements, "
+                    f"got shape {self.gps_prior_sigmas.shape}")
         if self.range_noise_stddev <= 0:
             raise ValueError(
                 f"range_noise_stddev must be positive, got {self.range_noise_stddev}")
+        if self.landmark_prior_sigma is not None and self.landmark_prior_sigma <= 0:
+            raise ValueError(
+                f"landmark_prior_sigma must be positive, "
+                f"got {self.landmark_prior_sigma}")
+        if self.odom_cadence_dt is not None and self.odom_cadence_dt <= 0:
+            raise ValueError(
+                f"odom_cadence_dt must be positive (seconds), "
+                f"got {self.odom_cadence_dt}")
+        if self.odom_drift_rate_trans is not None and self.odom_drift_rate_trans < 0:
+            raise ValueError(
+                f"odom_drift_rate_trans must be non-negative (m/s), "
+                f"got {self.odom_drift_rate_trans}")
+        if self.odom_drift_rate_rot is not None and self.odom_drift_rate_rot < 0:
+            raise ValueError(
+                f"odom_drift_rate_rot must be non-negative (rad/s), "
+                f"got {self.odom_drift_rate_rot}")
+        if self.depth_prior_sigma is not None and self.depth_prior_sigma <= 0:
+            raise ValueError(
+                f"depth_prior_sigma must be positive, "
+                f"got {self.depth_prior_sigma}")
+        if self.depth_prior_mode not in ("pose3", "custom"):
+            raise ValueError(
+                f"depth_prior_mode must be 'pose3' or 'custom', "
+                f"got {self.depth_prior_mode!r}")
+        if self.add_depth_noise and self.depth_prior_sigma is None:
+            raise ValueError(
+                "add_depth_noise requires depth_prior_sigma to be set")
+        # use_odom_initial only takes effect when odom is noise-free.
+        # When odom_noise_sigmas is set, _build_initial always seeds from
+        # ground truth (perturbed odom only enters via BetweenFactors), so
+        # a caller sweeping use_odom_initial across noisy runs would think
+        # they are studying dead-reckoned initialization while actually
+        # running the GT-init path in both legs. Fail loudly instead.
+        if self.use_odom_initial and self.odom_noise_sigmas is not None:
+            raise ValueError(
+                "use_odom_initial=True is incompatible with "
+                "odom_noise_sigmas being set; the dead-reckoned initial "
+                "is silently ignored under noisy odom. Drop one flag "
+                "or the other.")
 
 
 class FactorGraphSolver:
@@ -156,6 +480,15 @@ class FactorGraphSolver:
         self.config = config or SolverConfig()
         self.result: gtsam.Values | None = None
 
+        ss = np.random.SeedSequence(self.config.seed)
+        odom_ss, range_ss, depth_ss = ss.spawn(3)
+        # Explicit attributes rather than a string-keyed dict so a
+        # typo becomes AttributeError at define-time instead of a
+        # silent fresh-RNG surprise.
+        self._odom_rng: np.random.Generator = np.random.default_rng(odom_ss)
+        self._range_rng: np.random.Generator = np.random.default_rng(range_ss)
+        self._depth_rng: np.random.Generator = np.random.default_rng(depth_ss)
+
         self.key_map: dict[str, int] = {}
         for pose_chain in fg.pose_variables:
             for pose in pose_chain:
@@ -163,9 +496,11 @@ class FactorGraphSolver:
         for landmark in fg.landmark_variables:
             self.key_map[landmark.name] = _name_to_key(landmark.name)
 
+        self._odom_floor: np.ndarray = self._resolve_odom_floor()
+
         self._odom_deltas: list[list[gtsam.Pose3]] | None = None
         if self.config.odom_noise_sigmas is not None:
-            self._odom_deltas = self._perturb_odom_deltas(
+            self._odom_deltas = self._sample_noisy_odom_deltas(
                 self.config.odom_noise_sigmas)
 
         self.graph = gtsam.NonlinearFactorGraph()
@@ -177,28 +512,110 @@ class FactorGraphSolver:
         self.gt_values = self._build_gt_values()
         self.odom_values = self._build_odom_values()
 
-    def _perturb_odom_deltas(self, sigmas: np.ndarray) -> list[list[gtsam.Pose3]]:
+    def _resolve_odom_floor(self) -> np.ndarray:
+        """Pick per-edge drift stddev [rot_rad, trans_m] for _odom_sigma_from_motion_and_drift.
+
+        Priority:
+          1. Explicit config.odom_noise_floor (backward-compat override).
+          2. Derived from (odom_cadence_dt, odom_drift_rate_trans/rot) as
+             `drift_rate * dt` — physically meaningful INS-like drift.
+          3. Default [1e-4 rad, 0.01 m] — historical sane values.
+        """
+        cfg = self.config
+        if cfg.odom_noise_floor is not None:
+            return cfg.odom_noise_floor
+        has_rate = (cfg.odom_drift_rate_trans is not None
+                    or cfg.odom_drift_rate_rot is not None)
+        if cfg.odom_cadence_dt is not None and has_rate:
+            dt = cfg.odom_cadence_dt
+            trans_rate = cfg.odom_drift_rate_trans or 0.0
+            rot_rate = cfg.odom_drift_rate_rot or 0.0
+            return np.array([rot_rate * dt, trans_rate * dt],
+                            dtype=np.float64)
+        return np.array([1e-4, 0.01], dtype=np.float64)
+
+    def _sample_noisy_odom_deltas(self, fractions: np.ndarray) -> list[list[gtsam.Pose3]]:
         """Sample noisy odom deltas via Pose3 tangent-space perturbation.
 
-        For each measurement, samples xi ~ N(0, diag(sigmas^2)) in
-        [rot_x, rot_y, rot_z, tx, ty, tz], then composes:
+        Per-edge sigma is a quadrature composite of the velocity-scale term
+        (fractions * |motion|) and the per-edge time-drift stddev; see
+        `_odom_sigma_from_motion_and_drift`. The draw xi ~ N(0, diag(sigmas^2)) is composed
+        onto the clean delta:
             noisy_delta = clean_delta.compose(Pose3.Expmap(xi))
         """
-        rng = np.random.default_rng(seed=self.config.seed)
+        rng = self._odom_rng
         noisy_deltas: list[list[gtsam.Pose3]] = []
         for odom_chain in self.fg.odom_measurements:
             chain: list[gtsam.Pose3] = []
             for odom in odom_chain:
                 clean = _odom_to_pose3(odom)
+                sigmas = _odom_sigma_from_motion_and_drift(fractions, clean, self._odom_floor)
                 xi = rng.normal(0.0, sigmas)
                 noise_pose = gtsam.Pose3.Expmap(xi)
                 chain.append(clean.compose(noise_pose))
             noisy_deltas.append(chain)
         return noisy_deltas
 
+    def _sample_noisy_depths(self, sigma: float) -> dict[str, float]:
+        """Return a dict mapping pose-name → noisy z = true_z + N(0, sigma).
+
+        Models a pressure sensor's additive Gaussian noise. Drawn once at
+        graph-build time from the spawned depth child stream, so it's
+        reproducible and statistically independent of the range and odom
+        streams. Additive σ matches the factor's noise-model σ so
+        residuals are χ²-distributed.
+        """
+        rng = self._depth_rng
+        out: dict[str, float] = {}
+        for pose_chain in self.fg.pose_variables:
+            for pose in pose_chain:
+                out[pose.name] = (float(pose.true_position[2])
+                                  + float(rng.normal(0.0, sigma)))
+        return out
+
+    def _sample_noisy_ranges(self, measurements, stddev: float):
+        """Return new FGRangeMeasurement instances with N(0, stddev) added to dist.
+
+        Used when SolverConfig.add_range_noise is True — the additive σ is
+        deliberately tied to the GTSAM factor's noise model σ so residuals
+        are chi-square distributed. Drawn from the spawned range child
+        stream so it's reproducible and statistically independent of the
+        odom and depth streams.
+        """
+        from py_factor_graph.measurements import FGRangeMeasurement
+        rng = self._range_rng
+        out = []
+        for rm in measurements:
+            noisy_dist = float(rm.dist) + float(rng.normal(0.0, stddev))
+            if noisy_dist <= 0.0:
+                raise ValueError(
+                    f"range noise produced non-positive distance "
+                    f"{noisy_dist:.6f} (rm.dist={rm.dist:.3f}, stddev="
+                    f"{stddev}); reduce range_noise_stddev or filter "
+                    f"very-short ranges before adding noise.")
+            out.append(FGRangeMeasurement(
+                rm.association, noisy_dist, rm.stddev, rm.timestamp))
+        return out
+
     def _get_odom_delta(self, chain_idx: int, meas_idx: int, odom) -> gtsam.Pose3:
-        """Return odom delta, perturbed if noise was requested."""
+        """Return odom delta, perturbed if noise was requested.
+
+        The cached ``self._odom_deltas`` is looked up positionally against
+        ``self.fg.odom_measurements``. That coupling is only sound if the
+        pfg has not been mutated after ``FactorGraphSolver.__init__``; the
+        asserts guard against silent misalignment if that ever changes.
+        """
         if self._odom_deltas is not None:
+            assert len(self._odom_deltas) == len(self.fg.odom_measurements), (
+                f"cached odom-delta chain count "
+                f"({len(self._odom_deltas)}) drifted from fg "
+                f"({len(self.fg.odom_measurements)}); did fg mutate after "
+                f"solver __init__?")
+            assert len(self._odom_deltas[chain_idx]) == len(
+                self.fg.odom_measurements[chain_idx]), (
+                    f"cached odom-delta length for chain {chain_idx} "
+                    f"({len(self._odom_deltas[chain_idx])}) drifted from fg "
+                    f"({len(self.fg.odom_measurements[chain_idx])})")
             return self._odom_deltas[chain_idx][meas_idx]
         return _odom_to_pose3(odom)
 
@@ -233,7 +650,23 @@ class FactorGraphSolver:
                                 _position_array_from_pyfg(landmark))
 
     def _build_graph(self) -> None:
-        """Populate self.graph with all factors."""
+        """Populate self.graph with all factors.
+
+        Dispatches to five per-category helpers. Add order across
+        categories is preserved verbatim from the pre-extract version:
+        pose priors -> depth priors -> landmark priors -> odom + loop
+        closures (both BetweenFactorPose3) -> range factors.
+        """
+        self._add_pose_priors()
+        self._add_depth_priors()
+        self._add_landmark_priors()
+        self._add_odom_between_factors()
+        if self.config.include_ranges:
+            self._add_range_factors()
+
+    def _add_pose_priors(self) -> None:
+        """First-pose priors always use PyFG precisions; other priors are
+        GPS fixes that inherit ``cfg.gps_prior_sigmas`` if set."""
         fg = self.fg
         cfg = self.config
 
@@ -241,6 +674,9 @@ class FactorGraphSolver:
         for pose_chain in fg.pose_variables:
             if pose_chain:
                 first_pose_names.add(pose_chain[0].name)
+
+        gps_prior_noise = (gtsam.noiseModel.Diagonal.Sigmas(cfg.gps_prior_sigmas)
+                           if cfg.gps_prior_sigmas is not None else None)
 
         for prior in fg.pose_priors:
             is_first_pose = prior.name in first_pose_names
@@ -250,23 +686,89 @@ class FactorGraphSolver:
             R = _rot3(prior.rotation_matrix)
             t = np.array(prior.position, dtype=np.float64)
             pose = gtsam.Pose3(R, t)
-            noise = _pose3_noise(prior.translation_precision,
-                                 prior.rotation_precision)
+            if not is_first_pose and gps_prior_noise is not None:
+                noise = gps_prior_noise
+            else:
+                noise = _pose3_noise(prior.translation_precision,
+                                     prior.rotation_precision)
             self.graph.addPriorPose3(key, pose, noise)
+
+    def _add_depth_priors(self) -> None:
+        """One depth prior per pose, either PoseTranslationPrior3D
+        ("pose3", default) or a Python CustomFactor ("custom")."""
+        fg = self.fg
+        cfg = self.config
+        if cfg.depth_prior_sigma is None:
+            return
+
+        noisy_z = (self._sample_noisy_depths(cfg.depth_prior_sigma)
+                   if cfg.add_depth_noise else None)
+        if cfg.depth_prior_mode == "pose3":
+            # PoseTranslationPrior3D: world-frame translation residual on
+            # Pose3, rotation-invariant. Pure stock C++, no pybind11
+            # callback per LM iteration. 1e6 on x/y makes their information
+            # contribution (~1e-12) disappear against odom/GPS/range info,
+            # leaving an effective 1-DoF z anchor. Matches the "custom"
+            # branch semantically while avoiding the Python callback cost.
+            depth_noise = gtsam.noiseModel.Diagonal.Sigmas(np.array(
+                [1e6, 1e6, cfg.depth_prior_sigma], dtype=np.float64))
+            for pose_chain in fg.pose_variables:
+                for pose in pose_chain:
+                    key = self.key_map[pose.name]
+                    prior_pose = _pose3_from_pyfg(pose)
+                    if noisy_z is not None:
+                        t = prior_pose.translation().copy()
+                        t[2] = noisy_z[pose.name]
+                        prior_pose = gtsam.Pose3(prior_pose.rotation(), t)
+                    self.graph.add(gtsam.PoseTranslationPrior3D(
+                        key, prior_pose, depth_noise))
+        else:  # "custom"
+            for pose_chain in fg.pose_variables:
+                for pose in pose_chain:
+                    key = self.key_map[pose.name]
+                    z_used = (noisy_z[pose.name] if noisy_z is not None
+                              else float(pose.true_position[2]))
+                    self.graph.add(_make_depth_prior_custom(
+                        key, z_used, cfg.depth_prior_sigma))
+
+    def _add_landmark_priors(self) -> None:
+        """One Point3 prior per landmark; sigma is cfg-level or falls
+        back to PyFG per-prior precisions."""
+        fg = self.fg
+        cfg = self.config
+        landmark_noise = (gtsam.noiseModel.Isotropic.Sigma(
+                              3, cfg.landmark_prior_sigma)
+                          if cfg.landmark_prior_sigma is not None else None)
 
         for prior in fg.landmark_priors:
             key = self.key_map[prior.name]
             point = np.array(prior.position, dtype=np.float64)
-            noise = _point3_noise(prior.translation_precision)
+            noise = (landmark_noise if landmark_noise is not None
+                     else _point3_noise(prior.translation_precision))
             self.graph.addPriorPoint3(key, point, noise)
+
+    def _add_odom_between_factors(self) -> None:
+        """Odometry edges and loop closures: both are BetweenFactorPose3
+        on the pose-key space, so they share this helper. Odometry
+        edges may use noisy deltas + composite sigma; loop closures
+        always use PyFG-declared precisions on the clean measurement.
+        """
+        fg = self.fg
+        cfg = self.config
 
         for chain_idx, odom_chain in enumerate(fg.odom_measurements):
             for i, odom in enumerate(odom_chain):
                 key_from = self.key_map[odom.base_pose]
                 key_to = self.key_map[odom.to_pose]
+                clean = _odom_to_pose3(odom)
                 delta = self._get_odom_delta(chain_idx, i, odom)
-                noise = _pose3_noise(odom.translation_precision,
-                                     odom.rotation_precision)
+                if cfg.between_noise_sigmas is not None:
+                    sigmas = _odom_sigma_from_motion_and_drift(
+                        cfg.between_noise_sigmas, clean, self._odom_floor)
+                    noise = gtsam.noiseModel.Diagonal.Sigmas(sigmas)
+                else:
+                    noise = _pose3_noise(odom.translation_precision,
+                                         odom.rotation_precision)
                 self.graph.add(
                     gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
@@ -281,15 +783,27 @@ class FactorGraphSolver:
             self.graph.add(
                 gtsam.BetweenFactorPose3(key_from, key_to, delta, noise))
 
-        if not cfg.include_ranges:
-            return
+    def _add_range_factors(self) -> None:
+        """Range factors, dispatched by endpoint type
+        (pose-pose / pose-landmark / landmark-landmark).
 
+        Guarded by ``cfg.include_ranges`` at the orchestrator.
+        Source may be swapped for geometric distances or additive-noise
+        variants, depending on cfg flags.
+        """
+        fg = self.fg
+        cfg = self.config
         pose_keys = fg.pose_variables_dict
-        if cfg.use_true_ranges:
-            true_fg = make_all_ranges_perfect(fg)
-            range_source = true_fg.range_measurements
+        if cfg.use_straight_line_ranges:
+            src_measurements = make_all_ranges_perfect(fg).range_measurements
         else:
-            range_source = fg.range_measurements
+            src_measurements = fg.range_measurements
+
+        if cfg.add_range_noise:
+            range_source = self._sample_noisy_ranges(
+                src_measurements, cfg.range_noise_stddev)
+        else:
+            range_source = src_measurements
 
         for rm in range_source:
             name_a, name_b = rm.association
@@ -298,7 +812,7 @@ class FactorGraphSolver:
 
             key_a = self.key_map[name_a]
             key_b = self.key_map[name_b]
-            noise = _range_noise(cfg.range_noise_stddev)
+            noise = _range_noise(cfg.range_noise_stddev, cfg.robust_range)
 
             a_is_pose = name_a in pose_keys
             b_is_pose = name_b in pose_keys

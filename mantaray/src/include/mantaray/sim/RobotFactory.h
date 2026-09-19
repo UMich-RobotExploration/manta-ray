@@ -29,6 +29,9 @@ struct StandardSensorConfig {
   double gpsXyNoiseStddev{0.5};
   /// GPS Z noise standard deviation
   double gpsZNoiseStddev{2.0};
+  /// Depth window around the surface within which GPS returns readings.
+  /// A robot at depth z produces a GPS sample iff |z| <= gpsSurfaceRangeMeters.
+  double gpsSurfaceRangeMeters{0.1};
 };
 
 /**
@@ -68,7 +71,8 @@ rb::RobotIdx addStandardRobot(rb::RbWorld &world, double endTime,
       sensorCfg.gpsFreqHz,
       rb::computeNumTimeSteps(endTime, sensorCfg.gpsFreqHz),
       std::normal_distribution<double>{0.0, sensorCfg.gpsXyNoiseStddev},
-      std::normal_distribution<double>{0.0, sensorCfg.gpsZNoiseStddev}));
+      std::normal_distribution<double>{0.0, sensorCfg.gpsZNoiseStddev},
+      sensorCfg.gpsSurfaceRangeMeters));
 
   world.dynamicsBodies.setPosition(idx, initialPos);
 

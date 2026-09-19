@@ -4,9 +4,9 @@
  *
  * @details Manages all the simulation time stepping along with validation. If
  * there are preconditions or similar that are needed for the simulation they
- * should be directly included in @ref RbWorld::validateWorld.
+ * should be directly included in @ref rb::RbWorld::validateWorld.
  *
- * @see RbWorld::validateWorld
+ * @see rb::RbWorld::validateWorld
  */
 #pragma once
 #include <random>

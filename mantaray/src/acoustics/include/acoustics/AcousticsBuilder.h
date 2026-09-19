@@ -1,5 +1,5 @@
 /** @file AcousticsBuilder.h
- *  @brief See details of @ref AcousticsBuilder
+ *  @brief See details of @ref acoustics::AcousticsBuilder
  */
 #pragma once
 #include "acoustics/SimulationConfig.h"
