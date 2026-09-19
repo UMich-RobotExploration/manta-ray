@@ -67,7 +67,7 @@ execution time) find their targets.
 
 ```bash
 cd cmake-build-release/src
-./mantaray_core ../../sim_config/beaufort_fleet_week_sim.json
+./mantaray_core ../../sim_config/paper_beaufort_fleet_week_sim.json
 ```
 
 > [!IMPORTANT]
