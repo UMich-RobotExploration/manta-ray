@@ -19,30 +19,31 @@
 
 Standard multi-agent acoustic SLAM pipelines assume straight-line
 propagation for algorithmic tractability, but sound-speed variability
-bends acoustic rays and systematically biases inter-agent ranges — an
-effect whose impact on kilometer-scale collaborative fleets remains
-unexplored. **MantaRay** is an open-source simulator that ingests HYCOM
-reanalysis products and uses GPU-accelerated Bellhop (`bellhopcuda`) ray
-tracing to generate refraction-informed ranges between a fleet of
-Argo-style floats, then feeds them into a centralized GTSAM factor
-graph. Simulated experiments over the Beaufort Sea (cold-cap halocline)
-and Fram Strait (Atlantic–polar exchange) with eleven floats over seven
-days and 25 Monte Carlo realizations show that acoustic refraction
-systematically biases estimators as collaborative fleets scale to
-operational domains spanning 5–12 km — degrading trajectories and, via
-acoustic shadow zones, dropping available ranging measurements. MantaRay
-is released so future environmentally-informed estimators can be
-evaluated against the bias it exposes.
+bends acoustic rays and systematically biases inter-agent ranges. Prior
+work has not characterized this bias for kilometer-scale collaborative
+fleets. This work does. **MantaRay** is the open-source simulator
+behind that characterization: it ingests HYCOM reanalysis products,
+uses GPU-accelerated Bellhop (`bellhopcuda`) ray tracing to generate
+refraction-informed ranges between a fleet of Argo-style floats, and
+feeds them into a centralized GTSAM factor graph. Simulated experiments
+over the Beaufort Sea (cold-cap halocline) and Fram Strait
+(Atlantic-polar exchange) with eleven floats over seven days and 25
+Monte Carlo realizations quantify how acoustic refraction biases
+estimators as fleets scale to operational domains spanning 5 to 12 km,
+degrading trajectories and, through acoustic shadow zones, reducing the
+number of available ranging measurements. MantaRay is released so
+future environmentally-informed estimators can be evaluated against the
+bias it exposes.
 
 ## Key findings
 
 - **Variance is grossly under-modelled.** Empirical range-error spread
   reaches ±100 m (best-fit Gaussian σ = **35.7 m** Beaufort, **22.6 m**
-  Fram) — 20–35× larger than the σ<sub>r</sub> = 1 m Gaussian noise the
-  estimator assumes.
+  Fram), which is 20 to 35 times the σ<sub>r</sub> = 1 m Gaussian noise
+  the estimator assumes.
 - **Environment gates ranging availability.** Ranging failure rate is
   **1.0%** in Beaufort vs **6.8%** in Fram Strait; station-keeping
-  float↔diver links fail **3.6%** vs **29.5%** — a 8× regional
+  float-to-diver links fail **3.6%** vs **29.5%**, an 8x regional
   difference under identical fleet and schedule.
 - **Distribution shape is a regional fingerprint.** The Beaufort Sea
   carries a heavier negative tail; the Fram Strait is more symmetric.
@@ -107,7 +108,7 @@ sound-speed structure differs.
 <table>
   <tr>
     <th align="center">Beaufort Sea (cold-cap halocline)</th>
-    <th align="center">Fram Strait (Atlantic–polar exchange)</th>
+    <th align="center">Fram Strait (Atlantic-polar exchange)</th>
   </tr>
   <tr>
     <td align="center">
@@ -126,7 +127,7 @@ sound-speed structure differs.
     </td>
     <td align="center">
       <img src="docs/figures/mc_pooled_ape_fram.png" alt="Fram Strait pooled APE"/><br/>
-      <sub>Same APE distributions in Fram Strait — variance mismatch dominates fleet-level trajectory error.</sub>
+      <sub>Same APE distributions in Fram Strait; variance mismatch dominates fleet-level trajectory error.</sub>
     </td>
   </tr>
 </table>
@@ -134,12 +135,12 @@ sound-speed structure differs.
 The bias figures above collapse whole distributions into single numbers,
 but the underlying geometry is what MantaRay actually produces. The
 one-off render below visualizes ray paths for a single acoustic link
-through the Beaufort SSP: rays leave the source, bend under the
+through the Beaufort SSP. Rays leave the source, bend under the
 sound-speed gradient, and reach the receiver along curved arcs rather
-than a straight line — the geometric root of the range error the paper
-characterizes. The render is not part of the standard pipeline; it was
-built in Open3D from a `bellhopcuda` ray trace and can be reproduced
-the same way.
+than a straight line. This curvature is the geometric root of the range
+error the paper characterizes. The render itself is not part of the
+standard pipeline; it was built in Open3D from a `bellhopcuda` ray trace
+and can be reproduced the same way.
 
 <p align="center">
   <img src="docs/figures/open3d_refraction_diagram.png" alt="Open3D render of refracted ray paths from a MantaRay bellhopcuda trace" width="82%"/>
