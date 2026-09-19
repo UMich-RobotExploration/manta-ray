@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://citation-file-format.github.io/1.2.0/schema.json
+cff-version: 1.2.0
+title: MantaRay
+message: >-
+  If you use this software, please cite both the software and the
+  accompanying paper below.
+type: software
+authors:
+  - given-names: Timothy
+    family-names: Kogucki
+    email: tkogucki4@gmail.com
+    affiliation: KTH Royal Institute of Technology
+  - given-names: Alan
+    family-names: Papalia
+    email: apapalia@umich.edu
+    affiliation: University of Michigan
+repository-code: "https://github.com/UMich-RobotExploration/manta-ray"
+license: MIT
+version: "0.1.0"
+preferred-citation:
+  type: conference-paper
+  title: >-
+    Characterizing Refraction-Induced Ranging Bias in Underwater
+    Collaborative Localization
+  authors:
+    - given-names: Timothy
+      family-names: Kogucki
+    - given-names: Alan
+      family-names: Papalia
+  conference:
+    name: "OCEANS 2025 -- Great Lakes"
+    city: Chicago
+    region: Illinois
+    country: US
+  year: 2025
+  publisher:
+    name: IEEE
+  url: "https://arxiv.org/abs/2609.18073"
