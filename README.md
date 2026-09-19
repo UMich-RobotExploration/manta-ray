@@ -140,15 +140,14 @@ paper. **The BibTeX entry below is provisional and will be updated
 with final page numbers and DOI after the OCEANS conference.**
 
 ```bibtex
-@inproceedings{kogucki2025refraction,
-  title     = {Characterizing Refraction-Induced Ranging Bias in
-               Underwater Collaborative Localization},
-  author    = {Kogucki, Timothy and Papalia, Alan},
-  booktitle = {OCEANS 2025 -- Great Lakes},
-  year      = {2025},
-  publisher = {IEEE},
-  address   = {Chicago, IL, USA},
-  note      = {\url{https://arxiv.org/abs/2609.18073}}
+@misc{kogucki2026characterizingrefractioninducedrangingbias,
+      title={Characterizing Refraction-Induced Ranging Bias in Underwater Collaborative Localization},
+      author={Timothy Kogucki and Alan Papalia},
+      year={2026},
+      eprint={2609.18073},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2609.18073},
 }
 ```
 

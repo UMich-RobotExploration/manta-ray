@@ -18,7 +18,7 @@ repository-code: "https://github.com/UMich-RobotExploration/manta-ray"
 license: MIT
 version: "0.1.0"
 preferred-citation:
-  type: conference-paper
+  type: article
   title: >-
     Characterizing Refraction-Induced Ranging Bias in Underwater
     Collaborative Localization
@@ -27,12 +27,13 @@ preferred-citation:
       family-names: Kogucki
     - given-names: Alan
       family-names: Papalia
-  conference:
-    name: "OCEANS 2025 -- Great Lakes"
-    city: Chicago
-    region: Illinois
-    country: US
-  year: 2025
-  publisher:
-    name: IEEE
+  year: 2026
+  journal: arXiv
+  identifiers:
+    - type: other
+      value: "arXiv:2609.18073"
+      description: arXiv preprint identifier
   url: "https://arxiv.org/abs/2609.18073"
+  notes: >-
+    Provisional citation; will be updated with final page numbers and
+    DOI after the OCEANS conference.
