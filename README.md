@@ -131,6 +131,20 @@ sound-speed structure differs.
   </tr>
 </table>
 
+The bias figures above collapse whole distributions into single numbers,
+but the underlying geometry is what MantaRay actually produces. The
+one-off render below visualizes ray paths for a single acoustic link
+through the Beaufort SSP: rays leave the source, bend under the
+sound-speed gradient, and reach the receiver along curved arcs rather
+than a straight line — the geometric root of the range error the paper
+characterizes. The render is not part of the standard pipeline; it was
+built in Open3D from a `bellhopcuda` ray trace and can be reproduced
+the same way.
+
+<p align="center">
+  <img src="docs/figures/open3d_refraction_diagram.png" alt="Open3D render of refracted ray paths from a MantaRay bellhopcuda trace" width="82%"/>
+</p>
+
 The full figure set (SSP profiles, fleet layout, factor-graph 3D view)
 lives under [`docs/figures/`](docs/figures).
 
