@@ -1,0 +1,5 @@
+<map id="sim::RangeLink" name="sim::RangeLink">
+<area shape="rect" id="Node000001" title="Directed link between two endpoints." alt="" coords="20,108,143,133"/>
+<area shape="rect" id="Node000002" href="$structsim_1_1RangeEndpoint.html" title="Identifies one end of an acoustic link." alt="" coords="5,5,157,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="84,45,84,108,79,108,79,45"/>
+</map>

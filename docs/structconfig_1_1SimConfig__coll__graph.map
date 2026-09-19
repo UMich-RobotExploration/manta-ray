@@ -1,0 +1,7 @@
+<map id="config::SimConfig" name="config::SimConfig">
+<area shape="rect" id="Node000001" title=" " alt="" coords="138,93,273,119"/>
+<area shape="rect" id="Node000002" href="$structsim_1_1StandardSensorConfig.html" title="Default sensor frequencies and noise parameters for the standard sensor suite (GroundTruthPose,..." alt="" coords="5,5,203,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,38,193,91,190,95,127,42"/>
+<area shape="rect" id="Node000003" href="$structpyfg_1_1PfgWriterConfig.html" title="Configuration for the PFG writer." alt="" coords="227,5,389,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="285,42,221,95,218,91,282,38"/>
+</map>
