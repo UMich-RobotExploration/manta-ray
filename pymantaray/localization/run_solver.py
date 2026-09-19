@@ -10,16 +10,8 @@ from pyfg_to_gtsam import FactorGraphSolver, RobustConfig
 from solver_defaults import build_default_config
 from visualize_solver import (visualize, compare_results, compare_depth_error,
                                visualize_landmarks)
-from debug_factor_graphs import debug_factor_graph
 
-# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-simple/output.pfg"
-# FILE_PATH = "/media/veracrypt1/College/Grad School/thesis/baseline-lbl/lbl-no-multi/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-fleet-week/output.pfg"
 FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week-dryrun/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-simple/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/lbl-float/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats/output.pfg"
-# FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/beaufort-floats-long/output.pfg"
 WORK_DIR = os.path.dirname(FILE_PATH)
 
 print(f"Reading {FILE_PATH} ...")
@@ -40,9 +32,6 @@ print(f"GTSAM graph: {solver_measured.graph.size()} factors, "
 print(f"Initial error: {solver_measured.graph.error(solver_measured.initial):.4f}")
 print(f"Final   error: {solver_measured.graph.error(solver_measured.result):.4f}")
 
-# debug_factor_graph(solver_measured, save_dir=WORK_DIR, prefix="measured",
-#                    show_3d=True, show_leverage=True)
-
 print("\n--- Measured Ranges ---")
 visualize(solver_measured, save_dir=WORK_DIR, prefix="measured",
           estimate_label="Refracted Ranges", show=False)
@@ -57,9 +46,6 @@ print(f"GTSAM graph: {solver_true.graph.size()} factors, "
       f"{solver_true.initial.size()} variables")
 print(f"Initial error: {solver_true.graph.error(solver_true.initial):.4f}")
 print(f"Final   error: {solver_true.graph.error(solver_true.result):.4f}")
-
-# debug_factor_graph(solver_true, save_dir=WORK_DIR, prefix="true",
-#                    show_3d=False)
 
 print("\n--- True Ranges ---")
 visualize(solver_true, save_dir=WORK_DIR, prefix="true", show_range_error=False,

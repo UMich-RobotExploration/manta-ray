@@ -8,7 +8,6 @@ world with on-screen residual labels for the worst ones.
 """
 
 import os
-from copy import deepcopy
 from dataclasses import dataclass, field
 
 import matplotlib
@@ -358,25 +357,20 @@ def plot_residual_distributions(stats: dict[str, FactorTypeStats],
 
 # ───────────────────── marginal leverage (opt-in) ─────────────────────
 
-def compute_factor_leverages(solver, values) -> tuple[dict[int, float],
-                                                      "gtsam.Marginals | None"]:
+def compute_factor_leverages(solver, values) -> dict[int, float]:
     """Per-factor marginal leverage tr(A · Σ_local · Aᵀ).
 
     Σ_local is the posterior marginal covariance of the variables this
     factor touches, computed conditional on every other factor in the
     graph. Cost: one global Cholesky (shared across factors) plus one
     back-solve per factor — opt-in only.
-
-    Returns (leverages_by_factor_index, marginals_object). The Marginals
-    object is returned so callers can reuse it for pose-marginal plots
-    without re-factorizing.
     """
     graph = solver.graph
     try:
         marginals = gtsam.Marginals(graph, values)
     except RuntimeError as e:
         print(f"[leverage] gtsam.Marginals failed (non-PD system?): {e}")
-        return {}, None
+        return {}
 
     n = graph.size()
     print(f"[leverage] computing {n:,} factor leverages...")
@@ -396,7 +390,7 @@ def compute_factor_leverages(solver, values) -> tuple[dict[int, float],
             out[i] = float(np.trace(A @ Sigma @ A.T))
         except Exception:
             out[i] = float("nan")
-    return out, marginals
+    return out
 
 
 def _attach_leverages_to_stats(stats: dict[str, "FactorTypeStats"],
@@ -592,90 +586,6 @@ def print_top_influence(stats: dict[str, "FactorTypeStats"],
     return top
 
 
-def plot_pose_marginals(solver,
-                        marginals: "gtsam.Marginals",
-                        save_dir: str | None = None,
-                        prefix: str = "") -> None:
-    """Position-uncertainty traces along the pose chain, plus GPS-priored
-    pose markers. Reuses an existing Marginals object — no extra Cholesky.
-    """
-    pose_chains = solver.fg.pose_variables
-    if not pose_chains:
-        return
-
-    # Find GPS-priored pose names by scanning the graph for PriorFactorPose3.
-    gps_pose_names: set[str] = set()
-    reverse_map = _build_reverse_key_map(solver)
-    for i in range(solver.graph.size()):
-        f = solver.graph.at(i)
-        if isinstance(f, gtsam.PriorFactorPose3):
-            ks = list(f.keys())
-            if ks:
-                gps_pose_names.add(reverse_map.get(ks[0], ""))
-
-    fig, (ax_sig, ax_tr) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
-
-    robot_colors = ["tab:blue", "tab:red", "tab:green", "tab:purple",
-                    "tab:orange"]
-    any_plotted = False
-    for r_idx, chain in enumerate(pose_chains):
-        if not chain:
-            continue
-        xs, sx, sy, sz, tr_vals = [], [], [], [], []
-        gps_marks: list[int] = []
-        color = robot_colors[r_idx % len(robot_colors)]
-        for p_idx, pose_var in enumerate(chain):
-            key = solver.key_map.get(pose_var.name)
-            if key is None:
-                continue
-            try:
-                cov = marginals.marginalCovariance(key)
-            except Exception:
-                continue
-            # Pose3 marginal is 6×6 [rot(3), trans(3)] — grab translation block.
-            pos_cov = np.asarray(cov)[3:6, 3:6]
-            diag = np.clip(np.diag(pos_cov), 0.0, None)
-            xs.append(p_idx)
-            sx.append(np.sqrt(diag[0]))
-            sy.append(np.sqrt(diag[1]))
-            sz.append(np.sqrt(diag[2]))
-            tr_vals.append(float(np.trace(pos_cov)))
-            if pose_var.name in gps_pose_names:
-                gps_marks.append(p_idx)
-
-        if not xs:
-            continue
-        any_plotted = True
-        ax_sig.plot(xs, sx, "-", color=color, alpha=0.9, label=f"r{r_idx} σx")
-        ax_sig.plot(xs, sy, "--", color=color, alpha=0.6, label=f"r{r_idx} σy")
-        ax_sig.plot(xs, sz, ":", color=color, alpha=0.6, label=f"r{r_idx} σz")
-        ax_tr.plot(xs, tr_vals, "-", color=color, label=f"robot {r_idx}")
-        for gx in gps_marks:
-            ax_sig.axvline(gx, color=color, alpha=0.15, linewidth=1)
-            ax_tr.axvline(gx, color=color, alpha=0.15, linewidth=1)
-
-    if not any_plotted:
-        plt.close(fig)
-        return
-
-    ax_sig.set_ylabel("position stddev (m)")
-    ax_sig.set_title("Per-axis position uncertainty (GPS-priored poses marked)")
-    ax_sig.legend(fontsize=8, ncol=3)
-    ax_sig.grid(True, alpha=0.3)
-    ax_tr.set_ylabel("tr(Σ_pos) (m²)")
-    ax_tr.set_xlabel("pose index")
-    ax_tr.set_title("Total position uncertainty")
-    ax_tr.legend(fontsize=8)
-    ax_tr.grid(True, alpha=0.3)
-
-    fig.suptitle(f"Pose marginals — {prefix}", fontsize=14)
-    fig.tight_layout()
-    if save_dir:
-        path = os.path.join(save_dir, f"{prefix}_pose_marginals.png")
-        fig.savefig(path, dpi=300, bbox_inches="tight")
-        print(f"Saved {path}")
-
-
 # ───────────────────── prior-health panel ─────────────────────
 
 def _pose_index_from_name(name: str) -> int | None:
@@ -785,10 +695,8 @@ def debug_factor_graph(solver,
     plot_residual_distributions(stats, save_dir=save_dir, prefix=prefix)
     plot_prior_health(stats, save_dir=save_dir, prefix=prefix)
 
-    marginals_obj = None
     if show_leverage:
-        leverages, marginals_obj = compute_factor_leverages(
-            solver, solver.result)
+        leverages = compute_factor_leverages(solver, solver.result)
         if leverages:
             _attach_leverages_to_stats(stats, leverages)
             print_leverage_importance_table(stats, prefix=prefix)
@@ -796,9 +704,6 @@ def debug_factor_graph(solver,
             _attach_cook_to_stats(stats)
             print_influence_importance_table(stats, prefix=prefix)
             print_top_influence(stats, k=top_k, prefix=prefix)
-        if marginals_obj is not None:
-            plot_pose_marginals(solver, marginals_obj,
-                                save_dir=save_dir, prefix=prefix)
 
     # Render matplotlib figures non-blocking so the user can study them.
     # VTK 3D views were removed with the rest of the vtk_plots module;
@@ -812,50 +717,3 @@ def debug_factor_graph(solver,
     return stats
 
 
-# ───────────────────── standalone entry ─────────────────────
-
-if __name__ == "__main__":
-    from py_factor_graph.io.pyfg_text import read_from_pyfg_text
-
-    from pyfg_to_gtsam import (FactorGraphSolver, SolverConfig,
-                               odom_cadence_from_fg)
-
-
-    FILE_PATH = "/home/tko/repos/manta-ray/mantaray/cmake-build-release/src/results/arctic/fram-strait-fleet-week/output.pfg"
-    WORK_DIR = os.path.dirname(FILE_PATH)
-
-    default_pos_prior = 0.1
-    angular_noise = 1e-6
-    xy_frac = 0.05
-    z_frac = 0.01
-    odom_noise = np.array([angular_noise, angular_noise, angular_noise,
-                           xy_frac, xy_frac, z_frac])
-    odom_gtsam_noise = deepcopy(odom_noise)
-    odom_gtsam_noise[:3] = 1e-2
-
-    gps_prior_sigmas = np.array(
-        [2, 2, 2, default_pos_prior, default_pos_prior, default_pos_prior],
-        dtype=np.float64)
-
-    print(f"Reading {FILE_PATH} ...")
-    fg_data = read_from_pyfg_text(FILE_PATH)
-    odom_cadence_dt = odom_cadence_from_fg(fg_data)
-
-    config = SolverConfig(
-        odom_noise_sigmas=odom_noise,
-        range_noise_stddev=1.0,
-        include_ranges=True,
-        between_noise_sigmas=odom_gtsam_noise,
-        landmark_prior_sigma=default_pos_prior,
-        gps_prior_sigmas=gps_prior_sigmas,
-        depth_prior_sigma=0.01 / 3.0,
-        depth_prior_mode="pose3",
-        odom_cadence_dt=odom_cadence_dt,
-        odom_drift_rate_trans=0.01,
-        odom_drift_rate_rot=1e-6,
-    )
-
-    solver = FactorGraphSolver(fg_data, config)
-    solver.solve()
-    debug_factor_graph(solver, save_dir=WORK_DIR, prefix="measured")
-    plt.show()
